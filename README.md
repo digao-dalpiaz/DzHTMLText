@@ -23,7 +23,7 @@ Here are all possible tags you can use in text:
 <TF:123></TF> - Tab with aligned break
 ```
 
-[Design-time example](#htlabel_print.png)
+![Design-time example](htlabel_print.png?raw=true "Design-time example")
 
 ## Installing
 
