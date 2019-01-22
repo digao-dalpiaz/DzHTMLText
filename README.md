@@ -23,6 +23,8 @@ Here are all possible tags you can use in text:
 <TF:123></TF> - Tab with aligned break
 ```
 
+[Design-time example](#htlabel_print.png)
+
 ## Installing
 
 Just add the HTLabel.pas to a package. Then build and install.
