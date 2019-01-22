@@ -22,3 +22,14 @@ Here are all possible tags you can use in text:
 <T:123></T> - Tab
 <TF:123></TF> - Tab with aligned break
 ```
+
+## Installing
+
+Just add the HTLabel.pas to a package. Then build and install.
+
+Note: To ensure the component is displayed with its icon, add the following line to the Package Source:
+```
+{$R HTLabel.dcr}
+```
+
+Supports Delphi XE2..Delphi 10.3 Rio
