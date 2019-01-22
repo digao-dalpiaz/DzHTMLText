@@ -74,44 +74,44 @@ This property calls ShellExecute method.
 
 ## Events
 
-```
+```delphi
 OnLinkEnter(Sender: TObject; LinkID: Integer; Target: String)
 ```
 This event is fired when the mouse enters a link area
 
-```
+```delphi
 OnLinkLeave(Sender: TObject; LinkID: Integer; Target: String)
 ```
 This event is fired when the mouse leaves a link area
 
-```
+```delphi
 OnLinkClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean)
 ```
 This event is fired when a link is left-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is True at method start).
 
-```
+```delphi
 OnLinkRightClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean)
 ```
 This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is True at method start).
 
 ## Procedures/Functions
 
-```
+```delphi
 function IsLinkHover: Boolean
 ```
 This function returns true when the mouse is over a link
 
-```
+```delphi
 function SelectedLinkID: Integer
 ```
 This function returns the ID of the selected link. This ID is auto generated according by the links sequence in the text. The ID is used to get the target string, that is stored in a internal TStringList.
 
-```
+```delphi
 function GetLinkTarget(LinkID: Integer): String
 ```
 Returns the target string of the link id. The ID is auto generated according by the links sequence in the text.
 
-```
+```delphi
 function GetSelectedLinkTarget: String
 ```
 Returns the target string of selected link. A link is selected when the mouse is over it.
