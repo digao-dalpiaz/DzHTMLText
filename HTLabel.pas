@@ -205,9 +205,18 @@ type
     property AutoOpenLink: Boolean read FAutoOpenLink write FAutoOpenLink default True;
   end;
 
+procedure Register;
+
 implementation
 
 uses System.SysUtils, System.UITypes, Winapi.Windows, Winapi.ShellAPI;
+
+procedure Register;
+begin
+  RegisterComponents('Digao', [THTLabel]);
+end;
+
+//
 
 constructor THTWord.Create;
 begin
