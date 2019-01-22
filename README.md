@@ -58,7 +58,7 @@ This property calls ShellExecute method.
 
 `StyleLinkHover` = Properties to formatting a link when is selected by mouse.
 
-`Text` = The text you want to show at label control. You can use <BR> tag to break lines. The Windows default Line Break (#13#10) breaks lines eighter.
+`Text` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines eighter.
 
 `TextHeight` = Returns the total text height. This property is read-only.
 
