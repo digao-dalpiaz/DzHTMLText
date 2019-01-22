@@ -62,3 +62,46 @@ This property calls ShellExecute method.
 
 `TextWidth` = Returns the total text width. This property is read-only.
 
+## Events
+
+```
+OnLinkEnter(Sender: TObject; LinkID: Integer; Target: String)
+```
+This event is fired when the mouse enters a link area
+
+```
+OnLinkLeave(Sender: TObject; LinkID: Integer; Target: String)
+```
+This event is fired when the mouse leaves a link area
+
+```
+OnLinkClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean)
+```
+This event is fired when a link is left-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is True at method start).
+
+```
+OnLinkRightClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean)
+```
+This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is True at method start).
+
+## Procedures/Functions
+
+```
+function IsLinkHover: Boolean
+```
+This function returns true when the mouse is over a link
+
+```
+function SelectedLinkID: Integer
+```
+This function returns the ID of the selected link. This ID is auto generated according by the links sequence in the text. The ID is used to get the target string, that is stored in a internal TStringList.
+
+```
+function GetLinkTarget(LinkID: Integer): String
+```
+Returns the target string of the link id. The ID is auto generated according by the links sequence in the text.
+
+```
+function GetSelectedLinkTarget: String
+```
+Returns the target string of selected link. A link is selected when the mouse is over it.
