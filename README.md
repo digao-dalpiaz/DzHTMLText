@@ -1,6 +1,14 @@
 # HTLabel
 ## Delphi HTML Label component
 
+- [Component Description](#component-description)
+- [Installing](#installing)
+- [Component Properties](#component-properties)
+- [Events](#events)
+- [Procedures/Functions](#proceduresfunctions)
+
+## Component Description
+
 This visual component allows you to specify a formatted text in a label, using almost the same sintax used in HTML code.
 
 Here are all possible tags you can use in text:
@@ -36,7 +44,7 @@ Note: To ensure the component is displayed with its icon, add the following line
 
 Supports Delphi XE2..Delphi 10.3 Rio
 
-## Component properties
+## Component Properties
 
 `AutoHeight` = Auto set height of control when Text property changed
 
