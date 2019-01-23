@@ -46,72 +46,72 @@ Supports Delphi XE2..Delphi 10.3 Rio
 
 ## Component Properties
 
-`AutoHeight` = Auto set height of control when Text property changed
+`AutoHeight: Boolean` = Auto set height of control when Text property changed
 
-`AutoWidth` = Auto set width of control when Text property changed.
+`AutoWidth: Boolean` = Auto set width of control when Text property changed.
 If you are using AutoWidth, the text never wraps to a new line unless a line break is specifyed at text.
 
-`AutoOpenLink` = Open links automatically on click over, without set event OnLinkClick.
+`AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick.
 This property calls ShellExecute method.
 
-`Color` = Backgroud color of control
+`Color: TColor` = Backgroud color of control
 
-`Font` = Determines the base font. When no tag is specifyed on text, this base font is used.
+`Font: TFont` = Determines the base font. When no tag is specifyed on text, this base font is used.
 
-`Lines` = Returns the total lines of text, according to the bounds of control. This property is read-only.
+`Lines: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
 
-`MaxWidth` = Specify the maximum width of text, even when the control bounds is bigger. This is useful when using AutoWidth property.
+`MaxWidth: Integer` = Specify the maximum width of text, even when the control bounds is bigger. This is useful when using AutoWidth property.
 
-`StyleLinkNormal` = Properties to formatting a link when is not selected by mouse.
+`StyleLinkNormal: THTStyleLinkProp` = Properties to formatting a link when is not selected by mouse.
 
-`StyleLinkHover` = Properties to formatting a link when is selected by mouse.
+`StyleLinkHover: THTStyleLinkProp` = Properties to formatting a link when is selected by mouse.
 
-`Text` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines eighter.
+`Text: String` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines eighter.
 
-`TextHeight` = Returns the total text height. This property is read-only.
+`TextHeight: Integer` = Returns the total text height. This property is read-only.
 
-`TextWidth` = Returns the total text width. This property is read-only.
+`TextWidth: Integer` = Returns the total text width. This property is read-only.
 
 ## Events
 
 ```delphi
-OnLinkEnter(Sender: TObject; LinkID: Integer; Target: String)
+procedure OnLinkEnter(Sender: TObject; LinkID: Integer; Target: String);
 ```
 This event is fired when the mouse enters a link area
 
 ```delphi
-OnLinkLeave(Sender: TObject; LinkID: Integer; Target: String)
+procedure OnLinkLeave(Sender: TObject; LinkID: Integer; Target: String);
 ```
 This event is fired when the mouse leaves a link area
 
 ```delphi
-OnLinkClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean)
+procedure OnLinkClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean);
 ```
 This event is fired when a link is left-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is True at method start).
 
 ```delphi
-OnLinkRightClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean)
+procedure OnLinkRightClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean);
 ```
 This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is True at method start).
 
 ## Procedures/Functions
 
 ```delphi
-function IsLinkHover: Boolean
+function IsLinkHover: Boolean;
 ```
 This function returns true when the mouse is over a link
 
 ```delphi
-function SelectedLinkID: Integer
+function SelectedLinkID: Integer;
 ```
 This function returns the ID of the selected link. This ID is auto generated according by the links sequence in the text. The ID is used to get the target string, that is stored in a internal TStringList.
 
 ```delphi
-function GetLinkTarget(LinkID: Integer): String
+function GetLinkTarget(LinkID: Integer): String;
 ```
 Returns the target string of the link id. The ID is auto generated according by the links sequence in the text.
 
 ```delphi
-function GetSelectedLinkTarget: String
+function GetSelectedLinkTarget: String;
 ```
 Returns the target string of selected link. A link is selected when the mouse is over it.
