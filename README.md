@@ -37,6 +37,8 @@ Here are all possible tags you can use in text:
 
 Open HTLabelPackage in Delphi. Then Build and Install.
 
+> Add sub-path Lib to the Library paths at Tool\Options.
+
 Supports Delphi XE2..Delphi 10.3 Rio
 
 ## Component Properties
