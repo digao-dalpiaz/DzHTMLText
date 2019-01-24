@@ -35,12 +35,7 @@ Here are all possible tags you can use in text:
 
 ## Installing
 
-Just add the HTLabel.pas to a package. Then build and install.
-
-Note: To ensure the component is displayed with its icon, add the following line to the Package Source:
-```
-{$R HTLabel.dcr}
-```
+Open HTLabelPackage in Delphi. Then Build and Install.
 
 Supports Delphi XE2..Delphi 10.3 Rio
 
