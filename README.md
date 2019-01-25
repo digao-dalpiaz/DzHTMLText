@@ -126,15 +126,15 @@ There are two ways to use link tag:
 
 1. Declaring internal link and the text do display:
 
-`<a:www.google.com.br>Open Google Search</a>`
+`<a:www.google.com>Open Google Search</a>`
 
-*This will display: [Open Google Search](http://www.google.com.br)*
+*This will display: [Open Google Search](http://www.google.com)*
 
 2. Just using the display text:
 
-`<a>www.google.com.br</a>`
+`<a>www.google.com</a>`
 
-*This will display: www.google.com.br*
+*This will display: www.google.com*
 
 > You can use any text as internal link code. Then you can handle this code at OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events, reading `Target` parameter
 
