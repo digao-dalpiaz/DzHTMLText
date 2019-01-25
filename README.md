@@ -127,7 +127,7 @@ There are two ways to use link tag:
 
 `<a:www.google.com.br>Open Google Search</a>`
 
-*This will display: [Open Google Search](www.google.com.br)*
+*This will display: [Open Google Search](http://www.google.com.br)*
 
 2. Just using the display text:
 
