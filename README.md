@@ -31,7 +31,7 @@ Here are all possible tags you can use in text:
 <TF:123></TF> - Tab with aligned break
 ```
 
-> The tags notation is case-insensitive, so you can use `<B>Text</B>` or '<b>Text</b>'.
+> The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
 
 > **Note about color notation:**
 > When you use `FC` or `BC` tags, the color in hexadecimal value is specifyed by 6 digits, like in HTML notation. If you are getting color from Delphi, please remove the first two zeros of the begining of color code.
