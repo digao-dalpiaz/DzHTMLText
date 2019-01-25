@@ -119,6 +119,18 @@ function GetSelectedLinkTarget: String;
 ```
 Returns the target string of selected link. A link is selected when the mouse is over it.
 
+## Link Tag
+
+There are two ways to use link tag:
+
+1. Declaring internal link and the text do display:
+`<a:www.google.com.br>Open Google Search</a>`
+This will display: Open Google Search
+
+2. Just using the display text:
+`<a>www.google.com.br</a>`
+This will display: www.google.com.br
+
 ## Transparency (why not?)
 
 The transparency option is not available for this component, because the text painted on canvas is not static. Thats means te canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
