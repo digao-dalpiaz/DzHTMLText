@@ -6,6 +6,7 @@
 - [Component Properties](#component-properties)
 - [Events](#events)
 - [Procedures/Functions](#proceduresfunctions)
+- [Transparency (why not?)](#transparency-why-not)
 
 ## Component Description
 
@@ -117,3 +118,7 @@ Returns the target string of the link id. The ID is auto generated according by 
 function GetSelectedLinkTarget: String;
 ```
 Returns the target string of selected link. A link is selected when the mouse is over it.
+
+## Transparency (why not?)
+
+The transparency option is not available for this component, because the text painted on canvas is not static. Thats means te canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
