@@ -52,7 +52,7 @@ Supports Delphi XE2..Delphi 10.3 Rio
 `AutoHeight: Boolean` = Auto set height of control when Text property changed
 
 `AutoWidth: Boolean` = Auto set width of control when Text property changed.
-If you are using AutoWidth, the text never wraps to a new line unless a line break is specifyed at text.
+If you are using AutoWidth, the text never wraps to a new line unless a line break is specifyed at text or there is a value specifyed in MaxWidth property.
 
 `AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick.
 This property calls ShellExecute method.
