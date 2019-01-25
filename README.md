@@ -1,6 +1,8 @@
 # HTLabel
 ## Delphi HTML Label component
 
+![https://img.shields.io/badge/Delphi%20Version-XE2..10.3%20Rio-blue.svg]
+
 - [Component Description](#component-description)
 - [Installing](#installing)
 - [Component Properties](#component-properties)
