@@ -89,12 +89,12 @@ This event is fired when the mouse leaves a link area
 ```delphi
 procedure OnLinkClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean);
 ```
-This event is fired when a link is left-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is True at method start).
+This event is fired when a link is left-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
 ```delphi
 procedure OnLinkRightClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean);
 ```
-This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is True at method start).
+This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
 ## Procedures/Functions
 
