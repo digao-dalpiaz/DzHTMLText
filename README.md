@@ -63,7 +63,7 @@ This property calls ShellExecute method.
 
 `Lines: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
 
-`MaxWidth: Integer` = Specify the maximum width of text, even when the control bounds is bigger. This is useful when using AutoWidth property.
+`MaxWidth: Integer` = Specify the maximum width of text, when using AutoWidth property.
 
 `StyleLinkNormal: THTStyleLinkProp` = Properties to formatting a link when is not selected by mouse.
 
