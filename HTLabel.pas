@@ -136,12 +136,13 @@ type
   protected
     procedure Loaded; override;
     procedure Paint; override;
+    procedure Click; override;
+    procedure Resize; override;
+
     procedure CMColorchanged(var Message: TMessage); message CM_COLORCHANGED;
     procedure CMFontchanged(var Message: TMessage); message CM_FONTCHANGED;
-    procedure Resize; override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
     procedure CMMouseleave(var Message: TMessage); message CM_MOUSELEAVE;
-    procedure Click; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer;
       Y: Integer); override;
     procedure CMCursorchanged(var Message: TMessage); message CM_CURSORCHANGED;
@@ -545,6 +546,8 @@ procedure THTLabel.CMMouseleave(var Message: TMessage);
 begin
     //Mouse leaves the componente
     CheckMouse(-1, -1);
+
+    inherited;
 end;
 
 //
