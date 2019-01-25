@@ -6,6 +6,7 @@
 - [Component Properties](#component-properties)
 - [Events](#events)
 - [Procedures/Functions](#proceduresfunctions)
+- [Link Tag](#link-tag)
 - [Transparency (why not?)](#transparency-why-not)
 
 ## Component Description
@@ -134,6 +135,8 @@ There are two ways to use link tag:
 `<a>www.google.com.br</a>`
 
 *This will display: www.google.com.br*
+
+> You can use any text as internal link code. Then you can handle this code at OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events, reading `Target` parameter
 
 ## Transparency (why not?)
 
