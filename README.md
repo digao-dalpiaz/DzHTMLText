@@ -124,12 +124,16 @@ Returns the target string of selected link. A link is selected when the mouse is
 There are two ways to use link tag:
 
 1. Declaring internal link and the text do display:
+
 `<a:www.google.com.br>Open Google Search</a>`
-This will display: Open Google Search
+
+*This will display: Open Google Search*
 
 2. Just using the display text:
+
 `<a>www.google.com.br</a>`
-This will display: www.google.com.br
+
+*This will display: www.google.com.br*
 
 ## Transparency (why not?)
 
