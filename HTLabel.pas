@@ -261,7 +261,7 @@ begin
     ControlStyle := ControlStyle + [csOpaque];
     //Warning! The use of transparency in the component causes flickering
 
-    FAbout := 'Digão Dalpiaz / Version 3.0';
+    FAbout := 'Digão Dalpiaz / Version 1.0';
 
     FStyleLinkNormal := THTStyleLinkProp.Create(Self, tslpNormal);
     FStyleLinkHover := THTStyleLinkProp.Create(Self, tslpHover);
