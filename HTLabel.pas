@@ -94,6 +94,8 @@ type
 
   THTLabel = class(TGraphicControl)
   private
+    FAbout: String;
+
     LWords: THTWordList; //word list to paint event
     LLinkTargets: TStringList; //target list of links
 
@@ -204,6 +206,8 @@ type
     property OnLinkRightClick: THTEvLinkClick read FOnLinkRightClick write FOnLinkRightClick;
 
     property AutoOpenLink: Boolean read FAutoOpenLink write FAutoOpenLink default True;
+
+    property About: String read FAbout;
   end;
 
 procedure Register;
@@ -256,6 +260,8 @@ begin
     inherited;
     ControlStyle := ControlStyle + [csOpaque];
     //Warning! The use of transparency in the component causes flickering
+
+    FAbout := 'Digão Dalpiaz / Version 3.0';
 
     FStyleLinkNormal := THTStyleLinkProp.Create(Self, tslpNormal);
     FStyleLinkHover := THTStyleLinkProp.Create(Self, tslpHover);
