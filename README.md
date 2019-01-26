@@ -142,4 +142,4 @@ There are two ways to use link tag:
 
 ## Transparency (why not?)
 
-The transparency option is not available for this component, because the text painted on canvas is not static. Thats means te canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
+The transparency option is not available for this component, because the text painted on canvas is not static. This means the canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
