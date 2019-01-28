@@ -1,7 +1,13 @@
-{THTLabel component
-Developed by Rodrigo Dalpiaz
+{------------------------------------------------------------------------------
+THTLabel component
+Developed by Rodrigo Depiné Dalpiaz (digão dalpiaz)
 Label with formatting tags support
 
+https://github.com/digao-dalpiaz/HTLabel
+
+Please, read the documentation at GitHub link.
+
+Supported Tags:
 <A[:abc]></A> - Link
 <B></B> - Bold
 <I></I> - Italic
@@ -17,7 +23,7 @@ Label with formatting tags support
 <R></R> - Aligh Right
 <T:123></T> - Tab
 <TF:123></TF> - Tab with aligned break
-}
+------------------------------------------------------------------------------}
 
 unit HTLabel;
 
