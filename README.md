@@ -160,3 +160,5 @@ Plase, take a look at my Message Dialogs Component that uses this HTML Component
 
 https://github.com/digao-dalpiaz/Dam
 
+Message Dialog Example:
+![Dam Example](https://github.com/digao-dalpiaz/Dam/images/dam_super_print.png)
