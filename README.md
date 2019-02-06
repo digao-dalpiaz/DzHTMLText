@@ -32,8 +32,8 @@ Here are all possible tags you can use in text:
 <L></L> - Align Left
 <C></C> - Align Center
 <R></R> - Aligh Right
-<T:123></T> - Tab
-<TF:123></TF> - Tab with aligned break
+<T:123> - Tab
+<TF:123> - Tab with aligned break
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
