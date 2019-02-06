@@ -11,7 +11,7 @@
 - [Link Tag](#link-tag)
 - [Tab Tag](#tab-tag)
 - [Transparency (why not?)](#transparency-why-not)
-- [Message Dialogs Component](#message-dialogs-component)
+- [Formatted Message Dialog Component](#formatted-message-dialog-component)
 
 ## Component Description
 
@@ -154,11 +154,11 @@ There are two **tab** tags you can use:
 
 The transparency option is not available for this component, because the text painted on canvas is not static. This means the canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
 
-## Message Dialogs Component
+## Formatted Message Dialog Component
 
 Plase, take a look at my Message Dialogs Component that uses this HTML Component to display formatted messages. The component will make much more easy to manage your application messages.
 
 https://github.com/digao-dalpiaz/Dam
 
 Message Dialog Example:
-![Dam Example](https://github.com/digao-dalpiaz/Dam/images/dam_super_print.png)
+![Dam Example](https://github.com/digao-dalpiaz/Dam/blob/master/images/dam_super_print.png)
