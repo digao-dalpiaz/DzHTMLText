@@ -160,6 +160,13 @@ There are two **tab** tags you can use:
 
 - `<tf:nnn>` = The same as above, but if the text wraps to a new line, it will be aligned in the same position as the first line which the tab started. This tag will produce a better visual text alignment.
 
+## Literal tag character
+
+If you want to display characters `<` and `>` in the text, just type the HTML code:
+
+`&lt;` = `<`
+`&gt;` = `>`
+
 ## Transparency (why not?)
 
 The transparency option is not available for this component, because the text painted on canvas is not static. This means the canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
