@@ -26,7 +26,6 @@ package HTLabelPackage;
 {$IMAGEBASE $400000}
 {$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'Digao - HTLabel Component'}
 {$IMPLICITBUILD ON}
 
 requires
