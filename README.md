@@ -12,6 +12,7 @@
 - [Procedures/Functions](#proceduresfunctions)
 - [Link Tag](#link-tag)
 - [Tab Tag](#tab-tag)
+- [Literal tag character](#literal-tag-character)
 - [Transparency (why not?)](#transparency-why-not)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 
@@ -164,8 +165,8 @@ There are two **tab** tags you can use:
 
 If you want to display characters `<` and `>` in the text, just type the HTML code:
 
-`&lt;` = `<`
-`&gt;` = `>`
+- `&lt;` = `<`
+- `&gt;` = `>`
 
 ## Transparency (why not?)
 
