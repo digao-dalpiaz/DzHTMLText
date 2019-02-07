@@ -166,7 +166,7 @@ The transparency option is not available for this component, because the text pa
 
 ## Formatted Message Dialog Component
 
-Plase, take a look at my Message Dialogs Component that uses this HTML Component to display formatted messages. The component will make much more easy to manage your application messages.
+Please, take a look at my Message Dialogs Component that uses this HTML Component to display formatted messages. The component will make much more easy to manage your application messages.
 
 https://github.com/digao-dalpiaz/Dam
 
