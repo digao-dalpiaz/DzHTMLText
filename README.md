@@ -4,6 +4,7 @@
 ![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE2..10.3%20Rio-blue.svg)
 ![Platforms](https://img.shields.io/badge/Platforms-Win32%20and%20Win64-red.svg)
 
+- [What's New](#whats-new)
 - [Component Description](#component-description)
 - [Installing](#installing)
 - [Component Properties](#component-properties)
@@ -13,6 +14,12 @@
 - [Tab Tag](#tab-tag)
 - [Transparency (why not?)](#transparency-why-not)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
+
+## What's New
+
+- 02/07/2019
+
+   - Add Win64 support (library folders changed!) :warning:
 
 ## Component Description
 
