@@ -21,7 +21,8 @@
 - 02/08/2019
 
    - Component renamed. Please full uninstall previous version before install this version. :warning:
-   *The component was renamed because of other comercial component conflict.*
+   
+      *The component was renamed because of other comercial component conflict.*
 
 - 02/07/2019
 
