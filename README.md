@@ -59,7 +59,7 @@ Here are all possible tags you can use in text:
 
 ## Installing
 
-1. Open **DgHTMLText** in Delphi.
+1. Open **DgHTMLText** package in Delphi.
 2. Ensure **Win32** Platform and **Release** config are selected.
 3. Then **Build** and **Install**.
 4. If you want to use Win64 platform, select this platform and Build again.
