@@ -1,7 +1,7 @@
 object Form1: TForm1
   Left = 0
   Top = 0
-  Caption = 'HTLabel Example'
+  Caption = 'DgHTMLText Example'
   ClientHeight = 328
   ClientWidth = 329
   Color = clBtnFace
@@ -13,17 +13,19 @@ object Form1: TForm1
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
-  object Lb: THTLabel
+  object Lb: TDgHTMLText
     Left = 8
     Top = 8
     Width = 313
     Height = 314
-    Font.Charset = DEFAULT_CHARSET
+    Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
     Font.Name = 'Segoe UI'
     Font.Style = []
     ParentFont = False
+    OnMouseEnter = LbMouseEnter
+    OnMouseLeave = LbMouseLeave
     Text = 
       'Welcome to my app!<br><br><b>This is an important text</b> and <' +
       'i>this is italic text</i>.<br><u>But we have underline too</u>, ' +

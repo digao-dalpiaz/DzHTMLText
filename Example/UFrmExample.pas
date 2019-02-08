@@ -2,13 +2,15 @@ unit UFrmExample;
 
 interface
 
-uses Vcl.Forms, System.Classes, Vcl.Controls, HTLabel;
+uses Vcl.Forms, System.Classes, Vcl.Controls, DgHTMLText;
 
 type
   TForm1 = class(TForm)
-    Lb: THTLabel;
+    Lb: TDgHTMLText;
     procedure LbLinkClick(Sender: TObject; LinkID: Integer; Target: string;
       var Handled: Boolean);
+    procedure LbMouseEnter(Sender: TObject);
+    procedure LbMouseLeave(Sender: TObject);
   end;
 
 var
@@ -28,6 +30,16 @@ begin
     ShowMessage('You have clicked at message box link!');
     Handled := True;
   end;
+end;
+
+procedure TForm1.LbMouseEnter(Sender: TObject);
+begin
+    Caption := 'OnMouseEnter';
+end;
+
+procedure TForm1.LbMouseLeave(Sender: TObject);
+begin
+    Caption := 'OnMouseLeave';
 end;
 
 end.
