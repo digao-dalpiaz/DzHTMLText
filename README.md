@@ -55,7 +55,7 @@ Here are all possible tags you can use in text:
 > **Note about color notation:**
 > When you use `FC` or `BC` tags, the color in hexadecimal value is specifyed by 6 digits, like in HTML notation. If you are getting color from Delphi, please remove the first two zeros of the begining of color code.
 
-![Design-time example](images/htlabel_print.png)
+![Design-time example](images/design_print.png)
 
 ## Installing
 
