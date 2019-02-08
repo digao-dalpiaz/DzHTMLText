@@ -1,4 +1,4 @@
-# HTLabel
+# DgHTMLText
 ## Delphi HTML Label component
 
 ![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE2..10.3%20Rio-blue.svg)
@@ -17,6 +17,10 @@
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 
 ## What's New
+
+- 02/08/2019
+
+   - Component renamed. Please full uninstall previous version before install this version.
 
 - 02/07/2019
 
@@ -55,7 +59,7 @@ Here are all possible tags you can use in text:
 
 ## Installing
 
-1. Open **HTLabelPackage** in Delphi.
+1. Open **DgHTMLText** in Delphi.
 2. Ensure **Win32** Platform and **Release** config are selected.
 3. Then **Build** and **Install**.
 4. If you want to use Win64 platform, select this platform and Build again.
