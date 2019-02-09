@@ -1,0 +1,6 @@
+*.identcache
+*.dproj.local
+*.stat
+/Win32
+/Win64
+/Design
