@@ -2,11 +2,11 @@ unit UFrmExample;
 
 interface
 
-uses Vcl.Forms, System.Classes, Vcl.Controls, DgHTMLText;
+uses Vcl.Forms, System.Classes, Vcl.Controls, DzHTMLText;
 
 type
   TForm1 = class(TForm)
-    Lb: TDgHTMLText;
+    Lb: TDzHTMLText;
     procedure LbLinkClick(Sender: TObject; LinkID: Integer; Target: string;
       var Handled: Boolean);
     procedure LbMouseEnter(Sender: TObject);

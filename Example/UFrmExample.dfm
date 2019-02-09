@@ -1,7 +1,7 @@
 object Form1: TForm1
   Left = 0
   Top = 0
-  Caption = 'DgHTMLText Example'
+  Caption = 'DzHTMLText Example'
   ClientHeight = 328
   ClientWidth = 329
   Color = clBtnFace
@@ -13,7 +13,7 @@ object Form1: TForm1
   OldCreateOrder = False
   PixelsPerInch = 96
   TextHeight = 13
-  object Lb: TDgHTMLText
+  object Lb: TDzHTMLText
     Left = 8
     Top = 8
     Width = 313

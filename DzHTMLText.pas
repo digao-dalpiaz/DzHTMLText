@@ -1,5 +1,5 @@
 {------------------------------------------------------------------------------
-TDgHTMLText component
+TDzHTMLText component
 Developed by Rodrigo Depiné Dalpiaz (digão dalpiaz)
 Label with formatting tags support
 
@@ -63,7 +63,7 @@ type
       Font: TFont; BColor: TColor; Link: Boolean; LinkID: Integer; Space: Boolean);
   end;
 
-  TDgHTMLText = class;
+  TDzHTMLText = class;
 
   TDHKindStyleLinkProp = (tslpNormal, tslpHover); //kind of link style
 
@@ -71,7 +71,7 @@ type
    link formatting when selected and not selected}
   TDHStyleLinkProp = class(TPersistent)
   private
-    Lb: TDgHTMLText; //owner
+    Lb: TDzHTMLText; //owner
     Kind: TDHKindStyleLinkProp;
 
     FFontColor: TColor;
@@ -87,7 +87,7 @@ type
   protected
     function GetOwner: TPersistent; override;
   public
-    constructor Create(xLb: TDgHTMLText; xKind: TDHKindStyleLinkProp);
+    constructor Create(xLb: TDzHTMLText; xKind: TDHKindStyleLinkProp);
     procedure Assign(Source: TPersistent); override;
   published
     property FontColor: TColor read FFontColor write SetFontColor stored GetStoredFontColor;
@@ -98,7 +98,7 @@ type
   TDHEvLink = procedure(Sender: TObject; LinkID: Integer; Target: String) of object;
   TDHEvLinkClick = procedure(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean) of object;
 
-  TDgHTMLText = class(TGraphicControl)
+  TDzHTMLText = class(TGraphicControl)
   private
     FAbout: String;
 
@@ -224,7 +224,7 @@ uses System.SysUtils, System.UITypes, Winapi.Windows, Winapi.ShellAPI;
 
 procedure Register;
 begin
-  RegisterComponents('Digao', [TDgHTMLText]);
+  RegisterComponents('Digao', [TDzHTMLText]);
 end;
 
 //
@@ -261,7 +261,7 @@ end;
 
 //
 
-constructor TDgHTMLText.Create(AOwner: TComponent);
+constructor TDzHTMLText.Create(AOwner: TComponent);
 begin
   inherited;
   ControlStyle := ControlStyle + [csOpaque];
@@ -281,7 +281,7 @@ begin
   DefaultCursor := Cursor;
 end;
 
-destructor TDgHTMLText.Destroy;
+destructor TDzHTMLText.Destroy;
 begin
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
@@ -290,7 +290,7 @@ begin
   inherited;
 end;
 
-procedure TDgHTMLText.Loaded;
+procedure TDzHTMLText.Loaded;
 begin
   {Warning! When a component is inserted at design-time, the Loaded
   is not fired, because there is nothing to load. The Loaded is only fired
@@ -299,14 +299,14 @@ begin
   Rebuild;
 end;
 
-procedure TDgHTMLText.BuildAndPaint;
+procedure TDzHTMLText.BuildAndPaint;
 begin
   //Rebuild words and repaint
   Rebuild;
   Invalidate;
 end;
 
-procedure TDgHTMLText.SetAutoHeight(const Value: Boolean);
+procedure TDzHTMLText.SetAutoHeight(const Value: Boolean);
 begin
   if Value<>FAutoHeight then
   begin
@@ -316,7 +316,7 @@ begin
   end;
 end;
 
-procedure TDgHTMLText.SetAutoWidth(const Value: Boolean);
+procedure TDzHTMLText.SetAutoWidth(const Value: Boolean);
 begin
   if Value<>FAutoWidth then
   begin
@@ -326,7 +326,7 @@ begin
   end;
 end;
 
-procedure TDgHTMLText.SetMaxWidth(const Value: Integer);
+procedure TDzHTMLText.SetMaxWidth(const Value: Integer);
 begin
   if Value<>FMaxWidth then
   begin
@@ -336,7 +336,7 @@ begin
   end;
 end;
 
-procedure TDgHTMLText.SetText(const Value: String);
+procedure TDzHTMLText.SetText(const Value: String);
 begin
   if Value<>FText then
   begin
@@ -346,7 +346,7 @@ begin
   end;
 end;
 
-{procedure TDgHTMLText.SetTransparent(const Value: Boolean);
+{procedure TDzHTMLText.SetTransparent(const Value: Boolean);
 begin
   if Value<>FTransparent then
   begin
@@ -356,17 +356,17 @@ begin
   end;
 end;}
 
-procedure TDgHTMLText.CMColorchanged(var Message: TMessage);
+procedure TDzHTMLText.CMColorchanged(var Message: TMessage);
 begin
   Invalidate;
 end;
 
-procedure TDgHTMLText.CMFontchanged(var Message: TMessage);
+procedure TDzHTMLText.CMFontchanged(var Message: TMessage);
 begin
   BuildAndPaint;
 end;
 
-procedure TDgHTMLText.Resize;
+procedure TDzHTMLText.Resize;
 begin
   //on component creating, there is no parent and the resize is fired,
   //so, the canvas is not present at this moment.
@@ -376,13 +376,13 @@ begin
   inherited;
 end;
 
-procedure TDgHTMLText.Paint;
+procedure TDzHTMLText.Paint;
 begin
   inherited;
   DoPaint;
 end;
 
-procedure TDgHTMLText.DoPaint;
+procedure TDzHTMLText.DoPaint;
 var W: TDHWord;
     B: Vcl.Graphics.TBitmap;
 begin
@@ -434,24 +434,24 @@ begin
   end;
 end;
 
-function TDgHTMLText.GetLinkTarget(LinkID: Integer): String;
+function TDzHTMLText.GetLinkTarget(LinkID: Integer): String;
 begin
   Result := LLinkTargets[LinkID];
 end;
 
-function TDgHTMLText.GetSelectedLinkTarget: String;
+function TDzHTMLText.GetSelectedLinkTarget: String;
 begin
   Result := GetLinkTarget(FSelectedLinkID);
 end;
 
-procedure TDgHTMLText.CMCursorchanged(var Message: TMessage);
+procedure TDzHTMLText.CMCursorchanged(var Message: TMessage);
 begin
   if NoCursorChange then Exit;
 
   DefaultCursor := Cursor; //save default cursor to when link not selected
 end;
 
-procedure TDgHTMLText.SetCursorWithoutChange(C: TCursor);
+procedure TDzHTMLText.SetCursorWithoutChange(C: TCursor);
 begin
   //Set cursor, but without fire cursos change event
   NoCursorChange := True;
@@ -462,7 +462,7 @@ begin
   end;
 end;
 
-procedure TDgHTMLText.CheckMouse(X, Y: Integer);
+procedure TDzHTMLText.CheckMouse(X, Y: Integer);
 var FoundHover, HasChange, Old: Boolean;
     LinkID: Integer;
     W: TDHWord;
@@ -516,7 +516,7 @@ begin
   end;
 end;
 
-procedure TDgHTMLText.Click;
+procedure TDzHTMLText.Click;
 var Handled: Boolean;
 begin
   if FIsLinkHover then
@@ -532,7 +532,7 @@ begin
   inherited;
 end;
 
-procedure TDgHTMLText.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
+procedure TDzHTMLText.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
   Y: Integer);
 var Handled: Boolean;
 begin
@@ -547,14 +547,14 @@ begin
   inherited;
 end;
 
-procedure TDgHTMLText.MouseMove(Shift: TShiftState; X, Y: Integer);
+procedure TDzHTMLText.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
   CheckMouse(X, Y);
 
   inherited;
 end;
 
-procedure TDgHTMLText.CMMouseleave(var Message: TMessage);
+procedure TDzHTMLText.CMMouseleave(var Message: TMessage);
 begin
   //Mouse leaves the componente
   CheckMouse(-1, -1);
@@ -584,7 +584,7 @@ type
 
   TBuilder = class
   private
-    Lb: TDgHTMLText;
+    Lb: TDzHTMLText;
     L: TListToken;
     LGroupBound: TList<Integer>; //bounds list of the grupo
     {The list of created with the X position of limit where the group ends
@@ -617,7 +617,7 @@ begin
   inherited;
 end;
 
-procedure TDgHTMLText.Rebuild;
+procedure TDzHTMLText.Rebuild;
 var B: TBuilder;
 begin
   if csLoading in ComponentState then Exit;
@@ -1131,7 +1131,7 @@ begin
 end;
 
 {$REGION 'StyleLinkProp'}
-constructor TDHStyleLinkProp.Create(xLb: TDgHTMLText; xKind: TDHKindStyleLinkProp);
+constructor TDHStyleLinkProp.Create(xLb: TDzHTMLText; xKind: TDHKindStyleLinkProp);
 begin
   inherited Create;
 
@@ -1216,7 +1216,7 @@ begin
          or (FBackColor<>clNone);
 end;
 
-procedure TDgHTMLText.SetStyleLink(const Index: Integer;
+procedure TDzHTMLText.SetStyleLink(const Index: Integer;
   const Value: TDHStyleLinkProp);
 begin
   case Index of
@@ -1225,7 +1225,7 @@ begin
   end;
 end;
 
-function TDgHTMLText.GetStoredStyleLink(const Index: Integer): Boolean;
+function TDzHTMLText.GetStoredStyleLink(const Index: Integer): Boolean;
 begin
   Result := False;
   case Index of
