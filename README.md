@@ -18,6 +18,10 @@
 
 ## What's New
 
+- 02/11/2019
+
+   - Include auto install app
+
 - 02/08/2019
 
    - Component renamed. Please full uninstall previous version before install this version. :warning:
@@ -60,6 +64,12 @@ Here are all possible tags you can use in text:
 ![Design-time example](images/design_print.png)
 
 ## Installing
+
+### Auto install
+
+Close Delphi IDE and run **CompInstall.exe** app to auto install component into Delphi.
+
+### Manual install
 
 1. Open **DzHTMLText** package in Delphi.
 2. Ensure **Win32** Platform and **Release** config are selected.
