@@ -1,5 +1,5 @@
 *.identcache
-*.dproj.local
+*.local
 *.stat
 /Win32
 /Win64
