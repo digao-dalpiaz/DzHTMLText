@@ -471,7 +471,7 @@ begin
   HasChange := False;
   LinkID := -1;
 
-  //find the first work, if there is any
+  //find the first word, if there is any
   for W in LWords do
     if W.Link then
     begin
