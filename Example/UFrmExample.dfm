@@ -24,8 +24,6 @@ object Form1: TForm1
     Font.Name = 'Segoe UI'
     Font.Style = []
     ParentFont = False
-    OnMouseEnter = LbMouseEnter
-    OnMouseLeave = LbMouseLeave
     Text = 
       'Welcome to my app!<br><br><b>This is an important text</b> and <' +
       'i>this is italic text</i>.<br><u>But we have underline too</u>, ' +

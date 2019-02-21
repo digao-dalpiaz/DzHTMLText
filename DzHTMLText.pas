@@ -95,15 +95,25 @@ type
     property Underline: Boolean read FUnderline write SetUnderline default False;
   end;
 
-  TDHEvLink = procedure(Sender: TObject; LinkID: Integer; Target: String) of object;
-  TDHEvLinkClick = procedure(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean) of object;
+  TDHLinkData = class
+  private
+    FTarget: String;
+    FText: String;
+  public
+    property Target: String read FTarget;
+    property Text: String read FText;
+  end;
+  TDHLinkDataList = class(TObjectList<TDHLinkData>);
+
+  TDHEvLink = procedure(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData) of object;
+  TDHEvLinkClick = procedure(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData; var Handled: Boolean) of object;
 
   TDzHTMLText = class(TGraphicControl)
   private
     FAbout: String;
 
     LWords: TDHWordList; //word list to paint event
-    LLinkTargets: TStringList; //target list of links
+    LLinkData: TDHLinkDataList; //list of links info
 
     FText: String;
     FAutoWidth: Boolean;
@@ -160,8 +170,8 @@ type
 
     property IsLinkHover: Boolean read FIsLinkHover;
     property SelectedLinkID: Integer read FSelectedLinkID;
-    function GetLinkTarget(LinkID: Integer): String; //get target by link id
-    function GetSelectedLinkTarget: String; //get target of selected link
+    function GetLinkData(LinkID: Integer): TDHLinkData; //get data by link id
+    function GetSelectedLinkData: TDHLinkData; //get data of selected link
 
   published
     property Align;
@@ -272,7 +282,7 @@ begin
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
   LWords := TDHWordList.Create;
-  LLinkTargets := TStringList.Create;
+  LLinkData := TDHLinkDataList.Create;
 
   FAutoOpenLink := True;
 
@@ -286,7 +296,7 @@ begin
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
   LWords.Free;
-  LLinkTargets.Free;
+  LLinkData.Free;
   inherited;
 end;
 
@@ -434,14 +444,14 @@ begin
   end;
 end;
 
-function TDzHTMLText.GetLinkTarget(LinkID: Integer): String;
+function TDzHTMLText.GetLinkData(LinkID: Integer): TDHLinkData;
 begin
-  Result := LLinkTargets[LinkID];
+  Result := LLinkData[LinkID];
 end;
 
-function TDzHTMLText.GetSelectedLinkTarget: String;
+function TDzHTMLText.GetSelectedLinkData: TDHLinkData;
 begin
-  Result := GetLinkTarget(FSelectedLinkID);
+  Result := LLinkData[FSelectedLinkID];
 end;
 
 procedure TDzHTMLText.CMCursorchanged(var Message: TMessage);
@@ -501,7 +511,7 @@ begin
       FIsLinkHover := True;
       FSelectedLinkID := LinkID;
       if Assigned(FOnLinkEnter) then
-        FOnLinkEnter(Self, LinkID, GetLinkTarget(LinkID));
+        FOnLinkEnter(Self, LinkID, LLinkData[LinkID]);
     end else
     begin //leave the link
       SetCursorWithoutChange(DefaultCursor); //back to default cursor
@@ -509,7 +519,7 @@ begin
       LinkID := FSelectedLinkID; //save to use on OnLinkLeave event
       FSelectedLinkID := -1;
       if Assigned(FOnLinkLeave) then
-        FOnLinkLeave(Self, LinkID, GetLinkTarget(LinkID));
+        FOnLinkLeave(Self, LinkID, LLinkData[LinkID]);
     end;
 
     Invalidate;
@@ -523,10 +533,10 @@ begin
   begin
     Handled := False;
     if Assigned(FOnLinkClick) then
-      FOnLinkClick(Self, FSelectedLinkID, GetSelectedLinkTarget, Handled);
+      FOnLinkClick(Self, FSelectedLinkID, LLinkData[FSelectedLinkID], Handled);
 
     if FAutoOpenLink and not Handled then
-      ShellExecute(0, '', PChar(GetSelectedLinkTarget), '', '', 0);
+      ShellExecute(0, '', PChar(LLinkData[FSelectedLinkID].FTarget), '', '', 0);
   end;
 
   inherited;
@@ -540,8 +550,8 @@ begin
     if IsLinkHover then
       if Assigned(FOnLinkRightClick) then
       begin
-          Handled := False;
-          FOnLinkRightClick(Self, FSelectedLinkID, GetSelectedLinkTarget, Handled);
+        Handled := False;
+        FOnLinkRightClick(Self, FSelectedLinkID, LLinkData[FSelectedLinkID], Handled);
       end;
 
   inherited;
@@ -580,13 +590,15 @@ type
     Value: Integer;
   end;
 
-  TListToken = class(TObjectList<TToken>);
+  TListToken = class(TObjectList<TToken>)
+    function GetLinkText(IEnd: Integer): String;
+  end;
 
   TBuilder = class
   private
     Lb: TDzHTMLText;
     L: TListToken;
-    LGroupBound: TList<Integer>; //bounds list of the grupo
+    LGroupBound: TList<Integer>; //bounds list of the group
     {The list of created with the X position of limit where the group ends
      to use on text align until the group limit}
 
@@ -623,7 +635,7 @@ begin
   if csLoading in ComponentState then Exit;
 
   LWords.Clear; //clean old words
-  LLinkTargets.Clear; //clean old links
+  LLinkData.Clear; //clean old links
 
   B := TBuilder.Create;
   try
@@ -844,7 +856,7 @@ begin
     end else
     if CharIni = ' ' then //space
     begin
-      AddToken(ttSpace);
+      AddToken(ttSpace, False, ' ');
       Jump := 1;
     end else
     if CharInSet(CharIni, ['/','\']) then
@@ -884,29 +896,10 @@ end;
 
 procedure TBuilder.BuildWords;
 var C: TCanvas;
-    T: TToken;
-
-    BackColor: TColor;
-    Align: TAlignment;
-
-    LBold: TListStack<Boolean>;
-    LItalic: TListStack<Boolean>;
-    LUnderline: TListStack<Boolean>;
-    LStrike: TListStack<Boolean>;
-    LFontName: TListStack<String>;
-    LFontSize: TListStack<Integer>;
-    LFontColor: TListStack<TColor>;
-    LBackColor: TListStack<TColor>;
-    LAlign: TListStack<TAlignment>;
 
     X, Y, HighW, HighH, LineCount: Integer;
     LastTabF: Boolean; //last tabulation was TabF (with break align)
     LastTabF_X: Integer;
-
-    Ex: TSize; FS: TFontStyles; PreWidth: Integer;
-
-    LinkOn: Boolean;
-    LinkID: Integer;
 
   procedure DoLineBreak;
   begin
@@ -922,6 +915,29 @@ var C: TCanvas;
     Inc(LineCount);
   end;
 
+var
+  T: TToken;
+  I: Integer;
+
+  Ex: TSize; FS: TFontStyles; PreWidth: Integer;
+
+  LinkOn: Boolean;
+  LinkID: Integer;
+
+  BackColor: TColor;
+  Align: TAlignment;
+
+  LBold: TListStack<Boolean>;
+  LItalic: TListStack<Boolean>;
+  LUnderline: TListStack<Boolean>;
+  LStrike: TListStack<Boolean>;
+  LFontName: TListStack<String>;
+  LFontSize: TListStack<Integer>;
+  LFontColor: TListStack<TColor>;
+  LBackColor: TListStack<TColor>;
+  LAlign: TListStack<TAlignment>;
+
+  LinkData: TDHLinkData;
 begin
   C := Lb.Canvas;
   C.Font.Assign(Lb.Font);
@@ -963,8 +979,10 @@ begin
     LinkOn := False;
     LinkID := -1;
 
-    for T in L do
+    for I := 0 to L.Count-1 do
     begin
+      T := L[I];
+
       case T.Kind of
         ttBold, ttItalic, ttUnderline, ttStrike:
           begin
@@ -1049,12 +1067,18 @@ begin
         begin
           if T.TagClose then
           begin
+            if LinkID<>-1 then
+              Lb.LLinkData[LinkID].FText := L.GetLinkText(I); //set link display text on the link data object
+
             LinkOn := False;
             LinkID := -1;
           end else
           begin
+            LinkData := TDHLinkData.Create;
+            LinkData.FTarget := T.Text;
+
             LinkOn := True;
-            LinkID := Lb.LLinkTargets.Add(T.Text); //add target of the link on list
+            LinkID := Lb.LLinkData.Add(LinkData); //add target of the link on list
           end;
         end;
 
@@ -1234,5 +1258,25 @@ begin
   end;
 end;
 {$ENDREGION}
+
+{ TListToken }
+
+function TListToken.GetLinkText(IEnd: Integer): String;
+var I: Integer;
+  T: TToken;
+begin
+  //returns the link display text where IEnd is Link Close tag Token on the list
+  //so, it will start from the end until find the Link Open tag.
+
+  Result := '';
+  for I := IEnd-1 downto 0 do
+  begin
+    T := Items[I];
+    if T.Kind = ttLink then Break; //should be open tag
+
+    if T.Kind in [ttText, ttSpace] then
+      Result := T.Text + Result;
+  end;
+end;
 
 end.
