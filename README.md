@@ -19,6 +19,10 @@
 
 ## What's New
 
+- 02/21/2019
+
+   - Changed events to support Link display text. :warning:
+
 - 02/11/2019
 
    - Include auto install app
@@ -111,22 +115,22 @@ This property calls ShellExecute method.
 ## Events
 
 ```delphi
-procedure OnLinkEnter(Sender: TObject; LinkID: Integer; Target: String);
+procedure OnLinkEnter(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData);
 ```
 This event is fired when the mouse enters a link area
 
 ```delphi
-procedure OnLinkLeave(Sender: TObject; LinkID: Integer; Target: String);
+procedure OnLinkLeave(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData);
 ```
 This event is fired when the mouse leaves a link area
 
 ```delphi
-procedure OnLinkClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean);
+procedure OnLinkClick(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData; var Handled: Boolean);
 ```
 This event is fired when a link is left-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
 ```delphi
-procedure OnLinkRightClick(Sender: TObject; LinkID: Integer; Target: String; var Handled: Boolean);
+procedure OnLinkRightClick(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData; var Handled: Boolean);
 ```
 This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
@@ -143,14 +147,14 @@ function SelectedLinkID: Integer;
 This function returns the ID of the selected link. This ID is auto generated according by the links sequence in the text. The ID is used to get the target string, that is stored in a internal TStringList.
 
 ```delphi
-function GetLinkTarget(LinkID: Integer): String;
+function GetLinkData(LinkID: Integer): TDHLinkData;
 ```
-Returns the target string of the link id. The ID is auto generated according by the links sequence in the text.
+Returns TDHLinkData object of the link id. The ID is auto generated according by the links sequence in the text.
 
 ```delphi
-function GetSelectedLinkTarget: String;
+function GetSelectedLinkData: TDHLinkData;
 ```
-Returns the target string of selected link. A link is selected when the mouse is over it.
+Returns TDHLinkData object of the selected link. A link is selected when the mouse is over it.
 
 ## Link Tag
 
@@ -168,7 +172,19 @@ There are two ways to use link tag:
 
    *This will display: www.google.com*
 
-> You can use any text as internal link code. Then you can handle this code at OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events, reading `Target` parameter.
+> You can use any text as internal link code. Then you can handle this code at OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events, reading `LinkData` parameter.
+
+### TDHLinkData object
+
+This object stores the information about a link.
+
+**Properties:**
+
+- `Target: String` = The link target specifyed at `<a:target>` tag
+
+- `Text: String` = The link display text specifyed at `<a:target>Display Text</a>` tag
+
+You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events. Also you can call `GetLinkData` or `GetSelectedLinkData`.
 
 ## Tab Tag
 
