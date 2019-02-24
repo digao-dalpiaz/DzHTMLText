@@ -31,7 +31,7 @@
 
    - Component renamed. Please full uninstall previous version before install this version. :warning:
    
-      *The component was renamed because of other comercial component conflict.*
+      *The component was renamed because of other commercial component conflict.*
 
 - 02/07/2019
 
@@ -39,7 +39,7 @@
 
 ## Component Description
 
-This visual component allows you to specify a formatted text in a label, using almost the same sintax used in HTML code.
+This visual component allows you to specify a formatted text in a label, using almost the same syntax used in HTML code.
 
 Here are all possible tags you can use in text:
 
@@ -64,7 +64,7 @@ Here are all possible tags you can use in text:
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
 
 > **Note about color notation:**
-> When you use `FC` or `BC` tags, the color in hexadecimal value is specifyed by 6 digits, like in HTML notation. If you are getting color from Delphi, please remove the first two zeros of the begining of color code.
+> When you use `FC` or `BC` tags, the color in hexadecimal value is specified by 6 digits, like in HTML notation. If you are getting color from Delphi, please remove the first two zeros of the beginning of color code.
 
 ![Design-time example](images/design_print.png)
 
@@ -89,14 +89,14 @@ Supports Delphi XE2..Delphi 10.3 Rio
 `AutoHeight: Boolean` = Auto set height of control when Text property changed
 
 `AutoWidth: Boolean` = Auto set width of control when Text property changed.
-If you are using AutoWidth, the text never wraps to a new line unless a line break is specifyed at text or there is a value specifyed in MaxWidth property.
+If you are using AutoWidth, the text never wraps to a new line unless a line break is specified at text or there is a value specified in MaxWidth property.
 
 `AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick.
 This property calls ShellExecute method.
 
-`Color: TColor` = Backgroud color of control
+`Color: TColor` = Background color of control
 
-`Font: TFont` = Determines the base font. When no tag is specifyed on text, this base font is used.
+`Font: TFont` = Determines the base font. When no tag is specified on text, this base font is used.
 
 `Lines: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
 
@@ -106,7 +106,7 @@ This property calls ShellExecute method.
 
 `StyleLinkHover: THTStyleLinkProp` = Properties to format a link when is selected by mouse.
 
-`Text: String` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines eighter.
+`Text: String` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
 
 `TextHeight: Integer` = Returns the total text height. This property is read-only.
 
@@ -180,9 +180,9 @@ This object stores the information about a link.
 
 **Properties:**
 
-- `Target: String` = The link target specifyed at `<a:target>` tag
+- `Target: String` = The link target specified at `<a:target>` tag
 
-- `Text: String` = The link display text specifyed at `<a:target>Display Text</a>` tag
+- `Text: String` = The link display text specified at `<a:target>Display Text</a>` tag
 
 You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events. Also you can call `GetLinkData` or `GetSelectedLinkData`.
 
