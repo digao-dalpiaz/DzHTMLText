@@ -56,7 +56,7 @@ Here are all possible tags you can use in text:
 <BR> - Line Break
 <L></L> - Align Left
 <C></C> - Align Center
-<R></R> - Aligh Right
+<R></R> - Align Right
 <T:123> - Tab
 <TF:123> - Tab with aligned break
 ```

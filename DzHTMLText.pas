@@ -1,6 +1,6 @@
 {------------------------------------------------------------------------------
 TDzHTMLText component
-Developed by Rodrigo Depiné Dalpiaz (digão dalpiaz)
+Developed by Rodrigo Depiné Dalpiaz (digao dalpiaz)
 Label with formatting tags support
 
 https://github.com/digao-dalpiaz/DzHTMLText
@@ -15,12 +15,12 @@ Supported Tags:
 <S></S> - Strike out
 <FN:abc></FN> - Font Name
 <FS:123></FS> - Font Size
-<FC:clcolor|$999999></FC> - Font Color
-<BC:clcolor|$999999></BC> - Background Color
+<FC:clColor|$999999></FC> - Font Color
+<BC:clColor|$999999></BC> - Background Color
 <BR> - Line Break
 <L></L> - Align Left
 <C></C> - Align Center
-<R></R> - Aligh Right
+<R></R> - Align Right
 <T:123> - Tab
 <TF:123> - Tab with aligned break
 ------------------------------------------------------------------------------}
@@ -46,7 +46,7 @@ type
     BColor: TColor; //background color
     Link: Boolean; //is a link
     LinkID: Integer; //link number
-    {The link number is created sequencially, when reading text links
+    {The link number is created sequentially, when reading text links
     and works to know the link target, stored on a TStringList, because if
     the link was saved here at a work, it will be repeat if has multiple words
     per link, spending a lot of unnecessary memory.}
@@ -67,7 +67,7 @@ type
 
   TDHKindStyleLinkProp = (tslpNormal, tslpHover); //kind of link style
 
-  {DHStyleLinkProp is a subproperty used at Object Inspector that contains
+  {DHStyleLinkProp is a sub-property used at Object Inspector that contains
    link formatting when selected and not selected}
   TDHStyleLinkProp = class(TPersistent)
   private
@@ -83,7 +83,7 @@ type
     function GetDefaultFontColor: TColor;
     function GetStoredFontColor: Boolean;
     procedure SetPropsToCanvas(C: TCanvas); //method to use at paint event
-    function GetStored: Boolean; //getstored general to use at owner
+    function GetStored: Boolean; //GetStored general to use at owner
   protected
     function GetOwner: TPersistent; override;
   public
@@ -119,7 +119,7 @@ type
     FAutoWidth: Boolean;
     FAutoHeight: Boolean;
     FMaxWidth: Integer; //max width when using AutoWidth
-    //FTransparent: Boolean; //not used becaus of flickering
+    //FTransparent: Boolean; //not used because of flickering
     FAutoOpenLink: Boolean; //link auto-open with ShellExecute
 
     FLines: Integer; //read-only
@@ -277,7 +277,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digão Dalpiaz / Version 1.0';
+  FAbout := 'Digao Dalpiaz / Version 1.0';
 
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
@@ -463,7 +463,7 @@ end;
 
 procedure TDzHTMLText.SetCursorWithoutChange(C: TCursor);
 begin
-  //Set cursor, but without fire cursos change event
+  //Set cursor, but without fire cursor change event
   NoCursorChange := True;
   try
     Cursor := C;
@@ -566,7 +566,7 @@ end;
 
 procedure TDzHTMLText.CMMouseleave(var Message: TMessage);
 begin
-  //Mouse leaves the componente
+  //Mouse leaves the component
   CheckMouse(-1, -1);
 
   inherited;
