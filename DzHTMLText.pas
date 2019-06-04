@@ -27,12 +27,24 @@ Supported Tags:
 
 unit DzHTMLText;
 
+{$IFDEF FPC}{$mode delphi}{$ENDIF}
+
 interface
 
-uses Vcl.Controls, System.Classes, Winapi.Messages,
-  System.Generics.Collections, Vcl.Graphics, System.Types;
+uses
+{$IFDEF FPC}
+  Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf
+{$ELSE}
+  Vcl.Controls, System.Classes, Winapi.Messages,
+  System.Generics.Collections, Vcl.Graphics, System.Types
+{$ENDIF};
 
 type
+  {$IFDEF FPC}
+  TObjectList<T> = class(TFPGObjectList<T>);
+  TList<T> = class(TFPGList<T>);
+  {$ENDIF}
+
   {DHWord is an object to each word. Will be used to paint event.
   The words are separated by space/tag/line break.}
   TDHWord = class
@@ -61,6 +73,7 @@ type
   private
     procedure Add(Rect: TRect; Text: String; Group: Integer; Align: TAlignment;
       Font: TFont; BColor: TColor; Link: Boolean; LinkID: Integer; Space: Boolean);
+      {$IFDEF FPC}reintroduce;{$ENDIF}
   end;
 
   TDzHTMLText = class;
@@ -191,8 +204,11 @@ type
     property OnDragOver;
     property OnEndDock;
     property OnEndDrag;
+
+    {$IFDEF DCC}
     property OnGesture;
     property OnMouseActivate;
+    {$ENDIF}
     property OnMouseDown;
     property OnMouseEnter;
     property OnMouseLeave;
@@ -230,10 +246,16 @@ procedure Register;
 
 implementation
 
-uses System.SysUtils, System.UITypes, Winapi.Windows, Winapi.ShellAPI;
+uses
+{$IFDEF FPC}
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, LResources
+{$ELSE}
+  System.SysUtils, System.UITypes, Winapi.Windows, Winapi.ShellAPI
+{$ENDIF};
 
 procedure Register;
 begin
+  {$IFDEF FPC}{$I DzHTMLText.lrs}{$ENDIF}
   RegisterComponents('Digao', [TDzHTMLText]);
 end;
 
@@ -277,7 +299,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 1.0';
+  FAbout := 'Digao Dalpiaz / Version 1.1';
 
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
@@ -289,6 +311,12 @@ begin
   FSelectedLinkID := -1;
 
   DefaultCursor := Cursor;
+
+  {$IFDEF FPC}
+  //Lazarus object starts too small
+  Width := 200;
+  Height := 100;
+  {$ENDIF}
 end;
 
 destructor TDzHTMLText.Destroy;
@@ -368,11 +396,13 @@ end;}
 
 procedure TDzHTMLText.CMColorchanged(var Message: TMessage);
 begin
+  {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
   Invalidate;
 end;
 
 procedure TDzHTMLText.CMFontchanged(var Message: TMessage);
 begin
+  {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
   BuildAndPaint;
 end;
 
@@ -394,15 +424,18 @@ end;
 
 procedure TDzHTMLText.DoPaint;
 var W: TDHWord;
-    B: Vcl.Graphics.TBitmap;
+    B: {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap;
 begin
   //Using internal bitmap as a buffer to reduce flickering
-  B := Vcl.Graphics.TBitmap.Create;
+  B := {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap.Create;
   try
     B.SetSize(Width, Height);
 
     //if not FTransparent then
     //begin
+      {$IFDEF FPC}
+      if (Color=clDefault) and (ParentColor) then B.Canvas.Brush.Color := GetColorresolvingParent else
+      {$ENDIF}
       B.Canvas.Brush.Color := Color;
       B.Canvas.FillRect(ClientRect);
     //end;
@@ -432,7 +465,9 @@ begin
             FStyleLinkNormal.SetPropsToCanvas(B.Canvas);
       end;
 
-      DrawText(B.Canvas.Handle, W.Text, -1, W.Rect, DT_NOCLIP or DT_NOPREFIX);
+      DrawText(B.Canvas.Handle,
+        {$IFDEF FPC}PChar({$ENDIF}W.Text{$IFDEF FPC}){$ENDIF},
+        -1, W.Rect, DT_NOCLIP or DT_NOPREFIX);
       {Using DrawText, because TextOut has not clip option, which causes
       bad overload of text when painting using background, oversizing the
       text area wildly.}
@@ -456,6 +491,8 @@ end;
 
 procedure TDzHTMLText.CMCursorchanged(var Message: TMessage);
 begin
+  {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
+
   if NoCursorChange then Exit;
 
   DefaultCursor := Cursor; //save default cursor to when link not selected
@@ -485,7 +522,7 @@ begin
   for W in LWords do
     if W.Link then
     begin
-      if W.Rect.Contains(Point(X, Y)) then //selected
+      if W.Rect.Contains({$IFDEF FPC}Types.{$ENDIF}Point(X, Y)) then //selected
       begin
           FoundHover := True; //found word of a link selected
           LinkID := W.LinkID;
@@ -528,6 +565,7 @@ end;
 
 procedure TDzHTMLText.Click;
 var Handled: Boolean;
+  aTarget: String;
 begin
   if FIsLinkHover then
   begin
@@ -536,7 +574,20 @@ begin
       FOnLinkClick(Self, FSelectedLinkID, LLinkData[FSelectedLinkID], Handled);
 
     if FAutoOpenLink and not Handled then
-      ShellExecute(0, '', PChar(LLinkData[FSelectedLinkID].FTarget), '', '', 0);
+    begin
+      aTarget := LLinkData[FSelectedLinkID].FTarget;
+      {$IFDEF MSWINDOWS}
+      ShellExecute(0, '', PChar(aTarget), '', '', 0);
+      {$ELSE}
+      if aTarget.StartsWith('http://', True)
+        or aTarget.StartsWith('https://', True)
+        or aTarget.StartsWith('www.', True)
+      then
+        OpenURL(aTarget)
+      else
+        OpenDocument(aTarget);
+      {$ENDIF}
+    end;
   end;
 
   inherited;
@@ -938,6 +989,8 @@ var
   LAlign: TListStack<TAlignment>;
 
   LinkData: TDHLinkData;
+
+  vBool: Boolean; //Required for Lazarus
 begin
   C := Lb.Canvas;
   C.Font.Assign(Lb.Font);
@@ -955,10 +1008,10 @@ begin
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TAlignment>.Create;
   try
-    LBold.Add(fsBold in C.Font.Style);
-    LItalic.Add(fsItalic in C.Font.Style);
-    LUnderline.Add(fsUnderline in C.Font.Style);
-    LStrike.Add(fsStrikeOut in C.Font.Style);
+    vBool := fsBold in C.Font.Style; LBold.Add(vBool);
+    vBool := fsItalic in C.Font.Style; LItalic.Add(vBool);
+    vBool := fsUnderline in C.Font.Style; LUnderline.Add(vBool);
+    vBool := fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
     LFontName.Add(C.Font.Name);
     LFontSize.Add(C.Font.Size);
     LFontColor.Add(C.Font.Color);
@@ -1057,7 +1110,7 @@ begin
           end;
           if Ex.Height>HighH then HighH := Ex.Height; //biggest height of the line
 
-          Lb.LWords.Add(Rect(X, Y, X+Ex.Width, Y+Ex.Height),
+          Lb.LWords.Add({$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+Ex.Width, Y+Ex.Height),
             T.Text, LGroupBound.Count, Align, C.Font, BackColor, LinkOn, LinkID, T.Kind=ttSpace);
 
           Inc(X, Ex.Width);

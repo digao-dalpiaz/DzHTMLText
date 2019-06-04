@@ -4,6 +4,7 @@
 ![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE2..10.3%20Rio-blue.svg)
 ![Platforms](https://img.shields.io/badge/Platforms-Win32%20and%20Win64-red.svg)
 ![Auto Install](https://img.shields.io/badge/-Auto%20Install%20App-orange.svg)
+![Lazarus support](https://img.shields.io/badge/-Lazarus%20support-green.svg)
 
 - [What's New](#whats-new)
 - [Component Description](#component-description)
@@ -18,6 +19,10 @@
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 
 ## What's New
+
+- 06/03/2019
+
+   - Lazarus support. Thanks to @jackdp. :grin:
 
 - 02/21/2019
 
@@ -69,6 +74,8 @@ Here are all possible tags you can use in text:
 ![Design-time example](images/design_print.png)
 
 ## Installing
+
+> If you are using Lazarus: go to Package menu; Open Package File (.lpk); locate LazDzHTMLText.lpk; open the package; Compile it and Install it.
 
 ### Auto install
 
