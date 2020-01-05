@@ -655,7 +655,7 @@ type
 
     CalcWidth, CalcHeight: Integer; //width and height to set at component when using auto
 
-    function ProcessTag(Tag: String): Boolean;
+    function ProcessTag(const Tag: String): Boolean;
     procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; aText: String = ''; aValue: Integer = 0);
 
     procedure BuildTokens; //create list of tokens
@@ -744,12 +744,49 @@ begin
   L.Add(T);
 end;
 
-function TBuilder.ProcessTag(Tag: String): Boolean;
-var TOff, TOn, HasPar: Boolean;
-    Kind: TTokenKind;
+function Tag_Number_ProcValue(const Value: String; var Valid: Boolean): Integer;
+begin
+  Result := StrToIntDef(Value, 0);
+  Valid := (Result>0);
+end;
+
+function Tag_Color_ProcValue(const Value: String; var Valid: Boolean): Integer;
+begin
+  Result := ParamToColor(Value);
+  Valid := (Result<>clNone);
+end;
+
+type TDefToken = record
+  Ident: String;
+  Kind: TTokenKind;
+  Single: Boolean; //without close tag
+  AllowPar, OptionalPar: Boolean;
+  ProcValue: function(const Value: String; var Valid: Boolean): Integer;
+end;
+const DEF_TOKENS: array[0..14] of TDefToken = (
+  (Ident: 'BR'; Kind: ttBreak; Single: True),
+  (Ident: 'B'; Kind: ttBold),
+  (Ident: 'I'; Kind: ttItalic),
+  (Ident: 'U'; Kind: ttUnderline),
+  (Ident: 'S'; Kind: ttStrike),
+  (Ident: 'FN'; Kind: ttFontName; AllowPar: True),
+  (Ident: 'FS'; Kind: ttFontSize; AllowPar: True; ProcValue: Tag_Number_ProcValue),
+  (Ident: 'FC'; Kind: ttFontColor; AllowPar: True; ProcValue: Tag_Color_ProcValue),
+  (Ident: 'BC'; Kind: ttBackColor; AllowPar: True; ProcValue: Tag_Color_ProcValue),
+  (Ident: 'A'; Kind: ttLink; AllowPar: True; OptionalPar: True),
+  (Ident: 'L'; Kind: ttAlignLeft),
+  (Ident: 'C'; Kind: ttAlignCenter),
+  (Ident: 'R'; Kind: ttAlignRight),
+  (Ident: 'T'; Kind: ttTab; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
+  (Ident: 'TF'; Kind: ttTabF; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue)
+);
+
+function TBuilder.ProcessTag(const Tag: String): Boolean;
+var TOff, TOn, HasPar, ValidPar: Boolean;
     Value: Integer;
     A, Par: String;
     I: Integer;
+    Def: TDefToken;
 begin
   //Result=True means valid tag
   Result := False;
@@ -758,8 +795,8 @@ begin
   TOff := False;
   if A.StartsWith('/') then //closing tag
   begin
-      TOff := True;
-      Delete(A, 1, 1);
+    TOff := True;
+    Delete(A, 1, 1);
   end;
   TOn := not TOff;
 
@@ -769,106 +806,43 @@ begin
   if I>0 then //has parameter
   begin
       HasPar := True;
-      Par := A;
-      Delete(Par, 1, I);
-      //Par := Copy(A, I+1, Length(A)-I);
+      Par := A.Substring(I); //zero-based
       A := Copy(A, 1, I-1);
   end;
 
-  if TOff and HasPar then Exit; //tag closing with parameter
+  if HasPar then
+  begin
+    if Par='' then Exit; //blank parameter specified
+    if TOff then Exit; //tag closing with parameter
+  end;
 
-  Value := 0;
   A := UpperCase(A);
-  if (A='BR') and TOn and not HasPar then //LINE BREAK
+
+  for Def in DEF_TOKENS do
   begin
-      AddToken(ttBreak);
-      Result := True;
-  end else
-  if (A='B') and not HasPar then //BOLD
-  begin
-      AddToken(ttBold, TOff);
-      Result := True;
-  end else
-  if (A='I') and not HasPar then //ITALIC
-  begin
-      AddToken(ttItalic, TOff);
-      Result := True;
-  end else
-  if (A='U') and not HasPar then //UNDERLINE
-  begin
-      AddToken(ttUnderline, TOff);
-      Result := True;
-  end else
-  if (A='S') and not HasPar then //STRIKEOUT
-  begin
-      AddToken(ttStrike, TOff);
-      Result := True;
-  end else
-  if A='FN' then //FONT NAME
-  begin
-      if TOn and (Par='') then Exit;
-      AddToken(ttFontName, TOff, Par);
-      Result := True;
-  end else
-  if A='FS' then //FONT SIZE
-  begin
+    if Def.Ident=A then
+    begin
       if TOn then
       begin
-        Value := StrToIntDef(Par, 0);
-        if Value<=0 then Exit;
-      end;
-      AddToken(ttFontSize, TOff, '', Value);
-      Result := True;
-  end else
-  if A='FC' then //FONT COLOR
-  begin
-      if TOn then
+        if (not Def.AllowPar) and (HasPar) then Exit; //parameter not allowed
+        if (Def.AllowPar) and (not Def.OptionalPar) and (not HasPar) then Exit; //parameter required
+      end else
       begin
-        Value := ParamToColor(Par);
-        if Value=clNone then Exit;
+        if Def.Single then Exit; //close-tag on single tag        
       end;
-      AddToken(ttFontColor, TOff, '', Value);
-      Result := True;
-  end else
-  if A='BC' then //BACKGROUND COLOR
-  begin
-      if TOn then
+
+      Value := 0;
+      if TOn and HasPar and Assigned(Def.ProcValue) then
       begin
-        Value := ParamToColor(Par);
-        if Value=clNone then Exit;
+        ValidPar := True;
+        Value := Def.ProcValue(Par, ValidPar);
+        if not ValidPar then Exit;
       end;
-      AddToken(ttBackColor, TOff, '', Value);
+
+      AddToken(Def.Kind, TOff, Par, Value);
       Result := True;
-  end else
-  if A='A' then //LINK
-  begin
-      if TOn and HasPar and (Par='') then Exit;
-      AddToken(ttLink, TOff, Par);
-      Result := True;
-  end else
-  if (A='L') and not HasPar then //ALIGN LEFT
-  begin
-      AddToken(ttAlignLeft, TOff);
-      Result := True;
-  end else
-  if (A='C') and not HasPar then //ALIGN CENTER
-  begin
-      AddToken(ttAlignCenter, TOff);
-      Result := True;
-  end else
-  if (A='R') and not HasPar then //ALIGN RIGHT
-  begin
-      AddToken(ttAlignRight, TOff);
-      Result := True;
-  end else
-  if ((A='T') or (A='TF')) and TOn then //TAB
-  begin
-      Value := StrToIntDef(Par, 0);
-      if Value<=0 then Exit;
-      Kind := ttTab;
-      if A='TF' then Kind := ttTabF;
-      AddToken(Kind, TOff, '', Value);
-      Result := True;
+      Exit;
+    end;
   end;
 end;
 
