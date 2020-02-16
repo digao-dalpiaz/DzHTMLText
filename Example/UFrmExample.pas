@@ -2,11 +2,13 @@ unit UFrmExample;
 
 interface
 
-uses Vcl.Forms, System.Classes, Vcl.Controls, DzHTMLText;
+uses Vcl.Forms, System.Classes, Vcl.Controls, DzHTMLText, System.ImageList,
+  Vcl.ImgList;
 
 type
   TForm1 = class(TForm)
     Lb: TDzHTMLText;
+    MyImages: TImageList;
     procedure LbLinkClick(Sender: TObject; LinkID: Integer;
       LinkData: TDHLinkData; var Handled: Boolean);
   end;
