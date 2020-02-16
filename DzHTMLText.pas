@@ -34,7 +34,7 @@ interface
 
 uses
 {$IFDEF FPC}
-  Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf
+  Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf, ImgList
 {$ELSE}
   Vcl.Controls, System.Classes, Winapi.Messages, Vcl.ImgList,
   System.Generics.Collections, Vcl.Graphics, System.Types
