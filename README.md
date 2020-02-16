@@ -20,6 +20,11 @@
 
 ## What's New
 
+- 02/15/2020
+
+   - Add line vertical align property.
+   - Add image support, based on ImageList. :art:
+
 - 06/03/2019
 
    - Lazarus support. Thanks to @jackdp. :grin:
@@ -64,6 +69,7 @@ Here are all possible tags you can use in text:
 <R></R> - Align Right
 <T:123> - Tab
 <TF:123> - Tab with aligned break
+<IMG:nnn> - Image from ImageList where nnn is image index
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
@@ -105,7 +111,11 @@ This property calls ShellExecute method.
 
 `Font: TFont` = Determines the base font. When no tag is specified on text, this base font is used.
 
+`Images: TCustomImageList` = When using `<img>` tag, you should set this property to specify the ImageList where the images are stored.
+
 `Lines: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
+
+`LineVertAlign: TDHLineVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights. Default is `vaTop`.
 
 `MaxWidth: Integer` = Specify the maximum width of text, when using AutoWidth property.
 

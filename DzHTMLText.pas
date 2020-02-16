@@ -1,6 +1,6 @@
 {------------------------------------------------------------------------------
 TDzHTMLText component
-Developed by Rodrigo Depiné Dalpiaz (digao dalpiaz)
+Developed by Rodrigo Depiné Dalpiaz (digão dalpiaz)
 Label with formatting tags support
 
 https://github.com/digao-dalpiaz/DzHTMLText
@@ -23,6 +23,7 @@ Supported Tags:
 <R></R> - Align Right
 <T:123> - Tab
 <TF:123> - Tab with aligned break
+<IMG:nnn> - Image from ImageList where nnn is image index
 ------------------------------------------------------------------------------}
 
 unit DzHTMLText;
@@ -35,7 +36,7 @@ uses
 {$IFDEF FPC}
   Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf
 {$ELSE}
-  Vcl.Controls, System.Classes, Winapi.Messages,
+  Vcl.Controls, System.Classes, Winapi.Messages, Vcl.ImgList,
   System.Generics.Collections, Vcl.Graphics, System.Types
 {$ENDIF};
 
@@ -64,6 +65,9 @@ type
     per link, spending a lot of unnecessary memory.}
     Space: Boolean; //is an space
 
+    Line: Integer; //line number
+    ImageIndex: Integer;
+
     Hover: Boolean; //the mouse is over the link
   public
     constructor Create;
@@ -72,7 +76,7 @@ type
   TDHWordList = class(TObjectList<TDHWord>)
   private
     procedure Add(Rect: TRect; Text: String; Group: Integer; Align: TAlignment;
-      Font: TFont; BColor: TColor; Link: Boolean; LinkID: Integer; Space: Boolean);
+      Font: TFont; BColor: TColor; Link: Boolean; LinkID: Integer; Space: Boolean; Line: Integer; ImageIndex: Integer);
       {$IFDEF FPC}reintroduce;{$ENDIF}
   end;
 
@@ -121,6 +125,8 @@ type
   TDHEvLink = procedure(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData) of object;
   TDHEvLinkClick = procedure(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData; var Handled: Boolean) of object;
 
+  TDHLineVertAlign = (vaTop, vaCenter, vaBottom);
+
   TDzHTMLText = class(TGraphicControl)
   private
     FAbout: String;
@@ -140,6 +146,10 @@ type
     FTextHeight: Integer; //read-only
 
     FStyleLinkNormal, FStyleLinkHover: TDHStyleLinkProp;
+
+    FImages: TCustomImageList;
+
+    FLineVertAlign: TDHLineVertAlign;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
@@ -161,8 +171,10 @@ type
     procedure DoPaint;
     procedure Rebuild; //rebuild words
     procedure BuildAndPaint; //rebuild and repaint
-    procedure CheckMouse(X, Y: Integer);
-    procedure SetCursorWithoutChange(C: TCursor); //check links by mouse position
+    procedure CheckMouse(X, Y: Integer); //check links by mouse position
+    procedure SetCursorWithoutChange(C: TCursor);
+    procedure SetImages(const Value: TCustomImageList);
+    procedure SetLineVertAlign(const Value: TDHLineVertAlign);
     //procedure SetTransparent(const Value: Boolean);
   protected
     procedure Loaded; override;
@@ -177,6 +189,9 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer;
       Y: Integer); override;
     procedure CMCursorchanged(var Message: TMessage); message CM_CURSORCHANGED;
+
+    procedure Notification(AComponent: TComponent; Operation: TOperation);
+      override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -228,6 +243,8 @@ type
     property StyleLinkNormal: TDHStyleLinkProp index 1 read FStyleLinkNormal write SetStyleLink stored GetStoredStyleLink;
     property StyleLinkHover: TDHStyleLinkProp index 2 read FStyleLinkHover write SetStyleLink stored GetStoredStyleLink;
 
+    property Images: TCustomImageList read FImages write SetImages;
+
     property Lines: Integer read FLines;
     property TextWidth: Integer read FTextWidth;
     property TextHeight: Integer read FTextHeight;
@@ -238,6 +255,8 @@ type
     property OnLinkRightClick: TDHEvLinkClick read FOnLinkRightClick write FOnLinkRightClick;
 
     property AutoOpenLink: Boolean read FAutoOpenLink write FAutoOpenLink default True;
+
+    property LineVertAlign: TDHLineVertAlign read FLineVertAlign write SetLineVertAlign default vaTop;
 
     property About: String read FAbout;
   end;
@@ -274,7 +293,7 @@ begin
 end;
 
 procedure TDHWordList.Add(Rect: TRect; Text: String; Group: Integer; Align: TAlignment;
-  Font: TFont; BColor: TColor; Link: Boolean; LinkID: Integer; Space: Boolean);
+  Font: TFont; BColor: TColor; Link: Boolean; LinkID: Integer; Space: Boolean; Line: Integer; ImageIndex: Integer);
 var W: TDHWord;
 begin
   W := TDHWord.Create;
@@ -289,6 +308,8 @@ begin
   W.Link := Link;
   W.LinkID := LinkID;
   W.Space := Space;
+  W.Line := Line;
+  W.ImageIndex := ImageIndex;
 end;
 
 //
@@ -326,6 +347,29 @@ begin
   LWords.Free;
   LLinkData.Free;
   inherited;
+end;
+
+procedure TDzHTMLText.Notification(AComponent: TComponent;
+  Operation: TOperation);
+begin
+  inherited Notification(AComponent, Operation);
+  if Operation = opRemove then
+  begin
+    if AComponent = FImages then
+      FImages := nil;
+  end;
+end;
+
+procedure TDzHTMLText.SetImages(const Value: TCustomImageList);
+begin
+  if Value <> FImages then
+  begin
+    FImages := Value;
+    if FImages <> nil then
+      FImages.FreeNotification(Self);
+
+    BuildAndPaint;
+  end;
 end;
 
 procedure TDzHTMLText.Loaded;
@@ -379,6 +423,16 @@ begin
   if Value<>FText then
   begin
     FText := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetLineVertAlign(const Value: TDHLineVertAlign);
+begin
+  if Value<>FLineVertAlign then
+  begin
+    FLineVertAlign := Value;
 
     BuildAndPaint;
   end;
@@ -465,9 +519,14 @@ begin
             FStyleLinkNormal.SetPropsToCanvas(B.Canvas);
       end;
 
-      DrawText(B.Canvas.Handle,
-        {$IFDEF FPC}PChar({$ENDIF}W.Text{$IFDEF FPC}){$ENDIF},
-        -1, W.Rect, DT_NOCLIP or DT_NOPREFIX);
+      if W.ImageIndex>-1 then //is an image
+      begin
+        if Assigned(FImages) then
+          FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, W.ImageIndex);
+      end else
+        DrawText(B.Canvas.Handle,
+          {$IFDEF FPC}PChar({$ENDIF}W.Text{$IFDEF FPC}){$ENDIF},
+          -1, W.Rect, DT_NOCLIP or DT_NOPREFIX);
       {Using DrawText, because TextOut has not clip option, which causes
       bad overload of text when painting using background, oversizing the
       text area wildly.}
@@ -524,10 +583,10 @@ begin
     begin
       if W.Rect.Contains({$IFDEF FPC}Types.{$ENDIF}Point(X, Y)) then //selected
       begin
-          FoundHover := True; //found word of a link selected
-          LinkID := W.LinkID;
+        FoundHover := True; //found word of a link selected
+        LinkID := W.LinkID;
 
-          Break;
+        Break;
       end;
     end;
 
@@ -632,7 +691,8 @@ type
     ttFontName, ttFontSize, ttFontColor, ttBackColor,
     ttTab, ttTabF, ttSpace,
     ttBreak, ttText, ttLink,
-    ttAlignLeft, ttAlignCenter, ttAlignRight);
+    ttAlignLeft, ttAlignCenter, ttAlignRight,
+    ttImage);
 
   TToken = class
     Kind: TTokenKind;
@@ -653,6 +713,8 @@ type
     {The list of created with the X position of limit where the group ends
      to use on text align until the group limit}
 
+    LinesHeight: TList<Integer>;
+
     CalcWidth, CalcHeight: Integer; //width and height to set at component when using auto
 
     function ProcessTag(const Tag: String): Boolean;
@@ -671,12 +733,14 @@ begin
   inherited;
   L := TListToken.Create;
   LGroupBound := TList<Integer>.Create;
+  LinesHeight := TList<Integer>.Create;
 end;
 
 destructor TBuilder.Destroy;
 begin
   L.Free;
   LGroupBound.Free;
+  LinesHeight.Free;
   inherited;
 end;
 
@@ -744,6 +808,12 @@ begin
   L.Add(T);
 end;
 
+function Tag_Index_ProcValue(const Value: String; var Valid: Boolean): Integer;
+begin
+  Result := StrToIntDef(Value, -1);
+  Valid := (Result>-1);
+end;
+
 function Tag_Number_ProcValue(const Value: String; var Valid: Boolean): Integer;
 begin
   Result := StrToIntDef(Value, 0);
@@ -763,7 +833,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..14] of TDefToken = (
+const DEF_TOKENS: array[0..15] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -778,7 +848,8 @@ const DEF_TOKENS: array[0..14] of TDefToken = (
   (Ident: 'C'; Kind: ttAlignCenter),
   (Ident: 'R'; Kind: ttAlignRight),
   (Ident: 'T'; Kind: ttTab; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
-  (Ident: 'TF'; Kind: ttTabF; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue)
+  (Ident: 'TF'; Kind: ttTabF; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
+  (Ident: 'IMG'; Kind: ttImage; Single: True; AllowPar: True; ProcValue: Tag_Index_ProcValue)
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -805,9 +876,9 @@ begin
   I := Pos(':', A); //find parameter
   if I>0 then //has parameter
   begin
-      HasPar := True;
-      Par := A.Substring(I); //zero-based
-      A := Copy(A, 1, I-1);
+    HasPar := True;
+    Par := A.Substring(I); //zero-based
+    A := Copy(A, 1, I-1);
   end;
 
   if HasPar then
@@ -863,14 +934,14 @@ begin
       I := Pos('>', A); //find tag closing
       if I>0 then
       begin
-          A := Copy(A, 1, I-1);
-          if not ProcessTag(A) then AddToken(ttInvalid);
-          Jump := 1+Length(A)+1;
+        A := Copy(A, 1, I-1);
+        if not ProcessTag(A) then AddToken(ttInvalid);
+        Jump := 1+Length(A)+1;
       end else
       begin
-          //losted tag opening
-          AddToken(ttInvalid);
-          Jump := 1;
+        //losted tag opening
+        AddToken(ttInvalid);
+        Jump := 1;
       end;
     end else
     if CharIni = '>' then
@@ -930,6 +1001,7 @@ var C: TCanvas;
   begin
     if HighH=0 then HighH := C.TextHeight(' '); //line without content
     Inc(Y, HighH); //inc biggest height of the line
+    LinesHeight.Add(HighH); //include total line height in list
     HighH := 0; //clear line height
 
     if X>HighW then HighW := X; //store width of biggest line
@@ -963,6 +1035,8 @@ var
   LAlign: TListStack<TAlignment>;
 
   LinkData: TDHLinkData;
+
+  ImageIndex: Integer;
 
   vBool: Boolean; //Required for Lazarus
 begin
@@ -1059,24 +1133,43 @@ begin
             Align := LAlign.Last;
           end;
 
-        ttText, ttSpace, ttInvalid:
+        ttText, ttSpace, ttInvalid, ttImage:
         begin
           case T.Kind of
             ttSpace: T.Text := ' ';
             ttInvalid: T.Text := '<?>';
           end;
 
-          Ex := C.TextExtent(T.Text);
+          if T.Kind=ttImage then
+          begin
+            if Assigned(Lb.FImages) then
+            begin
+              Ex.Width := Lb.FImages.Width;
+              Ex.Height := Lb.FImages.Height;
+            end else
+            begin
+              Ex.Width := 0;
+              Ex.Height := 0;
+            end;
+
+            ImageIndex := T.Value;
+          end else
+          begin
+            Ex := C.TextExtent(T.Text);
+
+            ImageIndex := -1;
+          end;
+
           PreWidth := X+Ex.Width;
           if ((Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (PreWidth>Lb.FMaxWidth))
             or ((not Lb.FAutoWidth) and (PreWidth>Lb.Width)) then
           begin
-            //clear last word on line break when is space to not comsume pixels at end of line
+            //clear last word on line break when is space to not consume pixels at end of line
             if Lb.LWords.Count>0 then
               if Lb.LWords.Last.Space then
               begin
-                  Dec(X, Lb.LWords.Last.Rect.Width);
-                  Lb.LWords.Delete(Lb.LWords.Count-1);
+                Dec(X, Lb.LWords.Last.Rect.Width);
+                Lb.LWords.Delete(Lb.LWords.Count-1);
               end;
 
             DoLineBreak;
@@ -1085,7 +1178,8 @@ begin
           if Ex.Height>HighH then HighH := Ex.Height; //biggest height of the line
 
           Lb.LWords.Add({$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+Ex.Width, Y+Ex.Height),
-            T.Text, LGroupBound.Count, Align, C.Font, BackColor, LinkOn, LinkID, T.Kind=ttSpace);
+            T.Text, LGroupBound.Count, Align, C.Font, BackColor, LinkOn, LinkID, T.Kind=ttSpace,
+            LineCount, ImageIndex);
 
           Inc(X, Ex.Width);
         end;
@@ -1172,6 +1266,8 @@ begin
   end;
 
   for W in Lb.LWords do
+  begin
+    //horizontal align
     if W.Align in [taCenter, taRightJustify] then
     begin
       Offset := LGroupBound[W.Group] - LW[W.Group];
@@ -1179,6 +1275,16 @@ begin
 
       W.Rect.Offset(Offset, 0);
     end;
+
+    //vertical align
+    if Lb.FLineVertAlign in [vaCenter, vaBottom] then
+    begin
+      Offset := LinesHeight[W.Line] - W.Rect.Height;
+      if Lb.FLineVertAlign=vaCenter then Offset := Offset div 2;
+
+      W.Rect.Offset(0, Offset);
+    end;
+  end;
 end;
 
 {$REGION 'StyleLinkProp'}
