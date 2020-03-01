@@ -20,6 +20,10 @@
 
 ## What's New
 
+- 03/01/2020
+
+   - Add BeginUpdate/EndUpdate feature.
+
 - 02/15/2020
 
    - Add line vertical align property.
@@ -172,6 +176,28 @@ Returns TDHLinkData object of the link id. The ID is auto generated according by
 function GetSelectedLinkData: TDHLinkData;
 ```
 Returns TDHLinkData object of the selected link. A link is selected when the mouse is over it.
+
+```delphi
+procedure BeginUpdate;
+```
+Increments internal update semaphore, so while reference counting is bigger than zero, the component will not repaint automatically when the properties are changed, like changing Text or Font property.
+
+```delphi
+procedure EndUpdate;
+```
+Decrements internal update semaphore, so when reference counting is zero, the component will repaint the HTML Text.
+
+*BeginUpdate/EndUpdate example:*
+```delphi
+DzHTMLText1.BeginUpdate;
+try
+  DzHTMLText1.Text := 'Text <b>test</b> 1234';
+  DzHTMLText1.Font.Color := clRed;
+  DzHTMLText1.Font.Size := 20;
+finally
+  DzHTMLText1.EndUpdate;
+end;
+```
 
 ## Link Tag
 
