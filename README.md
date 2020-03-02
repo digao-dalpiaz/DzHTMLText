@@ -182,7 +182,7 @@ Returns TDHLinkData object of the selected link. A link is selected when the mou
 ```delphi
 procedure Rebuild;
 ```
-This method rebuild all internal text elements to get component ready to paint. Call this method if you want to get some calculated property, like TextWidth and TextHeight. Otherwise, you don't need to call this procedure directly.
+This method rebuilds all internal text elements to get component ready to paint. Call this method if you want to get some calculated property, like TextWidth and TextHeight. Otherwise, you don't need to call this procedure directly.
 
 ```delphi
 procedure BeginUpdate;
