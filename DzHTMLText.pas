@@ -164,6 +164,7 @@ type
     DefaultCursor: TCursor; //default cursor when not over a link
 
     UpdatingSemaphore: Integer;
+    InternalResizing: Boolean;
 
     procedure SetText(const Value: String);
     procedure SetAutoHeight(const Value: Boolean);
@@ -174,7 +175,6 @@ type
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
 
     procedure DoPaint;
-    procedure Rebuild; //rebuild words
     procedure BuildAndPaint; //rebuild and repaint
     procedure Modified(Flags: TDHModifiedFlags);
 
@@ -208,8 +208,10 @@ type
     function GetLinkData(LinkID: Integer): TDHLinkData; //get data by link id
     function GetSelectedLinkData: TDHLinkData; //get data of selected link
 
+    procedure Rebuild; //rebuild words
+
     procedure BeginUpdate;
-    procedure EndUpdate;
+    procedure EndUpdate(ForceRepaint: Boolean = True);
   published
     property Align;
     property Anchors;
@@ -459,13 +461,13 @@ begin
   Inc(UpdatingSemaphore);
 end;
 
-procedure TDzHTMLText.EndUpdate;
+procedure TDzHTMLText.EndUpdate(ForceRepaint: Boolean = True);
 begin
   if UpdatingSemaphore=0 then
     raise Exception.Create('There is no update started');
 
   Dec(UpdatingSemaphore);
-  if UpdatingSemaphore=0 then
+  if ForceRepaint and (UpdatingSemaphore=0) then
     BuildAndPaint;
 end;
 
@@ -493,6 +495,8 @@ end;
 
 procedure TDzHTMLText.Resize;
 begin
+  if InternalResizing then Exit;
+
   //on component creating, there is no parent and the resize is fired,
   //so, the canvas is not present at this moment.
   if HasParent then
@@ -794,8 +798,13 @@ begin
     FTextWidth := B.CalcWidth;
     FTextHeight := B.CalcHeight;
 
-    if FAutoWidth then Width := B.CalcWidth;
-    if FAutoHeight then Height := B.CalcHeight;
+    InternalResizing := True;
+    try
+      if FAutoWidth then Width := B.CalcWidth;
+      if FAutoHeight then Height := B.CalcHeight;
+    finally
+      InternalResizing := False;
+    end
 
   finally
     B.Free;
