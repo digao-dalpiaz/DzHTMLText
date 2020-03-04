@@ -20,6 +20,12 @@
 
 ## What's New
 
+- 03/01/2020
+
+   - Add BeginUpdate/EndUpdate feature.
+   - Move Rebuild procedure to public session.
+   - Fix redundant call to rebuild on component bounds resized by auto properties.
+
 - 02/15/2020
 
    - Add line vertical align property.
@@ -172,6 +178,33 @@ Returns TDHLinkData object of the link id. The ID is auto generated according by
 function GetSelectedLinkData: TDHLinkData;
 ```
 Returns TDHLinkData object of the selected link. A link is selected when the mouse is over it.
+
+```delphi
+procedure Rebuild;
+```
+This method rebuilds all internal text elements to get component ready to paint. Call this method if you want to get some calculated property, like TextWidth and TextHeight. Otherwise, you don't need to call this procedure directly.
+
+```delphi
+procedure BeginUpdate;
+```
+Increments internal update semaphore, so while reference counting is bigger than zero, the component will not repaint automatically when the properties are changed, like changing Text or Font property.
+
+```delphi
+procedure EndUpdate(ForceRepaint: Boolean = True);
+```
+Decrements internal update semaphore, so when reference counting is zero, if `ForceRepaint` parameter is True, then the component will repaint the HTML Text.
+
+*BeginUpdate/EndUpdate example:*
+```delphi
+DzHTMLText1.BeginUpdate;
+try
+  DzHTMLText1.Text := 'Text <b>test</b> 1234';
+  DzHTMLText1.Font.Color := clRed;
+  DzHTMLText1.Font.Size := 20;
+finally
+  DzHTMLText1.EndUpdate;
+end;
+```
 
 ## Link Tag
 

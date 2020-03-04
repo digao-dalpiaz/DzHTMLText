@@ -127,6 +127,9 @@ type
 
   TDHLineVertAlign = (vaTop, vaCenter, vaBottom);
 
+  TDHModifiedFlag = (mfBuild, mfPaint);
+  TDHModifiedFlags = set of TDHModifiedFlag;
+
   TDzHTMLText = class(TGraphicControl)
   private
     FAbout: String;
@@ -160,6 +163,9 @@ type
     NoCursorChange: Boolean; //lock CursorChange event
     DefaultCursor: TCursor; //default cursor when not over a link
 
+    UpdatingSemaphore: Integer;
+    InternalResizing: Boolean;
+
     procedure SetText(const Value: String);
     procedure SetAutoHeight(const Value: Boolean);
     procedure SetAutoWidth(const Value: Boolean);
@@ -169,8 +175,9 @@ type
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
 
     procedure DoPaint;
-    procedure Rebuild; //rebuild words
     procedure BuildAndPaint; //rebuild and repaint
+    procedure Modified(Flags: TDHModifiedFlags);
+
     procedure CheckMouse(X, Y: Integer); //check links by mouse position
     procedure SetCursorWithoutChange(C: TCursor);
     procedure SetImages(const Value: TCustomImageList);
@@ -201,6 +208,10 @@ type
     function GetLinkData(LinkID: Integer): TDHLinkData; //get data by link id
     function GetSelectedLinkData: TDHLinkData; //get data of selected link
 
+    procedure Rebuild; //rebuild words
+
+    procedure BeginUpdate;
+    procedure EndUpdate(ForceRepaint: Boolean = True);
   published
     property Align;
     property Anchors;
@@ -381,11 +392,18 @@ begin
   Rebuild;
 end;
 
+procedure TDzHTMLText.Modified(Flags: TDHModifiedFlags);
+begin
+  if UpdatingSemaphore>0 then Exit;
+
+  if mfBuild in Flags then Rebuild;
+  if mfPaint in Flags then Invalidate;
+end;
+
 procedure TDzHTMLText.BuildAndPaint;
 begin
   //Rebuild words and repaint
-  Rebuild;
-  Invalidate;
+  Modified([mfBuild, mfPaint]);
 end;
 
 procedure TDzHTMLText.SetAutoHeight(const Value: Boolean);
@@ -394,7 +412,7 @@ begin
   begin
     FAutoHeight := Value;
 
-    if Value then Rebuild;
+    if Value then Modified([mfBuild]);
   end;
 end;
 
@@ -404,7 +422,7 @@ begin
   begin
     FAutoWidth := Value;
 
-    if Value then Rebuild;
+    if Value then Modified([mfBuild]);
   end;
 end;
 
@@ -414,7 +432,7 @@ begin
   begin
     FMaxWidth := Value;
 
-    Rebuild;
+    Modified([mfBuild]);
   end;
 end;
 
@@ -438,20 +456,35 @@ begin
   end;
 end;
 
+procedure TDzHTMLText.BeginUpdate;
+begin
+  Inc(UpdatingSemaphore);
+end;
+
+procedure TDzHTMLText.EndUpdate(ForceRepaint: Boolean = True);
+begin
+  if UpdatingSemaphore=0 then
+    raise Exception.Create('There is no update started');
+
+  Dec(UpdatingSemaphore);
+  if ForceRepaint and (UpdatingSemaphore=0) then
+    BuildAndPaint;
+end;
+
 {procedure TDzHTMLText.SetTransparent(const Value: Boolean);
 begin
   if Value<>FTransparent then
   begin
     FTransparent := Value;
 
-    Invalidate;
+    Modified([mfPaint]);
   end;
 end;}
 
 procedure TDzHTMLText.CMColorchanged(var Message: TMessage);
 begin
   {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
-  Invalidate;
+  Modified([mfPaint]);
 end;
 
 procedure TDzHTMLText.CMFontchanged(var Message: TMessage);
@@ -462,10 +495,12 @@ end;
 
 procedure TDzHTMLText.Resize;
 begin
+  if InternalResizing then Exit;
+
   //on component creating, there is no parent and the resize is fired,
   //so, the canvas is not present at this moment.
   if HasParent then
-    Rebuild;
+    Modified([mfBuild]);
 
   inherited;
 end;
@@ -763,8 +798,13 @@ begin
     FTextWidth := B.CalcWidth;
     FTextHeight := B.CalcHeight;
 
-    if FAutoWidth then Width := B.CalcWidth;
-    if FAutoHeight then Height := B.CalcHeight;
+    InternalResizing := True;
+    try
+      if FAutoWidth then Width := B.CalcWidth;
+      if FAutoHeight then Height := B.CalcHeight;
+    finally
+      InternalResizing := False;
+    end
 
   finally
     B.Free;
