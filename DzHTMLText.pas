@@ -1048,7 +1048,7 @@ var C: TCanvas;
     X := 0; //carriage return :)
     if LastTabF then X := LastTabF_X; //last line breaks with TabF
 
-    LGroupBound.Add(Lb.Width); //add line bound to use in group align
+    LGroupBound.Add(-1); //add line bound to use in group align (-1 means full width)
     Inc(LineCount);
   end;
 
@@ -1281,7 +1281,7 @@ end;
 procedure TBuilder.CheckAligns;
 var W: TDHWord;
     LW: array of Integer;
-    Group, I, SumW, Offset: Integer;
+    Group, I, SumW, Offset, GrpW: Integer;
 begin
   SetLength(LW, LGroupBound.Count);
 
@@ -1310,7 +1310,13 @@ begin
     //horizontal align
     if W.Align in [taCenter, taRightJustify] then
     begin
-      Offset := LGroupBound[W.Group] - LW[W.Group];
+      GrpW := LGroupBound[W.Group];
+      if GrpW = -1 then
+      begin //group has full width
+        if Lb.FAutoWidth then GrpW := CalcWidth else GrpW := Lb.Width;
+      end;
+
+      Offset := GrpW - LW[W.Group];
       if W.Align=taCenter then Offset := Offset div 2;
 
       W.Rect.Offset(Offset, 0);
