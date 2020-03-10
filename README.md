@@ -20,6 +20,10 @@
 
 ## What's New
 
+- 03/09/2020
+
+   - Fix AutoWidth bug using incorrect component Width - issue #7
+
 - 03/01/2020
 
    - Add BeginUpdate/EndUpdate feature.
