@@ -5,7 +5,7 @@
 ![Platforms](https://img.shields.io/badge/Platforms-Win32%20and%20Win64-red.svg)
 ![Auto Install](https://img.shields.io/badge/-Auto%20Install%20App-orange.svg)
 ![Lazarus support](https://img.shields.io/badge/-Lazarus%20support-green.svg)
-![CJK line break](https://img.shields.io/badge/-Chinese%20Japanese%20Korean%20line%20break%20support-yellowgreen.svg)
+![CJK line break](https://img.shields.io/badge/-Chinese+Japanese+Korean%20line%20break%20support-yellowgreen.svg)
 
 - [What's New](#whats-new)
 - [Component Description](#component-description)
