@@ -16,7 +16,7 @@
 - [Link Tag](#link-tag)
 - [Tab Tag](#tab-tag)
 - [Literal tag character](#literal-tag-character)
-- [Chinese/Japanese/Korean line break](#chinese/japanese/korean-line-break)
+- [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Transparency (why not?)](#transparency-why-not)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 
