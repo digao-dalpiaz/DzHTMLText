@@ -957,6 +957,58 @@ begin
   end;
 end;
 
+type
+  TCharUtils = class
+    class function FindNextWordBreakChar(const A: String): Integer; inline;
+    class function IsCJKChar(const C: Char): Boolean; inline;
+  end;
+
+class function TCharUtils.FindNextWordBreakChar(const A: String): Integer;
+var I: Integer;
+  C: Char;
+begin
+  Result := 0;
+
+  for I := 1 to A.Length do
+  begin
+    C := A[I];
+    if CharInSet(C, [' ','<','>','/','\']) or IsCJKChar(C) then
+    begin // !!! should never find space or tags at first char
+      Result := I;
+      Break;
+    end;
+  end;
+end;
+
+class function TCharUtils.IsCJKChar(const C: Char): Boolean; //return if char is Chinese-Japanese-Korean
+begin
+//East Asian languages break lines in all chars, so each char must be considered as a full word.
+{
+Block                                   Range       Comment
+CJK Unified Ideographs                  4E00-9FFF   Common
+CJK Unified Ideographs Extension A      3400-4DBF   Rare
+CJK Unified Ideographs Extension B      20000-2A6DF Rare, historic
+CJK Unified Ideographs Extension C      2A700–2B73F Rare, historic
+CJK Unified Ideographs Extension D      2B740–2B81F Uncommon, some in current use
+CJK Unified Ideographs Extension E      2B820–2CEAF Rare, historic
+CJK Compatibility Ideographs            F900-FAFF   Duplicates, unifiable variants, corporate characters
+CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
+}
+  Result := False;
+  if C < #10000 then Exit; //fast check
+
+  case Integer(C) of
+    $4E00..$9FFF,
+    $3400..$4DBF,
+    $20000..$2A6DF,
+    $2A700..$2B73F,
+    $2B740..$2B81F,
+    $2B820..$2CEAF,
+    $F900..$FAFF,
+    $2F800..$2FA1F: Result := True;
+  end;
+end;
+
 procedure TBuilder.BuildTokens;
 var Text, A: String;
     CharIni: Char;
@@ -995,17 +1047,13 @@ begin
       AddToken(ttSpace, False, ' ');
       Jump := 1;
     end else
-    if CharInSet(CharIni, ['/','\']) then
-    begin
-      //this is to break line when using paths
-      AddToken(ttText, False, CharIni);
-      Jump := 1;
-    end else
     begin //all the rest is text
-      I := A.IndexOfAny([' ','<','>','/','\'])+1; //warning: 0-based function!!!
-      if I=0 then I := Length(A)+1;
+      I := TCharUtils.FindNextWordBreakChar(A);
+      //when word break at first char, let add the char itself alone.
+      //when word break at other next chars, consider until char before word-break char.
+      if I>1 then Dec(I) else
+        if I=0 then I := Length(A);
 
-      Dec(I);
       A := Copy(A, 1, I);
       AddToken(ttText, False, ReplaceForcedChars(A));
       Jump := I;

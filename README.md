@@ -5,6 +5,7 @@
 ![Platforms](https://img.shields.io/badge/Platforms-Win32%20and%20Win64-red.svg)
 ![Auto Install](https://img.shields.io/badge/-Auto%20Install%20App-orange.svg)
 ![Lazarus support](https://img.shields.io/badge/-Lazarus%20support-green.svg)
+![CJK line break](https://img.shields.io/badge/-Chinese+Japanese+Korean%20line%20break%20support-yellowgreen.svg)
 
 - [What's New](#whats-new)
 - [Component Description](#component-description)
@@ -15,10 +16,15 @@
 - [Link Tag](#link-tag)
 - [Tab Tag](#tab-tag)
 - [Literal tag character](#literal-tag-character)
+- [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Transparency (why not?)](#transparency-why-not)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 
 ## What's New
+
+- 04/10/2020
+
+   - Support Chinese, Japanese and Korean line break - issue #8
 
 - 03/09/2020
 
@@ -254,6 +260,13 @@ If you want to display characters `<` and `>` in the text, just type the HTML co
 
 - `&lt;` = `<`
 - `&gt;` = `>`
+
+## Chinese/Japanese/Korean line break
+
+If you have component width smaller than your text, then it will break to a new line according to some specific chars.
+These chars are: ` ` (space), `\` and `/`. The bars are considered as word break because if you type some path, for example, then should be a way to split this path into a new line if it was too big.
+
+When you type Chinese, Japanese or Korean characters, this behavior is quite different. In this case, the component will break lines considering any char as a complete word.
 
 ## Transparency (why not?)
 
