@@ -258,7 +258,7 @@ You can use the tags:
 
 - `<IMG:index>` to show an image of a TImageList component. Just assign the Images property to the ImageList. Then use the `index` parameter to indicate the index of the image in the ImageList component.
 
-- `<IMGRES:name>` to show an image of a PNG resource. Include PNG image into application resources and then use the `name` parameter to indicate the name of the resource. Important: the image will be displayed only at runtime.
+- `<IMGRES:name>` to show an image of a PNG resource. Include PNG image into application resources and then use the `name` parameter to indicate the name of the resource. **Important: the image will be displayed only at runtime.**
 
 Example:
 
