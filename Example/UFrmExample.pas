@@ -2,8 +2,10 @@ unit UFrmExample;
 
 interface
 
-uses Vcl.Forms, System.Classes, Vcl.Controls, DzHTMLText, System.ImageList,
-  Vcl.ImgList;
+uses Vcl.Forms, System.ImageList, Vcl.ImgList, Vcl.Controls, System.Classes,
+  DzHTMLText,
+  //
+  Vcl.Graphics;
 
 type
   TForm1 = class(TForm)
@@ -12,6 +14,8 @@ type
     procedure LbLinkClick(Sender: TObject; LinkID: Integer;
       LinkData: TDHLinkData; var Handled: Boolean);
     procedure FormCreate(Sender: TObject);
+    procedure LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
+      Picture: TPicture; var Handled: Boolean);
   end;
 
 var
@@ -35,6 +39,18 @@ begin
   begin
     ShowMessage('This is the example app.');
     Handled := True;
+  end;
+end;
+
+procedure TForm1.LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
+  Picture: TPicture; var Handled: Boolean);
+begin
+  if ResourceName='LOGO' then
+  begin
+    //Load image by myself
+    Picture.Assign(Application.Icon);
+
+    Handled := True; //tell the component to NOT load resource automatically
   end;
 end;
 

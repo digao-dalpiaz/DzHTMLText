@@ -48,6 +48,8 @@ type
   TList<T> = class(TFPGList<T>);
   {$ENDIF}
 
+  TDzHTMLText = class;
+
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
     Rect: TRect;
@@ -82,15 +84,14 @@ type
 
   TDHVisualItem_ImageResource = class(TDHVisualItem)
   private
-    PNG: {$IFDEF FPC}TPortableNetworkGraphic{$ELSE}TPngImage{$ENDIF};
+    Picture: TPicture;
+    procedure Load(Lb: TDzHTMLText; const ResourceName: String);
   public
     constructor Create;
     destructor Destroy; override;
   end;
 
   TDHVisualItemList = class(TObjectList<TDHVisualItem>);
-
-  TDzHTMLText = class;
 
   TDHKindStyleLinkProp = (tslpNormal, tslpHover); //kind of link style
 
@@ -137,6 +138,8 @@ type
 
   TDHLineVertAlign = (vaTop, vaCenter, vaBottom);
 
+  TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: String; Picture: TPicture; var Handled: Boolean) of object;
+
   TDHModifiedFlag = (mfBuild, mfPaint);
   TDHModifiedFlags = set of TDHModifiedFlag;
 
@@ -161,6 +164,8 @@ type
     FStyleLinkNormal, FStyleLinkHover: TDHStyleLinkProp;
 
     FImages: TCustomImageList;
+
+    FOnRetrieveImgRes: TDHEvRetrieveImgRes;
 
     FLineVertAlign: TDHLineVertAlign;
 
@@ -275,6 +280,8 @@ type
     property OnLinkClick: TDHEvLinkClick read FOnLinkClick write FOnLinkClick;
     property OnLinkRightClick: TDHEvLinkClick read FOnLinkRightClick write FOnLinkRightClick;
 
+    property OnRetrieveImgRes: TDHEvRetrieveImgRes read FOnRetrieveImgRes write FOnRetrieveImgRes;
+
     property AutoOpenLink: Boolean read FAutoOpenLink write FAutoOpenLink default True;
 
     property LineVertAlign: TDHLineVertAlign read FLineVertAlign write SetLineVertAlign default vaTop;
@@ -316,13 +323,41 @@ end;
 constructor TDHVisualItem_ImageResource.Create;
 begin
   inherited;
-  PNG := {$IFDEF FPC}TPortableNetworkGraphic{$ELSE}TPngImage{$ENDIF}.Create;
+  Picture := TPicture.Create;
 end;
 
 destructor TDHVisualItem_ImageResource.Destroy;
 begin
-  PNG.Free;
+  Picture.Free;
   inherited;
+end;
+
+procedure TDHVisualItem_ImageResource.Load(Lb: TDzHTMLText; const ResourceName: String);
+type TPNG={$IFDEF FPC}TPortableNetworkGraphic{$ELSE}TPngImage{$ENDIF};
+var
+  Handled: Boolean;
+  PNG: TPNG;
+begin
+  if csDesigning in Lb.ComponentState then Exit;
+
+  Handled := False;
+  if Assigned(Lb.FOnRetrieveImgRes) then
+    Lb.FOnRetrieveImgRes(Lb, ResourceName, Picture, Handled);
+
+  if not Handled then
+  begin
+    PNG := TPNG.Create;
+    try
+      try
+        PNG.LoadFromResourceName(HInstance, ResourceName);
+      except
+        //resource not found or invalid
+      end;
+      Picture.Assign(PNG);
+    finally
+      PNG.Free;
+    end;
+  end;
 end;
 
 //
@@ -333,7 +368,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 1.1';
+  FAbout := 'Digao Dalpiaz / Version 1.2';
 
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
@@ -580,7 +615,7 @@ begin
         with TDHVisualItem_ImageResource(W) do
         begin
           B.Canvas.FillRect(W.Rect);
-          B.Canvas.Draw(W.Rect.Left, W.Rect.Top, PNG);
+          B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
         end
     end;
 
@@ -1273,15 +1308,10 @@ begin
                 W := TDHVisualItem_ImageResource.Create;
                 with TDHVisualItem_ImageResource(W) do
                 begin
-                  if not (csDesigning in Lb.ComponentState) then
-                  try
-                    PNG.LoadFromResourceName(HInstance, T.Text);
-                  except
-                    //resource not found or invalid
-                  end;
+                  Load(Lb, T.Text);
 
-                  Ex.Width := PNG.Width;
-                  Ex.Height := PNG.Height;
+                  Ex.Width := Picture.Width;
+                  Ex.Height := Picture.Height;
                 end;
               end;
 
