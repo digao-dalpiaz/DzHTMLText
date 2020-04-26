@@ -261,6 +261,7 @@ You can use the tags:
 - `<IMGRES:name>` to show an image of a PNG resource. Include PNG image into application resources and then use the `name` parameter to indicate the name of the resource. Important: the image will be displayed only at runtime.
 
 Example:
+
 ![App Resources Dialog](images/app_resources_dialog.png)
 
 In this example, the image tag should be `<imgres:test>`
