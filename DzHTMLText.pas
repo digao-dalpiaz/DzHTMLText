@@ -23,7 +23,8 @@ Supported Tags:
 <R></R> - Align Right
 <T:123> - Tab
 <TF:123> - Tab with aligned break
-<IMG:nnn> - Image from ImageList where nnn is image index
+<IMG:nnn> - Image from ImageList where 'nnn' is image index
+<IMGRES:name> - PNG image from Resource where 'name' is the resource name
 ------------------------------------------------------------------------------}
 
 unit DzHTMLText;
@@ -36,7 +37,8 @@ uses
 {$IFDEF FPC}
   Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf, ImgList
 {$ELSE}
-  Vcl.Controls, System.Classes, Winapi.Messages, Vcl.ImgList,
+  Vcl.Controls, System.Classes, Winapi.Messages,
+  Vcl.ImgList, Vcl.Imaging.pngimage,
   System.Generics.Collections, Vcl.Graphics, System.Types
 {$ENDIF};
 
@@ -46,16 +48,12 @@ type
   TList<T> = class(TFPGList<T>);
   {$ENDIF}
 
-  {DHWord is an object to each word. Will be used to paint event.
-  The words are separated by space/tag/line break.}
-  TDHWord = class
+  TDHVisualItem = class //represents each visual item printed to then canvas
   private
     Rect: TRect;
-    Text: String;
     Group: Integer; //group number
     {The group is isolated at each line or tabulation to delimit text align area}
     Align: TAlignment;
-    Font: TFont;
     BColor: TColor; //background color
     Link: Boolean; //is a link
     LinkID: Integer; //link number
@@ -63,22 +61,34 @@ type
     and works to know the link target, stored on a TStringList, because if
     the link was saved here at a work, it will be repeat if has multiple words
     per link, spending a lot of unnecessary memory.}
-    Space: Boolean; //is an space
-
     Line: Integer; //line number
-    ImageIndex: Integer;
-
     Hover: Boolean; //the mouse is over the link
+  end;
+
+  TDHVisualItem_Word = class(TDHVisualItem)
+  private
+    Text: String;
+    Font: TFont;
+    Space: Boolean; //is an space
   public
     constructor Create;
     destructor Destroy; override;
   end;
-  TDHWordList = class(TObjectList<TDHWord>)
+
+  TDHVisualItem_Image = class(TDHVisualItem)
   private
-    procedure Add(Rect: TRect; Text: String; Group: Integer; Align: TAlignment;
-      Font: TFont; BColor: TColor; Link: Boolean; LinkID: Integer; Space: Boolean; Line: Integer; ImageIndex: Integer);
-      {$IFDEF FPC}reintroduce;{$ENDIF}
+    ImageIndex: Integer;
   end;
+
+  TDHVisualItem_ImageResource = class(TDHVisualItem)
+  private
+    PNG: {$IFDEF FPC}TPortableNetworkGraphic{$ELSE}TPngImage{$ENDIF};
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+  TDHVisualItemList = class(TObjectList<TDHVisualItem>);
 
   TDzHTMLText = class;
 
@@ -134,7 +144,7 @@ type
   private
     FAbout: String;
 
-    LWords: TDHWordList; //word list to paint event
+    LVisualItem: TDHVisualItemList; //visual item list to paint event
     LLinkData: TDHLinkDataList; //list of links info
 
     FText: String;
@@ -291,36 +301,28 @@ end;
 
 //
 
-constructor TDHWord.Create;
+constructor TDHVisualItem_Word.Create;
 begin
   inherited;
   Font := TFont.Create;
 end;
 
-destructor TDHWord.Destroy;
+destructor TDHVisualItem_Word.Destroy;
 begin
   Font.Free;
   inherited;
 end;
 
-procedure TDHWordList.Add(Rect: TRect; Text: String; Group: Integer; Align: TAlignment;
-  Font: TFont; BColor: TColor; Link: Boolean; LinkID: Integer; Space: Boolean; Line: Integer; ImageIndex: Integer);
-var W: TDHWord;
+constructor TDHVisualItem_ImageResource.Create;
 begin
-  W := TDHWord.Create;
-  inherited Add(W);
+  inherited;
+  PNG := {$IFDEF FPC}TPortableNetworkGraphic{$ELSE}TPngImage{$ENDIF}.Create;
+end;
 
-  W.Rect := Rect;
-  W.Text := Text;
-  W.Group := Group;
-  W.Align := Align;
-  W.Font.Assign(Font);
-  W.BColor := BColor;
-  W.Link := Link;
-  W.LinkID := LinkID;
-  W.Space := Space;
-  W.Line := Line;
-  W.ImageIndex := ImageIndex;
+destructor TDHVisualItem_ImageResource.Destroy;
+begin
+  PNG.Free;
+  inherited;
 end;
 
 //
@@ -335,7 +337,7 @@ begin
 
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
-  LWords := TDHWordList.Create;
+  LVisualItem := TDHVisualItemList.Create;
   LLinkData := TDHLinkDataList.Create;
 
   FAutoOpenLink := True;
@@ -355,7 +357,7 @@ destructor TDzHTMLText.Destroy;
 begin
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
-  LWords.Free;
+  LVisualItem.Free;
   LLinkData.Free;
   inherited;
 end;
@@ -512,7 +514,7 @@ begin
 end;
 
 procedure TDzHTMLText.DoPaint;
-var W: TDHWord;
+var W: TDHVisualItem;
     B: {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap;
 begin
   //Using internal bitmap as a buffer to reduce flickering
@@ -537,9 +539,10 @@ begin
       B.Canvas.Rectangle(ClientRect);
     end;
 
-    for W in LWords do
+    for W in LVisualItem do
     begin
-      B.Canvas.Font.Assign(W.Font);
+      if W is TDHVisualItem_Word then
+        B.Canvas.Font.Assign(TDHVisualItem_Word(W).Font);
 
       if W.BColor<>clNone then
         B.Canvas.Brush.Color := W.BColor
@@ -548,23 +551,36 @@ begin
 
       if W.Link then
       begin
-          if W.Hover then //selected
-            FStyleLinkHover.SetPropsToCanvas(B.Canvas)
-          else
-            FStyleLinkNormal.SetPropsToCanvas(B.Canvas);
+        if W.Hover then //selected
+          FStyleLinkHover.SetPropsToCanvas(B.Canvas)
+        else
+          FStyleLinkNormal.SetPropsToCanvas(B.Canvas);
       end;
 
-      if W.ImageIndex>-1 then //is an image
-      begin
-        if Assigned(FImages) then
-          FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, W.ImageIndex);
-      end else
-        DrawText(B.Canvas.Handle,
-          {$IFDEF FPC}PChar({$ENDIF}W.Text{$IFDEF FPC}){$ENDIF},
-          -1, W.Rect, DT_NOCLIP or DT_NOPREFIX);
-      {Using DrawText, because TextOut has not clip option, which causes
-      bad overload of text when painting using background, oversizing the
-      text area wildly.}
+      if W is TDHVisualItem_Word then
+        with TDHVisualItem_Word(W) do
+        begin
+          DrawText(B.Canvas.Handle,
+           {$IFDEF FPC}PChar({$ENDIF}Text{$IFDEF FPC}){$ENDIF},
+           -1, W.Rect, DT_NOCLIP or DT_NOPREFIX);
+          {Using DrawText, because TextOut has no clip option, which causes
+          bad overload of text when painting using background, oversizing the
+          text area wildly.}
+        end
+      else
+      if W is TDHVisualItem_Image then
+        with TDHVisualItem_Image(W) do
+        begin
+          if Assigned(FImages) then
+            FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
+        end
+      else
+      if W is TDHVisualItem_ImageResource then
+        with TDHVisualItem_ImageResource(W) do
+        begin
+          B.Canvas.FillRect(W.Rect);
+          B.Canvas.Draw(W.Rect.Left, W.Rect.Top, PNG);
+        end
     end;
 
     Canvas.Draw(0, 0, B); //to reduce flickering
@@ -606,14 +622,14 @@ end;
 procedure TDzHTMLText.CheckMouse(X, Y: Integer);
 var FoundHover, HasChange, Old: Boolean;
     LinkID: Integer;
-    W: TDHWord;
+    W: TDHVisualItem;
 begin
   FoundHover := False;
   HasChange := False;
   LinkID := -1;
 
   //find the first word, if there is any
-  for W in LWords do
+  for W in LVisualItem do
     if W.Link then
     begin
       if W.Rect.Contains({$IFDEF FPC}Types.{$ENDIF}Point(X, Y)) then //selected
@@ -626,7 +642,7 @@ begin
     end;
 
   //set as selected all the words of same link, and unselect another links
-  for W in LWords do
+  for W in LVisualItem do
     if W.Link then
     begin
       Old := W.Hover;
@@ -727,7 +743,7 @@ type
     ttTab, ttTabF, ttSpace,
     ttBreak, ttText, ttLink,
     ttAlignLeft, ttAlignCenter, ttAlignRight,
-    ttImage);
+    ttImage, ttImageResource);
 
   TToken = class
     Kind: TTokenKind;
@@ -784,7 +800,7 @@ var B: TBuilder;
 begin
   if csLoading in ComponentState then Exit;
 
-  LWords.Clear; //clean old words
+  LVisualItem.Clear; //clean old words
   LLinkData.Clear; //clean old links
 
   B := TBuilder.Create;
@@ -873,7 +889,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..15] of TDefToken = (
+const DEF_TOKENS: array[0..16] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -889,7 +905,8 @@ const DEF_TOKENS: array[0..15] of TDefToken = (
   (Ident: 'R'; Kind: ttAlignRight),
   (Ident: 'T'; Kind: ttTab; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
   (Ident: 'TF'; Kind: ttTabF; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
-  (Ident: 'IMG'; Kind: ttImage; Single: True; AllowPar: True; ProcValue: Tag_Index_ProcValue)
+  (Ident: 'IMG'; Kind: ttImage; Single: True; AllowPar: True; ProcValue: Tag_Index_ProcValue),
+  (Ident: 'IMGRES'; Kind: ttImageResource; Single: True; AllowPar: True)
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -1122,9 +1139,9 @@ var
   LBackColor: TListStack<TColor>;
   LAlign: TListStack<TAlignment>;
 
-  LinkData: TDHLinkData;
+  W: TDHVisualItem;
 
-  ImageIndex: Integer;
+  LinkData: TDHLinkData;
 
   vBool: Boolean; //Required for Lazarus
 begin
@@ -1221,54 +1238,98 @@ begin
             Align := LAlign.Last;
           end;
 
-        ttText, ttSpace, ttInvalid, ttImage:
+        ttText, ttSpace, ttInvalid, ttImage, ttImageResource:
         begin
           case T.Kind of
             ttSpace: T.Text := ' ';
             ttInvalid: T.Text := '<?>';
           end;
 
-          if T.Kind=ttImage then
-          begin
-            if Assigned(Lb.FImages) then
-            begin
-              Ex.Width := Lb.FImages.Width;
-              Ex.Height := Lb.FImages.Height;
-            end else
-            begin
-              Ex.Width := 0;
-              Ex.Height := 0;
-            end;
-
-            ImageIndex := T.Value;
-          end else
-          begin
-            Ex := C.TextExtent(T.Text);
-
-            ImageIndex := -1;
-          end;
-
-          PreWidth := X+Ex.Width;
-          if ((Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (PreWidth>Lb.FMaxWidth))
-            or ((not Lb.FAutoWidth) and (PreWidth>Lb.Width)) then
-          begin
-            //clear last word on line break when is space to not consume pixels at end of line
-            if Lb.LWords.Count>0 then
-              if Lb.LWords.Last.Space then
+          W := nil;
+          try
+            case T.Kind of
+              ttImage:
               begin
-                Dec(X, Lb.LWords.Last.Rect.Width);
-                Lb.LWords.Delete(Lb.LWords.Count-1);
+                W := TDHVisualItem_Image.Create;
+                with TDHVisualItem_Image(W) do
+                begin
+                  ImageIndex := T.Value;
+                end;
+
+                if Assigned(Lb.FImages) then
+                begin
+                  Ex.Width := Lb.FImages.Width;
+                  Ex.Height := Lb.FImages.Height;
+                end else
+                begin
+                  Ex.Width := 0;
+                  Ex.Height := 0;
+                end;
               end;
 
-            DoLineBreak;
-            if T.Kind=ttSpace then Continue;
+              ttImageResource:
+              begin
+                W := TDHVisualItem_ImageResource.Create;
+                with TDHVisualItem_ImageResource(W) do
+                begin
+                  if not (csDesigning in Lb.ComponentState) then
+                  try
+                    PNG.LoadFromResourceName(HInstance, T.Text);
+                  except
+                    //resource not found or invalid
+                  end;
+
+                  Ex.Width := PNG.Width;
+                  Ex.Height := PNG.Height;
+                end;
+              end;
+
+              else
+              begin
+                W := TDHVisualItem_Word.Create;
+                with TDHVisualItem_Word(W) do
+                begin
+                  Text := T.Text;
+                  Font.Assign(C.Font);
+                  Space := T.Kind=ttSpace;
+
+                  Ex := C.TextExtent(Text);
+                end;
+              end;
+            end;
+
+            PreWidth := X+Ex.Width;
+            if ((Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (PreWidth>Lb.FMaxWidth))
+              or ((not Lb.FAutoWidth) and (PreWidth>Lb.Width)) then
+            begin
+              //clear last word on line break when is space to not consume pixels at end of line
+              if Lb.LVisualItem.Count>0 then
+                if (Lb.LVisualItem.Last is TDHVisualItem_Word) and
+                  TDHVisualItem_Word(Lb.LVisualItem.Last).Space then
+                begin
+                  Dec(X, Lb.LVisualItem.Last.Rect.Width);
+                  Lb.LVisualItem.Delete(Lb.LVisualItem.Count-1);
+                end;
+
+              DoLineBreak;
+              if T.Kind=ttSpace then Continue;
+            end;
+            if Ex.Height>HighH then HighH := Ex.Height; //biggest height of the line
+
+            //Common properties of Visual Item
+            W.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+Ex.Width, Y+Ex.Height);
+            W.Group := LGroupBound.Count;
+            W.Align := Align;
+            W.BColor := BackColor;
+            W.Link := LinkOn;
+            W.LinkID := LinkID;
+            W.Line := LineCount;
+
+            Lb.LVisualItem.Add(W);
+            W := nil;
+          finally
+            if W<>nil then W.Free;
           end;
-          if Ex.Height>HighH then HighH := Ex.Height; //biggest height of the line
-
-          Lb.LWords.Add({$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+Ex.Width, Y+Ex.Height),
-            T.Text, LGroupBound.Count, Align, C.Font, BackColor, LinkOn, LinkID, T.Kind=ttSpace,
-            LineCount, ImageIndex);
-
           Inc(X, Ex.Width);
         end;
 
@@ -1320,14 +1381,14 @@ begin
     LAlign.Free;
   end;
 
-  if Lb.LWords.Count>0 then DoLineBreak;
+  if Lb.LVisualItem.Count>0 then DoLineBreak;
   CalcWidth := HighW;
   CalcHeight := Y;
   Lb.FLines := LineCount;
 end;
 
 procedure TBuilder.CheckAligns;
-var W: TDHWord;
+var W: TDHVisualItem;
     LW: array of Integer;
     Group, I, SumW, Offset, GrpW: Integer;
 begin
@@ -1336,9 +1397,9 @@ begin
   Group := -1;
   SumW := 0;
 
-  for I := 0 to Lb.LWords.Count-1 do
+  for I := 0 to Lb.LVisualItem.Count-1 do
   begin
-    W := Lb.LWords[I];
+    W := Lb.LVisualItem[I];
 
     if W.Group<>Group then //enter new group
     begin
@@ -1350,10 +1411,10 @@ begin
     end;
 
     Inc(SumW, W.Rect.Width);
-    if I=Lb.LWords.Count-1 then LW[Group] := SumW;
+    if I=Lb.LVisualItem.Count-1 then LW[Group] := SumW;
   end;
 
-  for W in Lb.LWords do
+  for W in Lb.LVisualItem do
   begin
     //horizontal align
     if W.Align in [taCenter, taRightJustify] then

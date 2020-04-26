@@ -22,6 +22,10 @@
 
 ## What's New
 
+- 04/26/2020
+
+   - Included IMGRES tag, supporting PNG resource images.
+
 - 04/10/2020
 
    - Support Chinese, Japanese and Korean line break - issue #8
@@ -85,7 +89,8 @@ Here are all possible tags you can use in text:
 <R></R> - Align Right
 <T:123> - Tab
 <TF:123> - Tab with aligned break
-<IMG:nnn> - Image from ImageList where nnn is image index
+<IMG:nnn> - Image from ImageList where 'nnn' is image index
+<IMGRES:name> - PNG image from Resource where 'name' is the resource name
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.

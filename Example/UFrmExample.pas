@@ -11,6 +11,7 @@ type
     MyImages: TImageList;
     procedure LbLinkClick(Sender: TObject; LinkID: Integer;
       LinkData: TDHLinkData; var Handled: Boolean);
+    procedure FormCreate(Sender: TObject);
   end;
 
 var
@@ -21,6 +22,11 @@ implementation
 {$R *.dfm}
 
 uses Vcl.Dialogs;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  ReportMemoryLeaksOnShutdown := True;
+end;
 
 procedure TForm1.LbLinkClick(Sender: TObject; LinkID: Integer;
   LinkData: TDHLinkData; var Handled: Boolean);
