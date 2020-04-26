@@ -14,6 +14,7 @@
 - [Events](#events)
 - [Procedures/Functions](#proceduresfunctions)
 - [Link Tag](#link-tag)
+- [Image Tag](#image-tag)
 - [Tab Tag](#tab-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
@@ -250,6 +251,19 @@ This object stores the information about a link.
 - `Text: String` = The link display text specified at `<a:target>Display Text</a>` tag
 
 You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events. Also you can call `GetLinkData` or `GetSelectedLinkData`.
+
+## Image Tag
+
+You can use the tags:
+
+- `<IMG:index>` to show an image of a TImageList component. Just assign the Images property to the ImageList. Then use the `index` parameter to indicate the index of the image in the ImageList component.
+
+- `<IMGRES:name>` to show an image of a PNG resource. Include PNG image into application resources and then use the `name` parameter to indicate the name of the resource. Important: the image will be displayed only at runtime.
+
+Example:
+![App Resources Dialog](images/app_resources_dialog.png)
+
+In this example, the image tag should be `<imgres:test>`
 
 ## Tab Tag
 
