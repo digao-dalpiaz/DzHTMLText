@@ -180,8 +180,30 @@ This event is fired when a link is right-clicked by the mouse. You can use Handl
 ```delphi
 procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: String; Picture: TPicture; var Handled: Boolean);
 ```
-If you are using `<imgres>` tag, this event will fire on every image tag, allowing you to manually load a image from anywhere, assigning it to Picture object. Be sure to set `Handled := True` when you manually load an image.
+If you are using `<imgres>` tag, this event will fire on every image tag, allowing you to manually load a image from anywhere, in any image format, assigning it to Picture object. Be sure to set `Handled := True` when you manually load an image.
 *Not using this event causes the component to automatically load the image from application resources by name, and must be in PNG format.*
+
+Example:
+
+```delphi
+procedure TForm1.LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
+  Picture: TPicture; var Handled: Boolean);
+var JPG: TJpegImage;
+begin
+  if ResourceName='TEST' then
+  begin
+    JPG := TJpegImage.Create;
+	try
+	  JPG.LoadFromFile('C:\Test.jpg');
+	  Picture.Assign(JPG);
+	finally
+	  JPG.Free;
+	end;
+
+    Handled := True; 
+  end;
+end;
+```
 
 ## Procedures/Functions
 
