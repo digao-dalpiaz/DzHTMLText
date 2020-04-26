@@ -193,12 +193,12 @@ begin
   if ResourceName='TEST' then
   begin
     JPG := TJpegImage.Create;
-	try
-	  JPG.LoadFromFile('C:\Test.jpg');
-	  Picture.Assign(JPG);
-	finally
-	  JPG.Free;
-	end;
+    try
+      JPG.LoadFromFile('C:\Test.jpg');
+      Picture.Assign(JPG);
+    finally
+      JPG.Free;
+    end;
 
     Handled := True; 
   end;
