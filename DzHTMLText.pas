@@ -1303,13 +1303,13 @@ begin
               or ((not Lb.FAutoWidth) and (PreWidth>Lb.Width)) then
             begin
               //clear last word on line break when is space to not consume pixels at end of line
-              if Lb.LVisualItem.Count>0 then
-                if (Lb.LVisualItem.Last is TDHVisualItem_Word) and
-                  TDHVisualItem_Word(Lb.LVisualItem.Last).Space then
-                begin
-                  Dec(X, Lb.LVisualItem.Last.Rect.Width);
-                  Lb.LVisualItem.Delete(Lb.LVisualItem.Count-1);
-                end;
+              if (Lb.LVisualItem.Count>0) and
+                (Lb.LVisualItem.Last is TDHVisualItem_Word) and
+                TDHVisualItem_Word(Lb.LVisualItem.Last).Space then
+              begin
+                Dec(X, Lb.LVisualItem.Last.Rect.Width);
+                Lb.LVisualItem.Delete(Lb.LVisualItem.Count-1);
+              end;
 
               DoLineBreak;
               if T.Kind=ttSpace then Continue;
