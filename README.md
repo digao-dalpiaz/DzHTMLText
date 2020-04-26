@@ -186,7 +186,7 @@ If you are using `<imgres>` tag, this event will fire on every image tag, allowi
 Example:
 
 ```delphi
-procedure TForm1.LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
+procedure TForm1.DzHTMLText1RetrieveImgRes(Sender: TObject; const ResourceName: string;
   Picture: TPicture; var Handled: Boolean);
 var JPG: TJpegImage;
 begin
