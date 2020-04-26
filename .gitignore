@@ -1,4 +1,6 @@
 *.~*
+*.rc
+*.dres
 *.identcache
 *.local
 *.stat

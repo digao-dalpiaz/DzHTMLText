@@ -1,5 +1,9 @@
 program Example;
 
+
+
+{$R *.dres}
+
 uses
   Vcl.Forms,
   UFrmExample in 'UFrmExample.pas' {Form1};

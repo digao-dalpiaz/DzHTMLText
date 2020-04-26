@@ -31,9 +31,9 @@ end;
 procedure TForm1.LbLinkClick(Sender: TObject; LinkID: Integer;
   LinkData: TDHLinkData; var Handled: Boolean);
 begin
-  if LinkData.Target='MSG_BOX' then
+  if LinkData.Target='INFO_ABOUT' then
   begin
-    ShowMessage('You have clicked at message box link!');
+    ShowMessage('This is the example app.');
     Handled := True;
   end;
 end;
