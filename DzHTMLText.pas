@@ -571,6 +571,7 @@ begin
       if W is TDHVisualItem_Image then
         with TDHVisualItem_Image(W) do
         begin
+          B.Canvas.FillRect(W.Rect);
           if Assigned(FImages) then
             FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
         end
