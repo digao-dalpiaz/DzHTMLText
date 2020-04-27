@@ -25,6 +25,7 @@
 
 - 04/27/2020
 
+   - Changed version to 1.2
    - Implemented OnRetrieveImgRes event to manually load images when using `<imgres>` tag.
 
 - 04/26/2020
