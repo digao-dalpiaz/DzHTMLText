@@ -4,7 +4,7 @@ object Form1: TForm1
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'DzHTMLText Example'
-  ClientHeight = 352
+  ClientHeight = 360
   ClientWidth = 344
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,7 +20,7 @@ object Form1: TForm1
     Left = 8
     Top = 8
     Width = 329
-    Height = 337
+    Height = 345
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -28,19 +28,20 @@ object Form1: TForm1
     Font.Style = []
     ParentFont = False
     Text = 
-      '<fc:clGreen>Welcome to my app!</fc>'#13#10#13#10'<b>This is an important t' +
-      'ext</b> and <i>this is italic text</i>.<br><u>But we have underl' +
-      'ine too</u>, and <s>strike-out</s> if you want.<br><br>You can c' +
-      'hange the <fn:Courier New>font name</fn> and the <fs:14>font siz' +
-      'e</fs><br>The <fc:clRed>colors</fc> are <bc:clYellow>allowed</bc' +
-      '> too! <img:0> <i>and images</i> <img:1><br><br><c>Alignment, we' +
-      ' have!</c><br><r>This is great</r><br><br>You can use tab align ' +
-      'too:'#13#10'1<t:30>JHON<t:100>100.000'#13#10'2<t:30>SARAH<t:100>150.000'#13#10'3<t' +
-      ':30>ERIC<t:100>180.000'#13#10#13#10'Click <a:www.google.com.br>here</a> to' +
-      ' open Google.'#13#10'This is an image from resource: <a:INFO_ABOUT><im' +
-      'gres:about> About the program</a>'
+      '<imgres:LOGO><fc:clGreen> Welcome to my app!</fc>'#13#10#13#10'<b>This is ' +
+      'an important text</b> and <i>this is italic text</i>.<br><u>But ' +
+      'we have underline too</u>, and <s>strike-out</s> if you want.<br' +
+      '><br>You can change the <fn:Courier New>font name</fn> and the <' +
+      'fs:14>font size</fs><br>The <fc:clRed>colors</fc> are <bc:clYell' +
+      'ow>allowed</bc> too! <img:0> <i>and images</i> <img:1><br><br><c' +
+      '>Alignment, we have!</c><br><r>This is great</r><br><br>You can ' +
+      'use tab align too:'#13#10'1<t:30>JHON<t:100>100.000'#13#10'2<t:30>SARAH<t:10' +
+      '0>150.000'#13#10'3<t:30>ERIC<t:100>180.000'#13#10#13#10'Click <a:www.google.com.' +
+      'br>here</a> to open Google.'#13#10'This is an image from resource: <a:' +
+      'INFO_ABOUT><imgres:about> About the program</a>'
     Images = MyImages
     OnLinkClick = LbLinkClick
+    OnRetrieveImgRes = LbRetrieveImgRes
     LineVertAlign = vaCenter
   end
   object MyImages: TImageList

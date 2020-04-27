@@ -23,6 +23,10 @@
 
 ## What's New
 
+- 04/27/2020
+
+   - Implemented OnRetrieveImgRes event to manually load images when using `<imgres>` tag.
+
 - 04/26/2020
 
    - Included IMGRES tag, supporting PNG resource images.
@@ -172,6 +176,34 @@ This event is fired when a link is left-clicked by the mouse. You can use Handle
 procedure OnLinkRightClick(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData; var Handled: Boolean);
 ```
 This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
+
+```delphi
+procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: String; Picture: TPicture; var Handled: Boolean);
+```
+If you are using `<imgres>` tag, this event will fire on every image tag, allowing you to manually load a image from anywhere, in any image format, assigning it to Picture object. Be sure to set `Handled := True` when you manually load an image.
+*Not using this event causes the component to automatically load the image from application resources by name, and must be in PNG format.*
+
+Example:
+
+```delphi
+procedure TForm1.DzHTMLText1RetrieveImgRes(Sender: TObject; const ResourceName: string;
+  Picture: TPicture; var Handled: Boolean);
+var JPG: TJpegImage;
+begin
+  if ResourceName='TEST' then
+  begin
+    JPG := TJpegImage.Create;
+    try
+      JPG.LoadFromFile('C:\Test.jpg');
+      Picture.Assign(JPG);
+    finally
+      JPG.Free;
+    end;
+
+    Handled := True; 
+  end;
+end;
+```
 
 ## Procedures/Functions
 
