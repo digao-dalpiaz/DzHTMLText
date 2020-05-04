@@ -23,6 +23,11 @@
 
 ## What's New
 
+- 05/03/2020
+
+   - Included vclimg.dcp reference into package
+   - Updated CompInstall to version 1.2
+
 - 04/27/2020
 
    - Changed version to 1.2

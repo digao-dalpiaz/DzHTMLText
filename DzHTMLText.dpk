@@ -31,7 +31,8 @@ package DzHTMLText;
 
 requires
   rtl,
-  vcl;
+  vcl,
+  vclimg;
 
 contains
   DzHTMLText in 'DzHTMLText.pas';
