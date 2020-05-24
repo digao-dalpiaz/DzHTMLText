@@ -6,25 +6,6 @@ Label with formatting tags support
 https://github.com/digao-dalpiaz/DzHTMLText
 
 Please, read the documentation at GitHub link.
-
-Supported Tags:
-<A[:abc]></A> - Link
-<B></B> - Bold
-<I></I> - Italic
-<U></U> - Underline
-<S></S> - Strike out
-<FN:abc></FN> - Font Name
-<FS:123></FS> - Font Size
-<FC:clColor|$999999></FC> - Font Color
-<BC:clColor|$999999></BC> - Background Color
-<BR> - Line Break
-<L></L> - Align Left
-<C></C> - Align Center
-<R></R> - Align Right
-<T:123> - Tab
-<TF:123> - Tab with aligned break
-<IMG:nnn> - Image from ImageList where 'nnn' is image index
-<IMGRES:name> - PNG image from Resource where 'name' is the resource name
 ------------------------------------------------------------------------------}
 
 unit DzHTMLText;
@@ -41,6 +22,8 @@ uses
   Vcl.ImgList, Vcl.Imaging.pngimage,
   System.Generics.Collections, Vcl.Graphics, System.Types
 {$ENDIF};
+
+const _DEF_LISTLEVELPADDING = 20;
 
 type
   {$IFDEF FPC}
@@ -168,6 +151,7 @@ type
     FOnRetrieveImgRes: TDHEvRetrieveImgRes;
 
     FLineVertAlign: TDHLineVertAlign;
+    FListLevelPadding: Integer;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
@@ -197,6 +181,7 @@ type
     procedure SetCursorWithoutChange(C: TCursor);
     procedure SetImages(const Value: TCustomImageList);
     procedure SetLineVertAlign(const Value: TDHLineVertAlign);
+    procedure SetListLevelPadding(const Value: Integer);
     //procedure SetTransparent(const Value: Boolean);
   protected
     procedure Loaded; override;
@@ -285,6 +270,7 @@ type
     property AutoOpenLink: Boolean read FAutoOpenLink write FAutoOpenLink default True;
 
     property LineVertAlign: TDHLineVertAlign read FLineVertAlign write SetLineVertAlign default vaTop;
+    property ListLevelPadding: Integer read FListLevelPadding write SetListLevelPadding default _DEF_LISTLEVELPADDING;
 
     property About: String read FAbout;
   end;
@@ -376,6 +362,7 @@ begin
   LLinkData := TDHLinkDataList.Create;
 
   FAutoOpenLink := True;
+  FListLevelPadding := _DEF_LISTLEVELPADDING;
 
   FSelectedLinkID := -1;
 
@@ -488,6 +475,16 @@ begin
   if Value<>FLineVertAlign then
   begin
     FLineVertAlign := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetListLevelPadding(const Value: Integer);
+begin
+  if Value<>FListLevelPadding then
+  begin
+    FListLevelPadding := Value;
 
     BuildAndPaint;
   end;
@@ -779,7 +776,8 @@ type
     ttTab, ttTabF, ttSpace,
     ttBreak, ttText, ttLink,
     ttAlignLeft, ttAlignCenter, ttAlignRight,
-    ttImage, ttImageResource);
+    ttImage, ttImageResource,
+    ttBulletList, ttNumberList, ttListItem);
 
   TToken = class
     Kind: TTokenKind;
@@ -925,7 +923,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..16] of TDefToken = (
+const DEF_TOKENS: array[0..19] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -942,7 +940,10 @@ const DEF_TOKENS: array[0..16] of TDefToken = (
   (Ident: 'T'; Kind: ttTab; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
   (Ident: 'TF'; Kind: ttTabF; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
   (Ident: 'IMG'; Kind: ttImage; Single: True; AllowPar: True; ProcValue: Tag_Index_ProcValue),
-  (Ident: 'IMGRES'; Kind: ttImageResource; Single: True; AllowPar: True)
+  (Ident: 'IMGRES'; Kind: ttImageResource; Single: True; AllowPar: True),
+  (Ident: 'UL'; Kind: ttBulletList), //Unordered HTML List
+  (Ident: 'OL'; Kind: ttNumberList), //Ordered HTML List
+  (Ident: 'LI'; Kind: ttListItem)
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -1067,7 +1068,11 @@ var Text, A: String;
     CharIni: Char;
     I, Jump: Integer;
 begin
-  Text := StringReplace(Lb.FText, #13#10, '<BR>', [rfReplaceAll]);
+  Text := Lb.FText;
+
+  Text := StringReplace(Text, #13#10'<NBR>', '', [rfReplaceAll, rfIgnoreCase]); //ignore next break
+  Text := StringReplace(Text, #13#10, '<BR>', [rfReplaceAll]);
+
   while Text<>'' do
   begin
     A := Text;
@@ -1131,6 +1136,13 @@ begin
     Add(XValue);
 end;
 
+type
+  THTMLList = class(TObject);
+  THTMLList_Bullet = class(THTMLList);
+  THTMLList_Number = class(THTMLList)
+    Position: Integer;
+  end;
+
 procedure TBuilder.BuildWords;
 var C: TCanvas;
 
@@ -1174,6 +1186,7 @@ var
   LFontColor: TListStack<TColor>;
   LBackColor: TListStack<TColor>;
   LAlign: TListStack<TAlignment>;
+  LHTMLList: TObjectList<THTMLList>;
 
   W: TDHVisualItem;
 
@@ -1196,6 +1209,7 @@ begin
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TAlignment>.Create;
+  LHTMLList := TObjectList<THTMLList>.Create;
   try
     vBool := fsBold in C.Font.Style; LBold.Add(vBool);
     vBool := fsItalic in C.Font.Style; LItalic.Add(vBool);
@@ -1274,11 +1288,25 @@ begin
             Align := LAlign.Last;
           end;
 
-        ttText, ttSpace, ttInvalid, ttImage, ttImageResource:
+        ttText, ttSpace, ttInvalid, ttImage, ttImageResource, ttListItem:
         begin
           case T.Kind of
             ttSpace: T.Text := ' ';
             ttInvalid: T.Text := '<?>';
+            ttListItem:
+            begin
+              if T.TagClose then Continue;
+              if LHTMLList.Count=0 then Continue;
+
+              if LHTMLList.Last is THTMLList_Number then
+                Inc(THTMLList_Number(LHTMLList.Last).Position);
+
+              if LHTMLList.Last is THTMLList_Bullet then T.Text := '• ' else
+              if LHTMLList.Last is THTMLList_Number then T.Text := THTMLList_Number(LHTMLList.Last).Position.ToString+'. ' else
+                raise Exception.Create('Invalid object');
+
+              X := LHTMLList.Count * Lb.FListLevelPadding;
+            end;
           end;
 
           W := nil;
@@ -1383,6 +1411,23 @@ begin
           end;
         end;
 
+        ttBulletList, ttNumberList:
+        begin
+          if T.TagClose then
+          begin
+            if LHTMLList.Count>0 then
+              if ((T.Kind=ttBulletList) and (LHTMLList.Last is THTMLList_Bullet)) or
+                 ((T.Kind=ttNumberList) and (LHTMLList.Last is THTMLList_Number)) then
+                LHTMLList.Delete(LHTMLList.Count-1);
+          end else
+          begin
+            case T.Kind of
+              ttBulletList: LHTMLList.Add(THTMLList_Bullet.Create);
+              ttNumberList: LHTMLList.Add(THTMLList_Number.Create);
+            end;
+          end;
+        end;
+
         ttTab, ttTabF:
         begin
           X := T.Value; //cursor position
@@ -1410,6 +1455,7 @@ begin
     LFontColor.Free;
     LBackColor.Free;
     LAlign.Free;
+    LHTMLList.Free;
   end;
 
   if Lb.LVisualItem.Count>0 then DoLineBreak;

@@ -4,8 +4,8 @@ object Form1: TForm1
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'DzHTMLText Example'
-  ClientHeight = 360
-  ClientWidth = 344
+  ClientHeight = 320
+  ClientWidth = 697
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -19,13 +19,15 @@ object Form1: TForm1
   object Lb: TDzHTMLText
     Left = 8
     Top = 8
-    Width = 329
-    Height = 345
+    Width = 337
+    Height = 273
+    Color = clWhite
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
     Font.Name = 'Segoe UI'
     Font.Style = []
+    ParentColor = False
     ParentFont = False
     Text = 
       '<imgres:LOGO><fc:clGreen> Welcome to my app!</fc>'#13#10#13#10'<b>This is ' +
@@ -34,15 +36,51 @@ object Form1: TForm1
       '><br>You can change the <fn:Courier New>font name</fn> and the <' +
       'fs:14>font size</fs><br>The <fc:clRed>colors</fc> are <bc:clYell' +
       'ow>allowed</bc> too! <img:0> <i>and images</i> <img:1><br><br><c' +
-      '>Alignment, we have!</c><br><r>This is great</r><br><br>You can ' +
-      'use tab align too:'#13#10'1<t:30>JHON<t:100>100.000'#13#10'2<t:30>SARAH<t:10' +
-      '0>150.000'#13#10'3<t:30>ERIC<t:100>180.000'#13#10#13#10'Click <a:www.google.com.' +
-      'br>here</a> to open Google.'#13#10'This is an image from resource: <a:' +
-      'INFO_ABOUT><imgres:about> About the program</a>'
+      '>Alignment, we have!</c><br><r>This is great</r>'#13#10#13#10'Click <a:www' +
+      '.google.com.br>here</a> to open Google.'#13#10'This is an image from r' +
+      'esource: <a:INFO_ABOUT><imgres:about> About the program</a>'
     Images = MyImages
     OnLinkClick = LbLinkClick
     OnRetrieveImgRes = LbRetrieveImgRes
     LineVertAlign = vaCenter
+  end
+  object Lb2: TDzHTMLText
+    Left = 352
+    Top = 8
+    Width = 337
+    Height = 273
+    Color = clWhite
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'Segoe UI'
+    Font.Style = []
+    ParentColor = False
+    ParentFont = False
+    Text = 
+      'You can use tab align too:<fc:$EF7769>'#13#10'1<t:30>JHON<t:100>100.00' +
+      '0'#13#10'2<t:30>SARAH<t:100>150.000'#13#10'3<t:30>ERIC<t:100>180.000</fc>'#13#10#13 +
+      #10'HTML Lists:<fc:$2768EF>'#13#10'<nbr><ul>'#13#10'<li>Item 1</li>'#13#10'<li>Item 2' +
+      '</li>'#13#10'<nbr><ol>'#13#10'<li>Sub item 1</li>'#13#10'<li>Sub item 2</li>'#13#10'<nbr' +
+      '><ol>'#13#10'<li>Detail 2.1</li>'#13#10'<li>Detail 2.2</li>'#13#10'<nbr></ol>'#13#10'<li' +
+      '>Sub item 3</li>'#13#10'<nbr></ol>'#13#10'<li>Item 3</li>'#13#10'<nbr></ul></fc>'
+  end
+  object Lb3: TDzHTMLText
+    Left = 8
+    Top = 288
+    Width = 681
+    Height = 33
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Segoe UI'
+    Font.Style = [fsItalic]
+    ParentFont = False
+    Text = 
+      '<c>Please note that components above have <b>White</b> backgound' +
+      ' only because I want to show the bounds, to understand line brea' +
+      'ks and alignments. Of course you can use parent backgound (defau' +
+      'lt), like this.<c>'
   end
   object MyImages: TImageList
     Height = 24

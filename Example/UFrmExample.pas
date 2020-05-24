@@ -11,6 +11,8 @@ type
   TForm1 = class(TForm)
     Lb: TDzHTMLText;
     MyImages: TImageList;
+    Lb2: TDzHTMLText;
+    Lb3: TDzHTMLText;
     procedure LbLinkClick(Sender: TObject; LinkID: Integer;
       LinkData: TDHLinkData; var Handled: Boolean);
     procedure FormCreate(Sender: TObject);

@@ -23,6 +23,11 @@
 
 ## What's New
 
+- 05/24/2020
+
+   - Included HTML lists tag support (`<ul>`, `<ol>`, `<li>`)
+   - Implemented `<nbr>` tag to avoid line break when there is #13#10 sequence, because this sequence is automatically converted in HTML line break by the component.
+
 - 05/03/2020
 
    - Included vclimg.dcp reference into package
@@ -95,6 +100,7 @@ Here are all possible tags you can use in text:
 <FC:clColor|$999999></FC> - Font Color
 <BC:clColor|$999999></BC> - Background Color
 <BR> - Line Break
+<NBR> - Prevent line break after #13#10 sequence
 <L></L> - Align Left
 <C></C> - Align Center
 <R></R> - Align Right
@@ -102,6 +108,9 @@ Here are all possible tags you can use in text:
 <TF:123> - Tab with aligned break
 <IMG:nnn> - Image from ImageList where 'nnn' is image index
 <IMGRES:name> - PNG image from Resource where 'name' is the resource name
+<UL></UL> - Unordered list
+<OL></OL> - Ordered list
+<LI></LI> - List item
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
@@ -149,6 +158,8 @@ This property calls ShellExecute method.
 
 `LineVertAlign: TDHLineVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights. Default is `vaTop`.
 
+`ListLevelPadding: Integer` = Determines the width of each list level in pixels, when using HTML list tags.
+
 `MaxWidth: Integer` = Specify the maximum width of text, when using AutoWidth property.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
@@ -156,6 +167,8 @@ This property calls ShellExecute method.
 `StyleLinkHover: TDHStyleLinkProp` = Properties to format a link when is selected by mouse.
 
 `Text: String` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
+
+> The component automatically converts #13#10 sequence into a line break. Because of this behavior, all typed line breaks will appear as a real line break. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after #13#10 characters. This will tell the component to not consider the sequence as a line break (Please check this tag at Example project).
 
 `TextHeight: Integer` = Returns the total text height. This property is read-only.
 
