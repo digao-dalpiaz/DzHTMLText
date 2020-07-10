@@ -23,6 +23,10 @@
 
 ## What's New
 
+- 07/10/2020
+
+   - Fixed TObjectList (generics) declaration for Lazarus 2.0.10 - issue #14.
+
 - 05/24/2020
 
    - Included HTML lists tag support (`<ul>`, `<ol>`, `<li>`)
