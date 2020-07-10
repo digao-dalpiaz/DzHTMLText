@@ -27,7 +27,7 @@ const _DEF_LISTLEVELPADDING = 20;
 
 type
   {$IFDEF FPC}
-  TObjectList<T> = class(TFPGObjectList<T>);
+  TObjectList<T: TObject> = class(TFPGObjectList<T>);
   TList<T> = class(TFPGList<T>);
   {$ENDIF}
 
