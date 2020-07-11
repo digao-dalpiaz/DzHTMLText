@@ -1301,7 +1301,7 @@ begin
               if LHTMLList.Last is THTMLList_Number then
                 Inc(THTMLList_Number(LHTMLList.Last).Position);
 
-              if LHTMLList.Last is THTMLList_Bullet then T.Text := '• ' else
+              if LHTMLList.Last is THTMLList_Bullet then T.Text := {$IFDEF FPC}'- '{$ELSE}'• '{$ENDIF} else
               if LHTMLList.Last is THTMLList_Number then T.Text := THTMLList_Number(LHTMLList.Last).Position.ToString+'. ' else
                 raise Exception.Create('Invalid object');
 
