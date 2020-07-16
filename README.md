@@ -23,6 +23,10 @@
 
 ## What's New
 
+- 07/15/2020
+
+   - Fixed lists bullet char for Lazarus - issue #16.
+
 - 07/10/2020
 
    - Fixed TObjectList (generics) declaration for Lazarus 2.0.10 - issue #14.
