@@ -33,11 +33,20 @@ type
 
   TDzHTMLText = class;
 
+  TDHFixedPosition = record
+  private
+    Active: Boolean;
+    Left: Integer;
+  end;
+
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
     Rect: TRect;
+    Size: TSize;
+    Line: Integer; //line number
     Group: Integer; //group number
-    {The group is isolated at each line or tabulation to delimit text align area}
+    {The group is isolated at each tabulation or cell to delimit text align area}
+    FixedPosition: TDHFixedPosition;
     Align: TAlignment;
     BColor: TColor; //background color
     Link: Boolean; //is a link
@@ -46,8 +55,16 @@ type
     and works to know the link target, stored on a TStringList, because if
     the link was saved here at a work, it will be repeat if has multiple words
     per link, spending a lot of unnecessary memory.}
-    Line: Integer; //line number
     Hover: Boolean; //the mouse is over the link
+    Print: Boolean;
+  end;
+
+  TDHVisualItem_Break = class(TDHVisualItem);
+
+  TDHVisualItem_Tab = class(TDHVisualItem)
+  private
+    Position: Integer;
+    Fixed: Boolean;
   end;
 
   TDHVisualItem_Word = class(TDHVisualItem)
@@ -72,6 +89,12 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+  end;
+
+  TDHVisualItem_Cell = class(TDHVisualItem)
+  private
+    BorderSize: Integer;
+    BorderColor: TColor;
   end;
 
   TDHVisualItemList = class(TObjectList<TDHVisualItem>);
@@ -573,6 +596,8 @@ begin
 
     for W in LVisualItem do
     begin
+      if not W.Print then Continue;      
+
       if W is TDHVisualItem_Word then
         B.Canvas.Font.Assign(TDHVisualItem_Word(W).Font);
 
@@ -613,6 +638,28 @@ begin
         begin
           B.Canvas.FillRect(W.Rect);
           B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
+        end
+      else
+      if W is TDHVisualItem_Cell then
+        with TDHVisualItem_Cell(W) do
+        begin
+          if BorderSize<=0 then
+          begin
+            B.Canvas.Pen.Color := clNone;
+            B.Canvas.Pen.Width := 0;
+            B.Canvas.Pen.Style := psClear;
+          end else
+          begin
+            if BorderColor<>clNone then
+              B.Canvas.Pen.Color := BorderColor
+            else
+              B.Canvas.Pen.Color := clGray;
+
+            B.Canvas.Pen.Width := BorderSize;
+            B.Canvas.Pen.Style := psSolid;
+          end;
+
+          B.Canvas.Rectangle(W.Rect);
         end
     end;
 
@@ -777,7 +824,8 @@ type
     ttBreak, ttText, ttLink,
     ttAlignLeft, ttAlignCenter, ttAlignRight,
     ttImage, ttImageResource,
-    ttBulletList, ttNumberList, ttListItem);
+    ttBulletList, ttNumberList, ttListItem,
+    ttTable, ttTableRow, ttTableData);
 
   TToken = class
     Kind: TTokenKind;
@@ -790,24 +838,27 @@ type
     function GetLinkText(IEnd: Integer): String;
   end;
 
+  TGroupBound = record
+    Right, Limit: Integer;
+  end;
+
   TBuilder = class
   private
     Lb: TDzHTMLText;
-    L: TListToken;
-    LGroupBound: TList<Integer>; //bounds list of the group
-    {The list of created with the X position of limit where the group ends
-     to use on text align until the group limit}
+    LToken: TListToken;
 
-    LinesHeight: TList<Integer>;
+    LLineHeight: TList<Integer>;
+    LGroupBound: TList<TGroupBound>;
 
     CalcWidth, CalcHeight: Integer; //width and height to set at component when using auto
 
     function ProcessTag(const Tag: String): Boolean;
-    procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; aText: String = ''; aValue: Integer = 0);
+    procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: String = ''; aValue: Integer = 0);
 
     procedure BuildTokens; //create list of tokens
     procedure BuildWords; //create list of words
-    procedure CheckAligns; //realign words
+    procedure Realign; //realign words
+    procedure CheckAligns; //check vertical and horizontal align
   public
     constructor Create;
     destructor Destroy; override;
@@ -816,16 +867,16 @@ type
 constructor TBuilder.Create;
 begin
   inherited;
-  L := TListToken.Create;
-  LGroupBound := TList<Integer>.Create;
-  LinesHeight := TList<Integer>.Create;
+  LToken := TListToken.Create;
+  LLineHeight := TList<Integer>.Create;
+  LGroupBound := TList<TGroupBound>.Create;
 end;
 
 destructor TBuilder.Destroy;
 begin
-  L.Free;
+  LToken.Free;
+  LLineHeight.Free;
   LGroupBound.Free;
-  LinesHeight.Free;
   inherited;
 end;
 
@@ -843,7 +894,10 @@ begin
 
     B.BuildTokens;
     B.BuildWords;
+    B.Realign;
     B.CheckAligns;
+
+    FLines := B.LLineHeight.Count;
 
     FTextWidth := B.CalcWidth;
     FTextHeight := B.CalcHeight;
@@ -887,7 +941,7 @@ begin
   end;
 end;
 
-procedure TBuilder.AddToken(aKind: TTokenKind; aTagClose: Boolean = False; aText: String = ''; aValue: Integer = 0);
+procedure TBuilder.AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: String = ''; aValue: Integer = 0);
 var T: TToken;
 begin
   T := TToken.Create;
@@ -895,7 +949,7 @@ begin
   T.TagClose := aTagClose;
   T.Text := aText;
   T.Value := aValue;
-  L.Add(T);
+  LToken.Add(T);
 end;
 
 function Tag_Index_ProcValue(const Value: String; var Valid: Boolean): Integer;
@@ -923,7 +977,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..19] of TDefToken = (
+const DEF_TOKENS: array[0..22] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -943,7 +997,10 @@ const DEF_TOKENS: array[0..19] of TDefToken = (
   (Ident: 'IMGRES'; Kind: ttImageResource; Single: True; AllowPar: True),
   (Ident: 'UL'; Kind: ttBulletList), //Unordered HTML List
   (Ident: 'OL'; Kind: ttNumberList), //Ordered HTML List
-  (Ident: 'LI'; Kind: ttListItem)
+  (Ident: 'LI'; Kind: ttListItem),
+  (Ident: 'TABLE'; Kind: ttTable; AllowPar: True),
+  (Ident: 'TR'; Kind: ttTableRow; AllowPar: True; OptionalPar: True),
+  (Ident: 'TD'; Kind: ttTableData; AllowPar: True; OptionalPar: True)
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -966,7 +1023,7 @@ begin
   TOn := not TOff;
 
   HasPar := False;
-  Par := '';
+  Par := EmptyStr;
   I := Pos(':', A); //find parameter
   if I>0 then //has parameter
   begin
@@ -977,7 +1034,7 @@ begin
 
   if HasPar then
   begin
-    if Par='' then Exit; //blank parameter specified
+    if Par=EmptyStr then Exit; //blank parameter specified
     if TOff then Exit; //tag closing with parameter
   end;
 
@@ -1070,10 +1127,11 @@ var Text, A: String;
 begin
   Text := Lb.FText;
 
-  Text := StringReplace(Text, #13#10'<NBR>', '', [rfReplaceAll, rfIgnoreCase]); //ignore next break
+  Text := StringReplace(Text, #13#10'<NBR>', EmptyStr, [rfReplaceAll, rfIgnoreCase]); //ignore next break
   Text := StringReplace(Text, #13#10, '<BR>', [rfReplaceAll]);
+  if not Text.IsEmpty then Text := Text + '<BR>'; //final height and linecount adjust
 
-  while Text<>'' do
+  while not Text.IsEmpty do
   begin
     A := Text;
     CharIni := A[1];
@@ -1137,63 +1195,143 @@ begin
 end;
 
 type
-  THTMLList = class(TObject);
+  TObjectListStackItem = class(TObject);
+  TObjectListStack<T: TObjectListStackItem, constructor> = class(TObjectList<T>)
+    procedure DelLast;
+    function New: T;
+  end;
+
+  THTMLList = class(TObjectListStackItem);
   THTMLList_Bullet = class(THTMLList);
   THTMLList_Number = class(THTMLList)
     Position: Integer;
   end;
 
-procedure TBuilder.BuildWords;
-var C: TCanvas;
+  THTMLTableData = class(TObjectListStackItem)
 
-    X, Y, HighW, HighH, LineCount: Integer;
-    LastTabF: Boolean; //last tabulation was TabF (with break align)
-    LastTabF_X: Integer;
-
-  procedure DoLineBreak;
-  begin
-    if HighH=0 then HighH := C.TextHeight(' '); //line without content
-    Inc(Y, HighH); //inc biggest height of the line
-    LinesHeight.Add(HighH); //include total line height in list
-    HighH := 0; //clear line height
-
-    if X>HighW then HighW := X; //store width of biggest line
-    X := 0; //carriage return :)
-    if LastTabF then X := LastTabF_X; //last line breaks with TabF
-
-    LGroupBound.Add(-1); //add line bound to use in group align (-1 means full width)
-    Inc(LineCount);
+  end;
+  THTMLTableRow = class(TObjectListStackItem)
+    Height: Integer;
+    BackColor: TColor;
+    Position: TPoint;
+    CellIndex: Integer;
+    Cells: TObjectListStack<THTMLTableData>;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+  THTMLTable = class(TObjectListStackItem)
+    Widths: TArray<String>;
+    RowHeight: Integer;
+    BackColor: TColor;
+    BorderSize: Integer;
+    BorderColor: TColor;
+    Padding: Integer;
+    Position: TPoint;
+    Rows: TObjectListStack<THTMLTableRow>;
+    constructor Create;
+    destructor Destroy; override;
   end;
 
-var
-  T: TToken;
-  I: Integer;
-
-  Ex: TSize; FS: TFontStyles; PreWidth: Integer;
-
-  LinkOn: Boolean;
-  LinkID: Integer;
-
-  BackColor: TColor;
-  Align: TAlignment;
-
-  LBold: TListStack<Boolean>;
-  LItalic: TListStack<Boolean>;
-  LUnderline: TListStack<Boolean>;
-  LStrike: TListStack<Boolean>;
-  LFontName: TListStack<String>;
-  LFontSize: TListStack<Integer>;
-  LFontColor: TListStack<TColor>;
-  LBackColor: TListStack<TColor>;
-  LAlign: TListStack<TAlignment>;
-  LHTMLList: TObjectList<THTMLList>;
-
-  W: TDHVisualItem;
-
-  LinkData: TDHLinkData;
-
-  vBool: Boolean; //Required for Lazarus
+constructor THTMLTable.Create;
 begin
+  inherited;
+  Rows := TObjectListStack<THTMLTableRow>.Create;
+end;
+
+destructor THTMLTable.Destroy;
+begin
+  Rows.Free;
+  inherited;
+end;
+
+constructor THTMLTableRow.Create;
+begin
+  inherited;
+  Cells := TObjectListStack<THTMLTableData>.Create;
+end;
+
+destructor THTMLTableRow.Destroy;
+begin
+  Cells.Free;
+  inherited;
+end;
+
+function TObjectListStack<T>.New: T;
+begin
+  Result := T.Create;
+  Add(Result);
+end;
+
+procedure TObjectListStack<T>.DelLast;
+begin
+  if Count>0 then
+    Delete(Count-1);
+end;
+
+type
+  TTokensProcess = class
+    Builder: TBuilder;
+    Lb: TDzHTMLText;
+    C: TCanvas;
+
+    LinkOn: Boolean;
+    LinkID: Integer;
+
+    BackColor: TColor;
+    Align: TAlignment;
+
+    LBold: TListStack<Boolean>;
+    LItalic: TListStack<Boolean>;
+    LUnderline: TListStack<Boolean>;
+    LStrike: TListStack<Boolean>;
+    LFontName: TListStack<String>;
+    LFontSize: TListStack<Integer>;
+    LFontColor: TListStack<TColor>;
+    LBackColor: TListStack<TColor>;
+    LAlign: TListStack<TAlignment>;
+    LHTMLList: TObjectListStack<THTMLList>;
+    LHTMLTable: TObjectListStack<THTMLTable>;
+
+    CellRect: TRect;
+    InCell: Boolean;
+
+    constructor Create(xBuilder: TBuilder);
+    destructor Destroy; override;
+    procedure Execute;
+
+    procedure DoTypographicalEmphasis(T: TToken);
+    procedure DoFontName(T: TToken);
+    procedure DoFontSize(T: TToken);
+    procedure DoFontColor(T: TToken);
+    procedure DoBackColor(T: TToken);
+    procedure DoAlignment(T: TToken);
+    procedure DoTextAndRelated(T: TToken);
+    procedure DoLink(T: TToken; I: Integer);
+    procedure DoLists(T: TToken);
+    procedure DoTable(T: TToken);
+    procedure DoTableRow(T: TToken);
+    procedure DoTableData(T: TToken);
+    procedure DoTab(T: TToken);
+    procedure DoBreak;
+  end;
+
+procedure TBuilder.BuildWords;
+var P: TTokensProcess;
+begin
+  P := TTokensProcess.Create(Self);
+  try
+    P.Execute;
+  finally
+    P.Free;
+  end;
+end;
+
+constructor TTokensProcess.Create(xBuilder: TBuilder);
+var vBool: Boolean; //Required for Lazarus
+begin
+  inherited Create;
+  Builder := xBuilder;
+  Lb := Builder.Lb;
   C := Lb.Canvas;
   C.Font.Assign(Lb.Font);
 
@@ -1209,300 +1347,526 @@ begin
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TAlignment>.Create;
-  LHTMLList := TObjectList<THTMLList>.Create;
-  try
-    vBool := fsBold in C.Font.Style; LBold.Add(vBool);
-    vBool := fsItalic in C.Font.Style; LItalic.Add(vBool);
-    vBool := fsUnderline in C.Font.Style; LUnderline.Add(vBool);
-    vBool := fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
-    LFontName.Add(C.Font.Name);
-    LFontSize.Add(C.Font.Size);
-    LFontColor.Add(C.Font.Color);
-    LBackColor.Add(BackColor);
-    LAlign.Add(Align);
+  LHTMLList := TObjectListStack<THTMLList>.Create;
+  LHTMLTable := TObjectListStack<THTMLTable>.Create;
 
-    X := 0;
-    Y := 0;
+  vBool := fsBold in C.Font.Style; LBold.Add(vBool);
+  vBool := fsItalic in C.Font.Style; LItalic.Add(vBool);
+  vBool := fsUnderline in C.Font.Style; LUnderline.Add(vBool);
+  vBool := fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
+  LFontName.Add(C.Font.Name);
+  LFontSize.Add(C.Font.Size);
+  LFontColor.Add(C.Font.Color);
+  LBackColor.Add(BackColor);
+  LAlign.Add(Align);
 
-    HighW := 0;
-    HighH := 0;
+  LinkID := -1;
+end;
 
-    LineCount := 0;
+destructor TTokensProcess.Destroy;
+begin
+  LBold.Free;
+  LItalic.Free;
+  LUnderline.Free;
+  LStrike.Free;
+  LFontName.Free;
+  LFontSize.Free;
+  LFontColor.Free;
+  LBackColor.Free;
+  LAlign.Free;
+  LHTMLList.Free;
+  LHTMLTable.Free;
+  inherited;
+end;
 
-    LastTabF := False;
-    LastTabF_X := 0;
+procedure TTokensProcess.Execute;
+var
+  I: Integer;
+  T: TToken;
+begin
+  for I := 0 to Builder.LToken.Count-1 do
+  begin
+    T := Builder.LToken[I];
+
+    case T.Kind of
+      ttBold, ttItalic, ttUnderline, ttStrike: DoTypographicalEmphasis(T);
+      ttFontName: DoFontName(T);
+      ttFontSize: DoFontSize(T);
+      ttFontColor: DoFontColor(T);
+      ttBackColor: DoBackColor(T);
+      ttAlignLeft, ttAlignCenter, ttAlignRight: DoAlignment(T);
+      ttText, ttSpace, ttInvalid, ttImage, ttImageResource, ttListItem: DoTextAndRelated(T);
+      ttLink: DoLink(T, I);
+      ttBulletList, ttNumberList: DoLists(T);
+      ttTable: DoTable(T);
+      ttTableRow: DoTableRow(T);
+      ttTableData: DoTableData(T);
+      ttTab, ttTabF: DoTab(T);
+      ttBreak: DoBreak;
+    end;
+  end;
+end;
+
+procedure TTokensProcess.DoTypographicalEmphasis(T: TToken);
+var
+  FS: TFontStyles;
+begin
+  case T.Kind of
+    ttBold: LBold.AddOrDel(T, True);
+    ttItalic: LItalic.AddOrDel(T, True);
+    ttUnderline: LUnderline.AddOrDel(T, True);
+    ttStrike: LStrike.AddOrDel(T, True);
+  end;
+
+  FS := [];
+  if LBold.Last then Include(FS, fsBold);
+  if LItalic.Last then Include(FS, fsItalic);
+  if LUnderline.Last then Include(FS, fsUnderline);
+  if LStrike.Last then Include(FS, fsStrikeOut);
+  C.Font.Style := FS;
+end;
+
+procedure TTokensProcess.DoFontName(T: TToken);
+begin
+  LFontName.AddOrDel(T, T.Text);
+  C.Font.Name := LFontName.Last;
+end;
+
+procedure TTokensProcess.DoFontSize(T: TToken);
+begin
+  LFontSize.AddOrDel(T, T.Value);
+  C.Font.Size := LFontSize.Last;
+end;
+
+procedure TTokensProcess.DoFontColor(T: TToken);
+begin
+  LFontColor.AddOrDel(T, T.Value);
+  C.Font.Color := LFontColor.Last;
+end;
+
+procedure TTokensProcess.DoBackColor(T: TToken);
+begin
+  LBackColor.AddOrDel(T, T.Value);
+  BackColor := LBackColor.Last;
+end;
+
+procedure TTokensProcess.DoAlignment(T: TToken);
+begin
+  case T.Kind of
+    ttAlignLeft: Align := taLeftJustify;
+    ttAlignCenter: Align := taCenter;
+    ttAlignRight: Align := taRightJustify;
+  end;
+  LAlign.AddOrDel(T, Align);
+  Align := LAlign.Last;
+end;
+
+procedure TTokensProcess.DoTextAndRelated(T: TToken);
+var
+  Ex: TSize;
+  W: TDHVisualItem;
+  FixedPosition: TDHFixedPosition;
+begin
+  FillMemory(@FixedPosition, SizeOf(FixedPosition), 0);
+
+  case T.Kind of
+    ttSpace: T.Text := ' ';
+    ttInvalid: T.Text := '<?>';
+    ttListItem:
+    begin
+      if T.TagClose then Exit;
+      if LHTMLList.Count=0 then Exit;
+
+      if LHTMLList.Last is THTMLList_Number then
+        Inc(THTMLList_Number(LHTMLList.Last).Position);
+
+      if LHTMLList.Last is THTMLList_Bullet then T.Text := {$IFDEF FPC}'- '{$ELSE}'• '{$ENDIF} else
+      if LHTMLList.Last is THTMLList_Number then T.Text := THTMLList_Number(LHTMLList.Last).Position.ToString+'. ' else
+        raise Exception.Create('Invalid object');
+
+      FixedPosition.Active := True;
+      FixedPosition.Left := LHTMLList.Count * Lb.FListLevelPadding;
+    end;
+  end;
+
+  case T.Kind of
+    ttImage:
+    begin
+      W := TDHVisualItem_Image.Create;
+      with TDHVisualItem_Image(W) do
+      begin
+        ImageIndex := T.Value;
+      end;
+
+      if Assigned(Lb.FImages) then
+      begin
+        Ex.Width := Lb.FImages.Width;
+        Ex.Height := Lb.FImages.Height;
+      end else
+      begin
+        Ex.Width := 0;
+        Ex.Height := 0;
+      end;
+    end;
+
+    ttImageResource:
+    begin
+      W := TDHVisualItem_ImageResource.Create;
+      with TDHVisualItem_ImageResource(W) do
+      begin
+        Load(Lb, T.Text);
+
+        Ex.Width := Picture.Width;
+        Ex.Height := Picture.Height;
+      end;
+    end;
+
+    else
+    begin
+      W := TDHVisualItem_Word.Create;
+      with TDHVisualItem_Word(W) do
+      begin
+        Text := T.Text;
+        Font.Assign(C.Font);
+        Space := T.Kind=ttSpace;
+
+        Ex := C.TextExtent(Text);
+      end;
+    end;
+  end;
+
+  //Common properties of Visual Item
+  W.Size := Ex;
+  W.Align := Align;
+  W.BColor := BackColor;
+  W.Link := LinkOn;
+  W.LinkID := LinkID;
+  W.FixedPosition := FixedPosition;
+  Lb.LVisualItem.Add(W);
+end;
+
+procedure TTokensProcess.DoLink(T: TToken; I: Integer);
+var
+  LinkData: TDHLinkData;
+begin
+  if T.TagClose then
+  begin
+    if LinkID<>-1 then
+      Lb.LLinkData[LinkID].FText := Builder.LToken.GetLinkText(I); //set link display text on the link data object
 
     LinkOn := False;
     LinkID := -1;
+  end else
+  begin
+    LinkData := TDHLinkData.Create;
+    LinkData.FTarget := T.Text;
 
-    for I := 0 to L.Count-1 do
-    begin
-      T := L[I];
-
-      case T.Kind of
-        ttBold, ttItalic, ttUnderline, ttStrike:
-          begin
-            case T.Kind of
-              ttBold: LBold.AddOrDel(T, True);
-              ttItalic: LItalic.AddOrDel(T, True);
-              ttUnderline: LUnderline.AddOrDel(T, True);
-              ttStrike: LStrike.AddOrDel(T, True);
-            end;
-
-            FS := [];
-            if LBold.Last then Include(FS, fsBold);
-            if LItalic.Last then Include(FS, fsItalic);
-            if LUnderline.Last then Include(FS, fsUnderline);
-            if LStrike.Last then Include(FS, fsStrikeOut);
-            C.Font.Style := FS;
-          end;
-        ttFontName:
-          begin
-            LFontName.AddOrDel(T, T.Text);
-            C.Font.Name := LFontName.Last;
-          end;
-        ttFontSize:
-          begin
-            LFontSize.AddOrDel(T, T.Value);
-            C.Font.Size := LFontSize.Last;
-          end;
-        ttFontColor:
-          begin
-            LFontColor.AddOrDel(T, T.Value);
-            C.Font.Color := LFontColor.Last;
-          end;
-        ttBackColor:
-          begin
-            LBackColor.AddOrDel(T, T.Value);
-            BackColor := LBackColor.Last;
-          end;
-
-        ttAlignLeft, ttAlignCenter, ttAlignRight:
-          begin
-            case T.Kind of
-              ttAlignLeft: Align := taLeftJustify;
-              ttAlignCenter: Align := taCenter;
-              ttAlignRight: Align := taRightJustify;
-            end;
-            LAlign.AddOrDel(T, Align);
-            Align := LAlign.Last;
-          end;
-
-        ttText, ttSpace, ttInvalid, ttImage, ttImageResource, ttListItem:
-        begin
-          case T.Kind of
-            ttSpace: T.Text := ' ';
-            ttInvalid: T.Text := '<?>';
-            ttListItem:
-            begin
-              if T.TagClose then Continue;
-              if LHTMLList.Count=0 then Continue;
-
-              if LHTMLList.Last is THTMLList_Number then
-                Inc(THTMLList_Number(LHTMLList.Last).Position);
-
-              if LHTMLList.Last is THTMLList_Bullet then T.Text := {$IFDEF FPC}'- '{$ELSE}'• '{$ENDIF} else
-              if LHTMLList.Last is THTMLList_Number then T.Text := THTMLList_Number(LHTMLList.Last).Position.ToString+'. ' else
-                raise Exception.Create('Invalid object');
-
-              X := LHTMLList.Count * Lb.FListLevelPadding;
-            end;
-          end;
-
-          W := nil;
-          try
-            case T.Kind of
-              ttImage:
-              begin
-                W := TDHVisualItem_Image.Create;
-                with TDHVisualItem_Image(W) do
-                begin
-                  ImageIndex := T.Value;
-                end;
-
-                if Assigned(Lb.FImages) then
-                begin
-                  Ex.Width := Lb.FImages.Width;
-                  Ex.Height := Lb.FImages.Height;
-                end else
-                begin
-                  Ex.Width := 0;
-                  Ex.Height := 0;
-                end;
-              end;
-
-              ttImageResource:
-              begin
-                W := TDHVisualItem_ImageResource.Create;
-                with TDHVisualItem_ImageResource(W) do
-                begin
-                  Load(Lb, T.Text);
-
-                  Ex.Width := Picture.Width;
-                  Ex.Height := Picture.Height;
-                end;
-              end;
-
-              else
-              begin
-                W := TDHVisualItem_Word.Create;
-                with TDHVisualItem_Word(W) do
-                begin
-                  Text := T.Text;
-                  Font.Assign(C.Font);
-                  Space := T.Kind=ttSpace;
-
-                  Ex := C.TextExtent(Text);
-                end;
-              end;
-            end;
-
-            PreWidth := X+Ex.Width;
-            if ((Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (PreWidth>Lb.FMaxWidth))
-              or ((not Lb.FAutoWidth) and (PreWidth>Lb.Width)) then
-            begin
-              //clear last word on line break when is space to not consume pixels at end of line
-              if (Lb.LVisualItem.Count>0) and
-                (Lb.LVisualItem.Last is TDHVisualItem_Word) and
-                TDHVisualItem_Word(Lb.LVisualItem.Last).Space then
-              begin
-                Dec(X, Lb.LVisualItem.Last.Rect.Width);
-                Lb.LVisualItem.Delete(Lb.LVisualItem.Count-1);
-              end;
-
-              DoLineBreak;
-              if T.Kind=ttSpace then Continue;
-            end;
-            if Ex.Height>HighH then HighH := Ex.Height; //biggest height of the line
-
-            //Common properties of Visual Item
-            W.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+Ex.Width, Y+Ex.Height);
-            W.Group := LGroupBound.Count;
-            W.Align := Align;
-            W.BColor := BackColor;
-            W.Link := LinkOn;
-            W.LinkID := LinkID;
-            W.Line := LineCount;
-
-            Lb.LVisualItem.Add(W);
-            W := nil;
-          finally
-            if W<>nil then W.Free;
-          end;
-          Inc(X, Ex.Width);
-        end;
-
-        ttLink:
-        begin
-          if T.TagClose then
-          begin
-            if LinkID<>-1 then
-              Lb.LLinkData[LinkID].FText := L.GetLinkText(I); //set link display text on the link data object
-
-            LinkOn := False;
-            LinkID := -1;
-          end else
-          begin
-            LinkData := TDHLinkData.Create;
-            LinkData.FTarget := T.Text;
-
-            LinkOn := True;
-            LinkID := Lb.LLinkData.Add(LinkData); //add target of the link on list
-          end;
-        end;
-
-        ttBulletList, ttNumberList:
-        begin
-          if T.TagClose then
-          begin
-            if LHTMLList.Count>0 then
-              if ((T.Kind=ttBulletList) and (LHTMLList.Last is THTMLList_Bullet)) or
-                 ((T.Kind=ttNumberList) and (LHTMLList.Last is THTMLList_Number)) then
-                LHTMLList.Delete(LHTMLList.Count-1);
-          end else
-          begin
-            case T.Kind of
-              ttBulletList: LHTMLList.Add(THTMLList_Bullet.Create);
-              ttNumberList: LHTMLList.Add(THTMLList_Number.Create);
-            end;
-          end;
-        end;
-
-        ttTab, ttTabF:
-        begin
-          X := T.Value; //cursor position
-
-          LastTabF := T.Kind=ttTabF;
-          LastTabF_X := X;
-
-          LGroupBound.Add(X); //add bound on last group to use at text align
-        end;
-
-        ttBreak:
-        begin
-          LastTabF := False; //clear TabF
-          DoLineBreak;
-        end;
-      end;
-    end;
-  finally
-    LBold.Free;
-    LItalic.Free;
-    LUnderline.Free;
-    LStrike.Free;
-    LFontName.Free;
-    LFontSize.Free;
-    LFontColor.Free;
-    LBackColor.Free;
-    LAlign.Free;
-    LHTMLList.Free;
+    LinkOn := True;
+    LinkID := Lb.LLinkData.Add(LinkData); //add target of the link on list
   end;
-
-  if Lb.LVisualItem.Count>0 then DoLineBreak;
-  CalcWidth := HighW;
-  CalcHeight := Y;
-  Lb.FLines := LineCount;
 end;
 
-procedure TBuilder.CheckAligns;
-var W: TDHVisualItem;
-    LW: array of Integer;
-    Group, I, SumW, Offset, GrpW: Integer;
+procedure TTokensProcess.DoLists(T: TToken);
 begin
-  SetLength(LW, LGroupBound.Count);
+  if T.TagClose then
+  begin
+    if LHTMLList.Count>0 then
+      if ((T.Kind=ttBulletList) and (LHTMLList.Last is THTMLList_Bullet)) or
+         ((T.Kind=ttNumberList) and (LHTMLList.Last is THTMLList_Number)) then
+        LHTMLList.DelLast;
+  end else
+  begin
+    case T.Kind of
+      ttBulletList: LHTMLList.Add(THTMLList_Bullet.Create);
+      ttNumberList: LHTMLList.Add(THTMLList_Number.Create);
+    end;
+  end;
+end;
 
-  Group := -1;
-  SumW := 0;
+procedure TableParamsToStrings(S: TStringList; T: TToken);
+begin
+  S.Text := StringReplace(T.Text, ';', S.LineBreak, [rfReplaceAll]);
+end;
+
+procedure TTokensProcess.DoTable(T: TToken);
+var
+  Tb: THTMLTable;
+  S: TStringList;
+  //ManualX: Integer;
+begin
+  if T.TagClose then
+  begin
+    LHTMLTable.DelLast;
+    Exit;
+  end;
+
+  Tb := LHTMLTable.New;
+
+  S := TStringList.Create;
+  try
+    TableParamsToStrings(S, T);
+
+    //ManualX := StrToIntDef(S.Values['X'], -1);
+
+    Tb.Widths := S.Values['W'].Split([',']);
+    Tb.RowHeight := StrToIntDef(S.Values['H'], 0);
+    Tb.BackColor := ParamToColor(S.Values['BC']);
+    Tb.BorderSize := StrToIntDef(S.Values['BDS'], 1);
+    Tb.BorderColor := ParamToColor(S.Values['BDC']);
+    Tb.Padding := StrToIntDef(S.Values['PD'], 0);
+  finally
+    S.Free;
+  end;
+
+  //if ManualX>-1 then X := ManualX;
+
+  //Tb.Position.X := X;
+  //Tb.Position.Y := Y;
+
+  if Tb.RowHeight<=0 then Tb.RowHeight := 20;
+end;
+
+procedure TTokensProcess.DoTableRow(T: TToken);
+var
+  Tb: THTMLTable;
+  Row: THTMLTableRow;
+  S: TStringList;
+begin
+  if LHTMLTable.Count=0 then Exit;
+
+  Tb := LHTMLTable.Last;
+  if T.TagClose then
+  begin
+    Tb.Rows.DelLast;
+    Exit;
+  end;
+
+  Row := Tb.Rows.New;
+  Row.Position.X := Tb.Position.X;
+  Row.Position.Y := Tb.Position.Y;
+
+  S := TStringList.Create;
+  try
+    TableParamsToStrings(S, T);
+
+    Row.Height := StrToIntDef(S.Values['H'], 0);
+    Row.BackColor := ParamToColor(S.Values['BC']);
+  finally
+    S.Free;
+  end;
+
+  if Row.Height<=0 then Row.Height := Tb.RowHeight;
+
+  Inc(Tb.Position.Y, Row.Height);
+end;
+
+procedure TTokensProcess.DoTableData(T: TToken);
+var
+  Tb: THTMLTable;
+  Row: THTMLTableRow;
+  //Cell: THTMLTableData;
+  Width: Integer;
+  BColor: TColor;
+
+  S: TStringList;
+
+  W: TDHVisualItem_Cell;
+begin
+  if LHTMLTable.Count=0 then Exit;
+
+  Tb := LHTMLTable.Last;
+  if Tb.Rows.Count=0 then Exit;
+
+  Row := Tb.Rows.Last;
+
+  if T.TagClose then
+  begin
+    Row.Cells.DelLast;
+    InCell := False;
+    CellRect := TRect.Empty;
+    Exit;
+  end;
+
+  //Cell := Row.Cells.New;
+
+  S := TStringList.Create;
+  try
+    TableParamsToStrings(S, T);
+
+    Width := StrToIntDef(S.Values['W'], 0);
+    BColor := ParamToColor(S.Values['BC']);
+  finally
+    S.Free;
+  end;
+
+  if Width<=0 then
+    if Row.CellIndex<=High(Tb.Widths) then
+      Width := StrToIntDef(Tb.Widths[Row.CellIndex], 0);
+  if Width<=0 then Width := 100;
+
+  W := TDHVisualItem_Cell.Create;
+  W.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(
+    Row.Position.X, Row.Position.Y,
+    Row.Position.X+Width+1, Row.Position.Y+Row.Height+1);
+
+  if BColor=clNone then BColor := Row.BackColor;
+  if BColor=clNone then BColor := Tb.BackColor;
+  W.BColor := BColor;
+  W.BorderSize := Tb.BorderSize;
+  W.BorderColor := Tb.BorderColor;
+
+  Lb.LVisualItem.Add(W);
+
+  InCell := True;
+  CellRect := W.Rect;
+  //X := CellRect.Left;
+  //Y := CellRect.Top;
+
+  Inc(Row.CellIndex);
+  Inc(Row.Position.X, Width);
+end;
+
+procedure TTokensProcess.DoTab(T: TToken);
+var W: TDHVisualItem_Tab;
+begin
+  W := TDHVisualItem_Tab.Create;
+  W.Position := T.Value;
+  W.Fixed := (T.Kind=ttTabF);
+  Lb.LVisualItem.Add(W);
+end;
+
+procedure TTokensProcess.DoBreak;
+var W: TDHVisualItem_Break;
+begin
+  W := TDHVisualItem_Break.Create;
+  W.Size.Height := C.TextHeight(' ');
+  Lb.LVisualItem.Add(W);
+end;
+
+//
+
+procedure TBuilder.Realign;
+
+  procedure IncPreviousGroup(Right, Limit: Integer);
+  var B: TGroupBound;
+  begin
+    B.Right := Right;
+    B.Limit := Limit;
+    LGroupBound.Add(B);
+  end;
+
+  function IsToWrapText(X: Integer): Boolean;
+  begin
+    Result :=
+      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (X>Lb.FMaxWidth) )
+      or
+      ( (not Lb.FAutoWidth) and (X>Lb.Width) );
+  end;
+
+  function IsSpace(W: TDHVisualItem): Boolean;
+  begin
+    Result := (W is TDHVisualItem_Word) and TDHVisualItem_Word(W).Space;
+  end;
+
+type TSizes = record
+  LineHeight, OverallWidth: Integer;
+end;
+var
+  W: TDHVisualItem;
+  I, X, Y: Integer;
+  Max, OldMax: TSizes;
+  LastTabX: Integer; LastTabF: Boolean;
+begin
+  X := 0;
+  Y := 0;
+
+  LastTabX := 0;
+  LastTabF := False;
+
+  FillMemory(@Max, SizeOf(Max), 0);
+  OldMax := Max;
 
   for I := 0 to Lb.LVisualItem.Count-1 do
   begin
     W := Lb.LVisualItem[I];
 
-    if W.Group<>Group then //enter new group
+    if W is TDHVisualItem_Tab then
     begin
-      if I>0 then
-        LW[Group] := SumW; //add last group width sum
+      LastTabX := TDHVisualItem_Tab(W).Position;
+      LastTabF := TDHVisualItem_Tab(W).Fixed;
 
-      Group := W.Group;
-      SumW := W.Rect.Left; //where first group starts
+      IncPreviousGroup(X, LastTabX);
+      X := LastTabX;
+      Continue;
     end;
 
-    Inc(SumW, W.Rect.Width);
-    if I=Lb.LVisualItem.Count-1 then LW[Group] := SumW;
+    if (W is TDHVisualItem_Break) or IsToWrapText(X+W.Size.Width) then
+    begin //LINE BREAK
+      if (I>0) and IsSpace(Lb.LVisualItem[I-1]) then
+      begin //remove previous space
+        Lb.LVisualItem[I-1].Print := False;
+        Max := OldMax; //revert bounds
+      end;
+
+      if Max.LineHeight=0 then Max.LineHeight := W.Size.Height; //line without content
+
+      Inc(Y, Max.LineHeight);
+      LLineHeight.Add(Max.LineHeight);
+
+      IncPreviousGroup(X, -1);
+      X := 0;
+      Max.LineHeight := 0;
+
+      if (W is TDHVisualItem_Break) then
+      begin
+        LastTabF := False;
+        Continue;
+      end;
+
+      if LastTabF then X := LastTabX;
+
+      if IsSpace(W) then Continue;
+    end;
+
+    if W.FixedPosition.Active then X := W.FixedPosition.Left;
+
+    W.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+W.Size.Width, Y+W.Size.Height);
+    W.Line := LLineHeight.Count;
+    W.Group := LGroupBound.Count;
+    W.Print := True;
+
+    Inc(X, W.Size.Width);
+
+    OldMax := Max;
+    if X>Max.OverallWidth then Max.OverallWidth := X;
+    if W.Size.Height>Max.LineHeight then Max.LineHeight := W.Size.Height;
   end;
 
+  CalcWidth := Max.OverallWidth;
+  CalcHeight := Y;
+end;
+
+procedure TBuilder.CheckAligns;
+var
+  W: TDHVisualItem;
+  B: TGroupBound;
+  Offset, GrpLim: Integer;
+begin
   for W in Lb.LVisualItem do
   begin
+    if not W.Print then Continue;
+
     //horizontal align
     if W.Align in [taCenter, taRightJustify] then
     begin
-      GrpW := LGroupBound[W.Group];
-      if GrpW = -1 then
-      begin //group has full width
-        if Lb.FAutoWidth then GrpW := CalcWidth else GrpW := Lb.Width;
-      end;
+      B := LGroupBound[W.Group];
+      if B.Limit = -1 then
+      begin //group has no limit
+        if Lb.FAutoWidth then GrpLim := CalcWidth else GrpLim := Lb.Width;
+      end
+        else GrpLim := B.Limit;
 
-      Offset := GrpW - LW[W.Group];
+      Offset := GrpLim - B.Right;
       if W.Align=taCenter then Offset := Offset div 2;
 
       W.Rect.Offset(Offset, 0);
@@ -1511,7 +1875,7 @@ begin
     //vertical align
     if Lb.FLineVertAlign in [vaCenter, vaBottom] then
     begin
-      Offset := LinesHeight[W.Line] - W.Rect.Height;
+      Offset := LLineHeight[W.Line] - W.Rect.Height;
       if Lb.FLineVertAlign=vaCenter then Offset := Offset div 2;
 
       W.Rect.Offset(0, Offset);
@@ -1627,20 +1991,28 @@ end;
 { TListToken }
 
 function TListToken.GetLinkText(IEnd: Integer): String;
-var I: Integer;
+var
+  SB: TStringBuilder;
+  I: Integer;
   T: TToken;
 begin
   //returns the link display text where IEnd is Link Close tag Token on the list
   //so, it will start from the end until find the Link Open tag.
 
-  Result := '';
-  for I := IEnd-1 downto 0 do
-  begin
-    T := Items[I];
-    if T.Kind = ttLink then Break; //should be open tag
+  SB := TStringBuilder.Create;
+  try
+    for I := IEnd-1 downto 0 do
+    begin
+      T := Items[I];
+      if T.Kind = ttLink then Break; //should be open tag
 
-    if T.Kind in [ttText, ttSpace] then
-      Result := T.Text + Result;
+      if T.Kind in [ttText, ttSpace] then
+        SB.Insert(0, T.Text);
+    end;
+
+    Result := SB.ToString;
+  finally
+    SB.Free;
   end;
 end;
 

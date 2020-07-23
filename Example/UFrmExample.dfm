@@ -58,12 +58,13 @@ object Form1: TForm1
     ParentColor = False
     ParentFont = False
     Text = 
-      'You can use tab align too:<fc:$EF7769>'#13#10'1<t:30>JHON<t:100>100.00' +
-      '0'#13#10'2<t:30>SARAH<t:100>150.000'#13#10'3<t:30>ERIC<t:100>180.000</fc>'#13#10#13 +
-      #10'HTML Lists:<fc:$2768EF>'#13#10'<nbr><ul>'#13#10'<li>Item 1</li>'#13#10'<li>Item 2' +
-      '</li>'#13#10'<nbr><ol>'#13#10'<li>Sub item 1</li>'#13#10'<li>Sub item 2</li>'#13#10'<nbr' +
-      '><ol>'#13#10'<li>Detail 2.1</li>'#13#10'<li>Detail 2.2</li>'#13#10'<nbr></ol>'#13#10'<li' +
-      '>Sub item 3</li>'#13#10'<nbr></ol>'#13#10'<li>Item 3</li>'#13#10'<nbr></ul></fc>'
+      'You can use tab align too:<fc:$EF7769>'#13#10'<t:10>1<t:30>JHON<t:100>' +
+      '<r>100,000</r><t:150>'#13#10'<t:10>2<t:30>SARAH<t:100><r>1,150,000</r>' +
+      '<t:150>'#13#10'<t:10>3<t:30>ERIC<t:100><r>180,000</r><t:150></fc>'#13#10#13#10'H' +
+      'TML Lists:<fc:$2768EF>'#13#10'<nbr><ul>'#13#10'<li>Item 1</li>'#13#10'<li>Item 2</' +
+      'li>'#13#10'<nbr><ol>'#13#10'<li>Sub item 1</li>'#13#10'<li>Sub item 2</li>'#13#10'<nbr><' +
+      'ol>'#13#10'<li>Detail 2.1</li>'#13#10'<li>Detail 2.2</li>'#13#10'<nbr></ol>'#13#10'<li>S' +
+      'ub item 3</li>'#13#10'<nbr></ol>'#13#10'<li>Item 3</li>'#13#10'<nbr></ul></fc>'
   end
   object Lb3: TDzHTMLText
     Left = 8
