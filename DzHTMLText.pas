@@ -1,6 +1,6 @@
 {------------------------------------------------------------------------------
 TDzHTMLText component
-Developed by Rodrigo Depiné Dalpiaz (digão dalpiaz)
+Developed by Rodrigo Depine Dalpiaz (digao dalpiaz)
 Label with formatting tags support
 
 https://github.com/digao-dalpiaz/DzHTMLText
@@ -89,12 +89,6 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-  end;
-
-  TDHVisualItem_Cell = class(TDHVisualItem)
-  private
-    BorderSize: Integer;
-    BorderColor: TColor;
   end;
 
   TDHVisualItemList = class(TObjectList<TDHVisualItem>);
@@ -639,28 +633,6 @@ begin
           B.Canvas.FillRect(W.Rect);
           B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
         end
-      else
-      if W is TDHVisualItem_Cell then
-        with TDHVisualItem_Cell(W) do
-        begin
-          if BorderSize<=0 then
-          begin
-            B.Canvas.Pen.Color := clNone;
-            B.Canvas.Pen.Width := 0;
-            B.Canvas.Pen.Style := psClear;
-          end else
-          begin
-            if BorderColor<>clNone then
-              B.Canvas.Pen.Color := BorderColor
-            else
-              B.Canvas.Pen.Color := clGray;
-
-            B.Canvas.Pen.Width := BorderSize;
-            B.Canvas.Pen.Style := psSolid;
-          end;
-
-          B.Canvas.Rectangle(W.Rect);
-        end
     end;
 
     Canvas.Draw(0, 0, B); //to reduce flickering
@@ -824,8 +796,7 @@ type
     ttBreak, ttText, ttLink,
     ttAlignLeft, ttAlignCenter, ttAlignRight,
     ttImage, ttImageResource,
-    ttBulletList, ttNumberList, ttListItem,
-    ttTable, ttTableRow, ttTableData);
+    ttBulletList, ttNumberList, ttListItem);
 
   TToken = class
     Kind: TTokenKind;
@@ -977,7 +948,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..22] of TDefToken = (
+const DEF_TOKENS: array[0..19] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -997,10 +968,7 @@ const DEF_TOKENS: array[0..22] of TDefToken = (
   (Ident: 'IMGRES'; Kind: ttImageResource; Single: True; AllowPar: True),
   (Ident: 'UL'; Kind: ttBulletList), //Unordered HTML List
   (Ident: 'OL'; Kind: ttNumberList), //Ordered HTML List
-  (Ident: 'LI'; Kind: ttListItem),
-  (Ident: 'TABLE'; Kind: ttTable; AllowPar: True),
-  (Ident: 'TR'; Kind: ttTableRow; AllowPar: True; OptionalPar: True),
-  (Ident: 'TD'; Kind: ttTableData; AllowPar: True; OptionalPar: True)
+  (Ident: 'LI'; Kind: ttListItem)
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -1207,55 +1175,6 @@ type
     Position: Integer;
   end;
 
-  THTMLTableData = class(TObjectListStackItem)
-
-  end;
-  THTMLTableRow = class(TObjectListStackItem)
-    Height: Integer;
-    BackColor: TColor;
-    Position: TPoint;
-    CellIndex: Integer;
-    Cells: TObjectListStack<THTMLTableData>;
-    constructor Create;
-    destructor Destroy; override;
-  end;
-  THTMLTable = class(TObjectListStackItem)
-    Widths: TArray<String>;
-    RowHeight: Integer;
-    BackColor: TColor;
-    BorderSize: Integer;
-    BorderColor: TColor;
-    Padding: Integer;
-    Position: TPoint;
-    Rows: TObjectListStack<THTMLTableRow>;
-    constructor Create;
-    destructor Destroy; override;
-  end;
-
-constructor THTMLTable.Create;
-begin
-  inherited;
-  Rows := TObjectListStack<THTMLTableRow>.Create;
-end;
-
-destructor THTMLTable.Destroy;
-begin
-  Rows.Free;
-  inherited;
-end;
-
-constructor THTMLTableRow.Create;
-begin
-  inherited;
-  Cells := TObjectListStack<THTMLTableData>.Create;
-end;
-
-destructor THTMLTableRow.Destroy;
-begin
-  Cells.Free;
-  inherited;
-end;
-
 function TObjectListStack<T>.New: T;
 begin
   Result := T.Create;
@@ -1290,10 +1209,6 @@ type
     LBackColor: TListStack<TColor>;
     LAlign: TListStack<TAlignment>;
     LHTMLList: TObjectListStack<THTMLList>;
-    LHTMLTable: TObjectListStack<THTMLTable>;
-
-    CellRect: TRect;
-    InCell: Boolean;
 
     constructor Create(xBuilder: TBuilder);
     destructor Destroy; override;
@@ -1308,9 +1223,6 @@ type
     procedure DoTextAndRelated(T: TToken);
     procedure DoLink(T: TToken; I: Integer);
     procedure DoLists(T: TToken);
-    procedure DoTable(T: TToken);
-    procedure DoTableRow(T: TToken);
-    procedure DoTableData(T: TToken);
     procedure DoTab(T: TToken);
     procedure DoBreak;
   end;
@@ -1348,7 +1260,6 @@ begin
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TAlignment>.Create;
   LHTMLList := TObjectListStack<THTMLList>.Create;
-  LHTMLTable := TObjectListStack<THTMLTable>.Create;
 
   vBool := fsBold in C.Font.Style; LBold.Add(vBool);
   vBool := fsItalic in C.Font.Style; LItalic.Add(vBool);
@@ -1375,7 +1286,6 @@ begin
   LBackColor.Free;
   LAlign.Free;
   LHTMLList.Free;
-  LHTMLTable.Free;
   inherited;
 end;
 
@@ -1398,9 +1308,6 @@ begin
       ttText, ttSpace, ttInvalid, ttImage, ttImageResource, ttListItem: DoTextAndRelated(T);
       ttLink: DoLink(T, I);
       ttBulletList, ttNumberList: DoLists(T);
-      ttTable: DoTable(T);
-      ttTableRow: DoTableRow(T);
-      ttTableData: DoTableData(T);
       ttTab, ttTabF: DoTab(T);
       ttBreak: DoBreak;
     end;
@@ -1583,149 +1490,6 @@ begin
   end;
 end;
 
-procedure TableParamsToStrings(S: TStringList; T: TToken);
-begin
-  S.Text := StringReplace(T.Text, ';', S.LineBreak, [rfReplaceAll]);
-end;
-
-procedure TTokensProcess.DoTable(T: TToken);
-var
-  Tb: THTMLTable;
-  S: TStringList;
-  //ManualX: Integer;
-begin
-  if T.TagClose then
-  begin
-    LHTMLTable.DelLast;
-    Exit;
-  end;
-
-  Tb := LHTMLTable.New;
-
-  S := TStringList.Create;
-  try
-    TableParamsToStrings(S, T);
-
-    //ManualX := StrToIntDef(S.Values['X'], -1);
-
-    Tb.Widths := S.Values['W'].Split([',']);
-    Tb.RowHeight := StrToIntDef(S.Values['H'], 0);
-    Tb.BackColor := ParamToColor(S.Values['BC']);
-    Tb.BorderSize := StrToIntDef(S.Values['BDS'], 1);
-    Tb.BorderColor := ParamToColor(S.Values['BDC']);
-    Tb.Padding := StrToIntDef(S.Values['PD'], 0);
-  finally
-    S.Free;
-  end;
-
-  //if ManualX>-1 then X := ManualX;
-
-  //Tb.Position.X := X;
-  //Tb.Position.Y := Y;
-
-  if Tb.RowHeight<=0 then Tb.RowHeight := 20;
-end;
-
-procedure TTokensProcess.DoTableRow(T: TToken);
-var
-  Tb: THTMLTable;
-  Row: THTMLTableRow;
-  S: TStringList;
-begin
-  if LHTMLTable.Count=0 then Exit;
-
-  Tb := LHTMLTable.Last;
-  if T.TagClose then
-  begin
-    Tb.Rows.DelLast;
-    Exit;
-  end;
-
-  Row := Tb.Rows.New;
-  Row.Position.X := Tb.Position.X;
-  Row.Position.Y := Tb.Position.Y;
-
-  S := TStringList.Create;
-  try
-    TableParamsToStrings(S, T);
-
-    Row.Height := StrToIntDef(S.Values['H'], 0);
-    Row.BackColor := ParamToColor(S.Values['BC']);
-  finally
-    S.Free;
-  end;
-
-  if Row.Height<=0 then Row.Height := Tb.RowHeight;
-
-  Inc(Tb.Position.Y, Row.Height);
-end;
-
-procedure TTokensProcess.DoTableData(T: TToken);
-var
-  Tb: THTMLTable;
-  Row: THTMLTableRow;
-  //Cell: THTMLTableData;
-  Width: Integer;
-  BColor: TColor;
-
-  S: TStringList;
-
-  W: TDHVisualItem_Cell;
-begin
-  if LHTMLTable.Count=0 then Exit;
-
-  Tb := LHTMLTable.Last;
-  if Tb.Rows.Count=0 then Exit;
-
-  Row := Tb.Rows.Last;
-
-  if T.TagClose then
-  begin
-    Row.Cells.DelLast;
-    InCell := False;
-    CellRect := TRect.Empty;
-    Exit;
-  end;
-
-  //Cell := Row.Cells.New;
-
-  S := TStringList.Create;
-  try
-    TableParamsToStrings(S, T);
-
-    Width := StrToIntDef(S.Values['W'], 0);
-    BColor := ParamToColor(S.Values['BC']);
-  finally
-    S.Free;
-  end;
-
-  if Width<=0 then
-    if Row.CellIndex<=High(Tb.Widths) then
-      Width := StrToIntDef(Tb.Widths[Row.CellIndex], 0);
-  if Width<=0 then Width := 100;
-
-  W := TDHVisualItem_Cell.Create;
-  W.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(
-    Row.Position.X, Row.Position.Y,
-    Row.Position.X+Width+1, Row.Position.Y+Row.Height+1);
-
-  if BColor=clNone then BColor := Row.BackColor;
-  if BColor=clNone then BColor := Tb.BackColor;
-  W.BColor := BColor;
-  W.BorderSize := Tb.BorderSize;
-  W.BorderColor := Tb.BorderColor;
-
-  Lb.LVisualItem.Add(W);
-
-  InCell := True;
-  CellRect := W.Rect;
-  //X := CellRect.Left;
-  //Y := CellRect.Top;
-
-  Inc(Row.CellIndex);
-  Inc(Row.Position.X, Width);
-end;
-
 procedure TTokensProcess.DoTab(T: TToken);
 var W: TDHVisualItem_Tab;
 begin
@@ -1747,6 +1511,11 @@ end;
 
 procedure TBuilder.Realign;
 
+  function IsSpace(W: TDHVisualItem): Boolean;
+  begin
+    Result := (W is TDHVisualItem_Word) and TDHVisualItem_Word(W).Space;
+  end;
+
   procedure IncPreviousGroup(Right, Limit: Integer);
   var B: TGroupBound;
   begin
@@ -1761,11 +1530,6 @@ procedure TBuilder.Realign;
       ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (X>Lb.FMaxWidth) )
       or
       ( (not Lb.FAutoWidth) and (X>Lb.Width) );
-  end;
-
-  function IsSpace(W: TDHVisualItem): Boolean;
-  begin
-    Result := (W is TDHVisualItem_Word) and TDHVisualItem_Word(W).Space;
   end;
 
 type TSizes = record
@@ -1835,11 +1599,11 @@ begin
     W.Group := LGroupBound.Count;
     W.Print := True;
 
-    Inc(X, W.Size.Width);
-
     OldMax := Max;
-    if X>Max.OverallWidth then Max.OverallWidth := X;
-    if W.Size.Height>Max.LineHeight then Max.LineHeight := W.Size.Height;
+    if W.Rect.Right>Max.OverallWidth then Max.OverallWidth := W.Rect.Right;
+    if W.Rect.Height>Max.LineHeight then Max.LineHeight := W.Rect.Height;
+
+    X := W.Rect.Right;
   end;
 
   CalcWidth := Max.OverallWidth;
