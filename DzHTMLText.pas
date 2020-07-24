@@ -1374,6 +1374,7 @@ var
   W: TDHVisualItem;
   FixedPosition: TDHFixedPosition;
 begin
+  Ex := TSize.Create(0, 0);
   FillMemory(@FixedPosition, SizeOf(FixedPosition), 0);
 
   case T.Kind of
@@ -1409,10 +1410,6 @@ begin
       begin
         Ex.Width := Lb.FImages.Width;
         Ex.Height := Lb.FImages.Height;
-      end else
-      begin
-        Ex.Width := 0;
-        Ex.Height := 0;
       end;
     end;
 
@@ -1511,11 +1508,6 @@ end;
 
 procedure TBuilder.Realign;
 
-  function IsSpace(W: TDHVisualItem): Boolean;
-  begin
-    Result := (W is TDHVisualItem_Word) and TDHVisualItem_Word(W).Space;
-  end;
-
   procedure IncPreviousGroup(Right, Limit: Integer);
   var B: TGroupBound;
   begin
@@ -1530,6 +1522,11 @@ procedure TBuilder.Realign;
       ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (X>Lb.FMaxWidth) )
       or
       ( (not Lb.FAutoWidth) and (X>Lb.Width) );
+  end;
+
+  function IsSpace(W: TDHVisualItem): Boolean;
+  begin
+    Result := (W is TDHVisualItem_Word) and TDHVisualItem_Word(W).Space;
   end;
 
 type TSizes = record
