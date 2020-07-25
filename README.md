@@ -23,10 +23,13 @@
 
 ## What's New
 
-- 99/99/9999
+- 99/99/9999 (Version 2.0)
 
    - Refactoring in all the methods that process the tokens.
+   - Improvement in the use of memory keeping in the objects that are used for visual construction only the necessary properties. For that, the internal properties were moved to new classes.
    - Implemented full alignment support when using tab tags.
+   - Fixed multiple space strange behavior on line break.
+   - Fixed when there was only one word on the line and the limit was less than it, which caused the word to skip the line.
 
 - 07/15/2020
 
