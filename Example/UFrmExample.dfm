@@ -63,8 +63,9 @@ object Form1: TForm1
       '<t:150>'#13#10'<t:10>3<t:30>ERIC<t:100><r>180,000</r><t:150></fc>'#13#10#13#10'H' +
       'TML Lists:<fc:$2768EF>'#13#10'<nbr><ul>'#13#10'<li>Item 1</li>'#13#10'<li>Item 2</' +
       'li>'#13#10'<nbr><ol>'#13#10'<li>Sub item 1</li>'#13#10'<li>Sub item 2</li>'#13#10'<nbr><' +
-      'ol>'#13#10'<li>Detail 2.1</li>'#13#10'<li>Detail 2.2</li>'#13#10'<nbr></ol>'#13#10'<li>S' +
-      'ub item 3</li>'#13#10'<nbr></ol>'#13#10'<li>Item 3</li>'#13#10'<nbr></ul></fc>'
+      'ol>'#13#10'<li><i>Detail 2.1</i></li>'#13#10'<li><i>Detail 2.2</i></li>'#13#10'<nb' +
+      'r></ol>'#13#10'<li>Sub item 3</li>'#13#10'<nbr></ol>'#13#10'<li>Item 3</li>'#13#10'<nbr>' +
+      '</ul></fc>'
   end
   object Lb3: TDzHTMLText
     Left = 8
