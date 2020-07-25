@@ -30,6 +30,7 @@
    - Implemented full alignment support when using tab tags.
    - Fixed multiple space strange behavior on line break.
    - Fixed when there was only one word on the line and the limit was less than it, which caused the word to skip the line.
+   - New tag `<float>`, allowing you to create floating panels with content in free positions. :smile: :smile: :smile:
 
 - 07/15/2020
 
