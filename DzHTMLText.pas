@@ -809,7 +809,7 @@ type
     function GetLinkText(IEnd: Integer): String;
   end;
 
-  TGroupBound = record
+  TGroupBound = class
     Right, Limit: Integer;
   end;
 
@@ -819,7 +819,7 @@ type
     LToken: TListToken;
 
     LLineHeight: TList<Integer>;
-    LGroupBound: TList<TGroupBound>;
+    LGroupBound: TObjectList<TGroupBound>;
 
     CalcWidth, CalcHeight: Integer; //width and height to set at component when using auto
 
@@ -840,7 +840,7 @@ begin
   inherited;
   LToken := TListToken.Create;
   LLineHeight := TList<Integer>.Create;
-  LGroupBound := TList<TGroupBound>.Create;
+  LGroupBound := TObjectList<TGroupBound>.Create;
 end;
 
 destructor TBuilder.Destroy;
@@ -1511,6 +1511,7 @@ procedure TBuilder.Realign;
   procedure IncPreviousGroup(Right, Limit: Integer);
   var B: TGroupBound;
   begin
+    B := TGroupBound.Create;
     B.Right := Right;
     B.Limit := Limit;
     LGroupBound.Add(B);
