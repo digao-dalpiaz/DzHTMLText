@@ -128,6 +128,7 @@ Here are all possible tags you can use in text:
 <UL></UL> - Unordered list
 <OL></OL> - Ordered list
 <LI></LI> - List item
+<FLOAT:X,Y[,Width]></FLOAT> - Floating area
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
