@@ -1583,33 +1583,38 @@ begin
     end;
 
     if (Z is TPreObj_Break) or
-      ((Z is TPreObj_Visual) and IsToWrapText(X+TPreObj_Visual(Z).Size.Width)) then
+      ((Z is TPreObj_Visual) and (X>LastTabX) and IsToWrapText(X+TPreObj_Visual(Z).Size.Width)) then
     begin //LINE BREAK
       if Z is TPreObj_Break then
       begin
         if Max.LineHeight=0 then Max.LineHeight := TPreObj_Break(Z).Height; //line without content
       end else
-      if (I>0) and TPreObj_Visual(Items[I-1]).Space then
-      begin //remove previous space
-        TPreObj_Visual(Items[I-1]).Print := False;
-        Max := OldMax; //revert bounds
-      end;
+      if not TPreObj_Visual(Z).Space then
+        if (I>0) and (Items[I-1] is TPreObj_Visual) then
+        begin
+          V := TPreObj_Visual(Items[I-1]);
+          if V.Space and (V.Visual.Rect.Left>LastTabX) then
+          begin //space remains at previous line before line break
+            V.Print := False;
+            Max := OldMax; //revert bounds
+          end;
+        end;
 
       Inc(Y, Max.LineHeight);
       LLineHeight.Add(Max.LineHeight);
       IncPreviousGroup(X, -1);
+
       X := 0;
       Max.LineHeight := 0;
 
       if (Z is TPreObj_Break) then
       begin
+        LastTabX := 0;
         LastTabF := False;
         Continue;
-      end else
-      begin
-        if LastTabF then X := LastTabX;
-        if TPreObj_Visual(Z).Space then Continue;
       end;
+      if LastTabF then X := LastTabX;
+      if TPreObj_Visual(Z).Space then Continue; //space made a line break
     end;
 
     if not (Z is TPreObj_Visual) then
