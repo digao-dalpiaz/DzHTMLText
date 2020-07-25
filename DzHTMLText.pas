@@ -772,7 +772,8 @@ type
     ttBreak, ttText, ttLink,
     ttAlignLeft, ttAlignCenter, ttAlignRight,
     ttImage, ttImageResource,
-    ttBulletList, ttNumberList, ttListItem);
+    ttBulletList, ttNumberList, ttListItem,
+    ttFloat);
 
   TToken = class
     Kind: TTokenKind;
@@ -906,7 +907,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..19] of TDefToken = (
+const DEF_TOKENS: array[0..20] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -926,7 +927,8 @@ const DEF_TOKENS: array[0..19] of TDefToken = (
   (Ident: 'IMGRES'; Kind: ttImageResource; Single: True; AllowPar: True),
   (Ident: 'UL'; Kind: ttBulletList), //Unordered HTML List
   (Ident: 'OL'; Kind: ttNumberList), //Ordered HTML List
-  (Ident: 'LI'; Kind: ttListItem)
+  (Ident: 'LI'; Kind: ttListItem), //HTML List Item
+  (Ident: 'FLOAT'; Kind: ttFloat; AllowPar: True) //Floating div
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -1161,6 +1163,11 @@ type
     Fixed: Boolean;
   end;
 
+  TPreObj_Float = class(TPreObj)
+    Rect: TRect;
+    Close: Boolean;
+  end;
+
   TFixedPosition = record
   private
     Active: Boolean;
@@ -1230,6 +1237,7 @@ type
     procedure DoTextAndRelated(T: TToken);
     procedure DoLink(T: TToken; I: Integer);
     procedure DoLists(T: TToken);
+    procedure DoFloat(T: TToken);
     procedure DoTab(T: TToken);
     procedure DoBreak;
 
@@ -1328,6 +1336,7 @@ begin
       ttText, ttSpace, ttInvalid, ttImage, ttImageResource, ttListItem: DoTextAndRelated(T);
       ttLink: DoLink(T, I);
       ttBulletList, ttNumberList: DoLists(T);
+      ttFloat: DoFloat(T);
       ttTab, ttTabF: DoTab(T);
       ttBreak: DoBreak;
     end;
@@ -1511,6 +1520,26 @@ begin
   end;
 end;
 
+procedure TTokensProcess.DoFloat(T: TToken);
+var Z: TPreObj_Float;
+  Ar: TArray<String>;
+begin
+  Z := TPreObj_Float.Create;
+  if not T.TagClose then
+  begin
+    Ar := T.Text.Split([',']);
+    if Length(Ar)>=2 then
+    begin
+      Z.Rect.Left := StrToIntDef(Ar[0], 0);
+      Z.Rect.Top := StrToIntDef(Ar[1], 0);
+      if Length(Ar)>=3 then
+        Z.Rect.Width := StrToIntDef(Ar[2], 0);
+    end;
+  end;
+  Z.Close := T.TagClose;
+  Items.Add(Z);
+end;
+
 procedure TTokensProcess.DoTab(T: TToken);
 var Z: TPreObj_Tab;
 begin
@@ -1541,8 +1570,14 @@ procedure TTokensProcess.Realign;
     LGroupBound.Add(B);
   end;
 
+var
+  FloatRect: TRect;
+  InFloat: Boolean;
+
   function IsToWrapText(X: Integer): Boolean;
   begin
+    if FloatRect.Width>0 then Exit(X>FloatRect.Right);
+
     Result :=
       ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (X>Lb.FMaxWidth) )
       or
@@ -1550,7 +1585,7 @@ procedure TTokensProcess.Realign;
   end;
 
 type TSizes = record
-  LineHeight, OverallWidth: Integer;
+  LineHeight, OverallWidth, OverallHeight: Integer;
 end;
 var
   Z: TPreObj;
@@ -1558,10 +1593,36 @@ var
   I, X, Y: Integer;
   Max, OldMax: TSizes;
   LastTabX: Integer; LastTabF: Boolean;
+  PrevPos: TPoint; PrevLine, CurLine, LineCount: Integer;
+
+  function GetXbnd: Integer;
+  begin
+    Result := LastTabX + FloatRect.Left;
+  end;
+
+  procedure BreakSection(NewLine: Boolean);
+  var GrpLim: Integer;
+  begin
+    GrpLim := -1;
+    if FloatRect.Width>0 then GrpLim := FloatRect.Right;
+    IncPreviousGroup(X, GrpLim);
+
+    if NewLine then
+    begin
+      LLineHeight.Add(Max.LineHeight);
+      CurLine := LLineHeight.Count;
+      Max.LineHeight := 0;
+    end;
+  end;
+
 begin
   X := 0;
   Y := 0;
-
+  LineCount := 0;
+  CurLine := 0;
+  PrevLine := -1;
+  InFloat := False;
+  FloatRect := TRect.Empty;
   LastTabX := 0;
   LastTabF := False;
 
@@ -1572,40 +1633,66 @@ begin
   begin
     Z := Items[I];
 
+    if Z is TPreObj_Float then
+    begin
+      if TPreObj_Float(Z).Close then
+      begin
+        BreakSection(False);
+        CurLine := PrevLine; //restore current line
+        Max.LineHeight := LLineHeight[CurLine]; //restore max height
+
+        X := PrevPos.X;
+        Y := PrevPos.Y;
+        FloatRect := TRect.Empty;
+
+        InFloat := False;
+      end else
+      begin
+        PrevLine := CurLine; //save current line
+        BreakSection(True);
+
+        PrevPos := TPoint.Create(X, Y);
+        FloatRect := TPreObj_Float(Z).Rect;
+        X := FloatRect.Left;
+        Y := FloatRect.Top;
+
+        InFloat := True;
+      end;
+      Continue;
+    end;
+
     if Z is TPreObj_Tab then
     begin
       LastTabX := TPreObj_Tab(Z).Position;
       LastTabF := TPreObj_Tab(Z).Fixed;
 
-      IncPreviousGroup(X, LastTabX);
-      X := LastTabX;
+      IncPreviousGroup(X, GetXbnd);
+      X := GetXbnd;
       Continue;
     end;
 
     if (Z is TPreObj_Break) or
-      ((Z is TPreObj_Visual) and (X>LastTabX) and IsToWrapText(X+TPreObj_Visual(Z).Size.Width)) then
+      ((Z is TPreObj_Visual) and (X>GetXbnd) and IsToWrapText(X+TPreObj_Visual(Z).Size.Width)) then
     begin //LINE BREAK
       if Z is TPreObj_Break then
       begin
         if Max.LineHeight=0 then Max.LineHeight := TPreObj_Break(Z).Height; //line without content
       end else
-      if not TPreObj_Visual(Z).Space then
+      if not TPreObj_Visual(Z).Space then //avoid duplicate space missing
         if (I>0) and (Items[I-1] is TPreObj_Visual) then
         begin
           V := TPreObj_Visual(Items[I-1]);
-          if V.Space and (V.Visual.Rect.Left>LastTabX) then
+          if V.Space and (V.Visual.Rect.Left>GetXbnd) then
           begin //space remains at previous line before line break
             V.Print := False;
             Max := OldMax; //revert bounds
           end;
         end;
 
+      if not InFloat then Inc(LineCount);
       Inc(Y, Max.LineHeight);
-      LLineHeight.Add(Max.LineHeight);
-      IncPreviousGroup(X, -1);
-
-      X := 0;
-      Max.LineHeight := 0;
+      BreakSection(True);
+      X := FloatRect.Left;
 
       if (Z is TPreObj_Break) then
       begin
@@ -1613,7 +1700,7 @@ begin
         LastTabF := False;
         Continue;
       end;
-      if LastTabF then X := LastTabX;
+      if LastTabF then X := GetXbnd;
       if TPreObj_Visual(Z).Space then Continue; //space made a line break
     end;
 
@@ -1624,22 +1711,23 @@ begin
 
     if V.FixedPos.Active then X := V.FixedPos.Left;
 
-    V.Visual.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+V.Size.Width, Y+V.Size.Height);
-    V.Line := LLineHeight.Count;
+    V.Visual.Rect := TRect.Create(X, Y, X+V.Size.Width, Y+V.Size.Height);
+    V.Line := CurLine;
     V.Group := LGroupBound.Count;
     V.Print := True;
 
     OldMax := Max;
     if V.Visual.Rect.Right>Max.OverallWidth then Max.OverallWidth := V.Visual.Rect.Right;
+    if V.Visual.Rect.Bottom>Max.OverallHeight then Max.OverallHeight := V.Visual.Rect.Bottom;
     if V.Visual.Rect.Height>Max.LineHeight then Max.LineHeight := V.Visual.Rect.Height;
 
     X := V.Visual.Rect.Right;
   end;
 
   Builder.CalcWidth := Max.OverallWidth;
-  Builder.CalcHeight := Y;
+  Builder.CalcHeight := Max.OverallHeight;
 
-  Lb.FLines := LLineHeight.Count;
+  Lb.FLines := LineCount;
 end;
 
 procedure TTokensProcess.Publish;
