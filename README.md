@@ -23,6 +23,11 @@
 
 ## What's New
 
+- 99/99/9999
+
+   - Refactoring in all the methods that process the tokens.
+   - Implemented full alignment support when using tab tags.
+
 - 07/15/2020
 
    - Fixed lists bullet char for Lazarus - issue #16.
