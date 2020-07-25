@@ -33,21 +33,9 @@ type
 
   TDzHTMLText = class;
 
-  TDHFixedPosition = record
-  private
-    Active: Boolean;
-    Left: Integer;
-  end;
-
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
     Rect: TRect;
-    Size: TSize;
-    Line: Integer; //line number
-    Group: Integer; //group number
-    {The group is isolated at each tabulation or cell to delimit text align area}
-    FixedPosition: TDHFixedPosition;
-    Align: TAlignment;
     BColor: TColor; //background color
     Link: Boolean; //is a link
     LinkID: Integer; //link number
@@ -56,22 +44,12 @@ type
     the link was saved here at a work, it will be repeat if has multiple words
     per link, spending a lot of unnecessary memory.}
     Hover: Boolean; //the mouse is over the link
-    Print: Boolean;
-  end;
-
-  TDHVisualItem_Break = class(TDHVisualItem);
-
-  TDHVisualItem_Tab = class(TDHVisualItem)
-  private
-    Position: Integer;
-    Fixed: Boolean;
   end;
 
   TDHVisualItem_Word = class(TDHVisualItem)
   private
     Text: String;
     Font: TFont;
-    Space: Boolean; //is an space
   public
     constructor Create;
     destructor Destroy; override;
@@ -590,8 +568,6 @@ begin
 
     for W in LVisualItem do
     begin
-      if not W.Print then Continue;      
-
       if W is TDHVisualItem_Word then
         B.Canvas.Font.Assign(TDHVisualItem_Word(W).Font);
 
@@ -809,17 +785,10 @@ type
     function GetLinkText(IEnd: Integer): String;
   end;
 
-  TGroupBound = class
-    Right, Limit: Integer;
-  end;
-
   TBuilder = class
   private
     Lb: TDzHTMLText;
     LToken: TListToken;
-
-    LLineHeight: TList<Integer>;
-    LGroupBound: TObjectList<TGroupBound>;
 
     CalcWidth, CalcHeight: Integer; //width and height to set at component when using auto
 
@@ -828,8 +797,6 @@ type
 
     procedure BuildTokens; //create list of tokens
     procedure BuildWords; //create list of words
-    procedure Realign; //realign words
-    procedure CheckAligns; //check vertical and horizontal align
   public
     constructor Create;
     destructor Destroy; override;
@@ -839,15 +806,11 @@ constructor TBuilder.Create;
 begin
   inherited;
   LToken := TListToken.Create;
-  LLineHeight := TList<Integer>.Create;
-  LGroupBound := TObjectList<TGroupBound>.Create;
 end;
 
 destructor TBuilder.Destroy;
 begin
   LToken.Free;
-  LLineHeight.Free;
-  LGroupBound.Free;
   inherited;
 end;
 
@@ -865,10 +828,8 @@ begin
 
     B.BuildTokens;
     B.BuildWords;
-    B.Realign;
-    B.CheckAligns;
 
-    FLines := B.LLineHeight.Count;
+    //FLines := B.LLineHeight.Count;
 
     FTextWidth := B.CalcWidth;
     FTextHeight := B.CalcHeight;
@@ -1187,11 +1148,64 @@ begin
     Delete(Count-1);
 end;
 
+//
+
+type
+  TGroupBound = class
+    Right, Limit: Integer;
+  end;
+
+  TFixedPosition = record
+  private
+    Active: Boolean;
+    Left: Integer;
+  end;
+
+  TInternalItem = class(TObject);
+
+  TInternalItem_Break = class(TInternalItem)
+    Height: Integer;
+  end;
+
+  TInternalItem_Tab = class(TInternalItem)
+    Position: Integer;
+    Fixed: Boolean;
+  end;
+
+  TInternalItem_Visual = class(TInternalItem)
+    Size: TSize;
+    Line: Integer; //line number
+    Group: Integer; //group number
+    {The group is isolated at each line or tabulation to delimit text align area}
+    FixedPosition: TFixedPosition;
+    Align: TAlignment;
+    Space: Boolean;
+    Print: Boolean;
+
+    Visual: TDHVisualItem;
+    destructor Destroy; override;
+  end;
+
+  TListInternalItem = class(TObjectList<TInternalItem>);
+
+destructor TInternalItem_Visual.Destroy;
+begin
+  if Assigned(Visual) then Visual.Free;
+  inherited;
+end;
+
+//
+
 type
   TTokensProcess = class
     Builder: TBuilder;
     Lb: TDzHTMLText;
     C: TCanvas;
+
+    LLineHeight: TList<Integer>;
+    LGroupBound: TObjectList<TGroupBound>;
+
+    Items: TListInternalItem;
 
     LinkOn: Boolean;
     LinkID: Integer;
@@ -1225,6 +1239,9 @@ type
     procedure DoLists(T: TToken);
     procedure DoTab(T: TToken);
     procedure DoBreak;
+
+    procedure Realign;
+    procedure Publish;
   end;
 
 procedure TBuilder.BuildWords;
@@ -1233,6 +1250,8 @@ begin
   P := TTokensProcess.Create(Self);
   try
     P.Execute;
+    P.Realign;
+    P.Publish;
   finally
     P.Free;
   end;
@@ -1249,6 +1268,10 @@ begin
 
   BackColor := clNone;
   Align := taLeftJustify;
+
+  Items := TListInternalItem.Create;
+  LLineHeight := TList<Integer>.Create;
+  LGroupBound := TObjectList<TGroupBound>.Create;
 
   LBold := TListStack<Boolean>.Create;
   LItalic := TListStack<Boolean>.Create;
@@ -1276,6 +1299,10 @@ end;
 
 destructor TTokensProcess.Destroy;
 begin
+  Items.Free;
+  LLineHeight.Free;
+  LGroupBound.Free;
+
   LBold.Free;
   LItalic.Free;
   LUnderline.Free;
@@ -1371,8 +1398,9 @@ end;
 procedure TTokensProcess.DoTextAndRelated(T: TToken);
 var
   Ex: TSize;
+  Z: TInternalItem_Visual;
   W: TDHVisualItem;
-  FixedPosition: TDHFixedPosition;
+  FixedPosition: TFixedPosition;
 begin
   Ex := TSize.Create(0, 0);
   FillMemory(@FixedPosition, SizeOf(FixedPosition), 0);
@@ -1432,21 +1460,24 @@ begin
       begin
         Text := T.Text;
         Font.Assign(C.Font);
-        Space := T.Kind=ttSpace;
 
         Ex := C.TextExtent(Text);
       end;
     end;
   end;
 
-  //Common properties of Visual Item
-  W.Size := Ex;
-  W.Align := Align;
   W.BColor := BackColor;
   W.Link := LinkOn;
   W.LinkID := LinkID;
-  W.FixedPosition := FixedPosition;
-  Lb.LVisualItem.Add(W);
+
+  Z := TInternalItem_Visual.Create;
+  Z.Size := Ex;
+  Z.Align := Align;
+  Z.Space := T.Kind=ttSpace;
+  Z.FixedPosition := FixedPosition;
+  Z.Visual := W;
+
+  Items.Add(Z);
 end;
 
 procedure TTokensProcess.DoLink(T: TToken; I: Integer);
@@ -1488,25 +1519,25 @@ begin
 end;
 
 procedure TTokensProcess.DoTab(T: TToken);
-var W: TDHVisualItem_Tab;
+var W: TInternalItem_Tab;
 begin
-  W := TDHVisualItem_Tab.Create;
+  W := TInternalItem_Tab.Create;
   W.Position := T.Value;
   W.Fixed := (T.Kind=ttTabF);
-  Lb.LVisualItem.Add(W);
+  Items.Add(W);
 end;
 
 procedure TTokensProcess.DoBreak;
-var W: TDHVisualItem_Break;
+var W: TInternalItem_Break;
 begin
-  W := TDHVisualItem_Break.Create;
-  W.Size.Height := C.TextHeight(' ');
-  Lb.LVisualItem.Add(W);
+  W := TInternalItem_Break.Create;
+  W.Height := C.TextHeight(' ');
+  Items.Add(W);
 end;
 
 //
 
-procedure TBuilder.Realign;
+procedure TTokensProcess.Realign;
 
   procedure IncPreviousGroup(Right, Limit: Integer);
   var B: TGroupBound;
@@ -1525,16 +1556,17 @@ procedure TBuilder.Realign;
       ( (not Lb.FAutoWidth) and (X>Lb.Width) );
   end;
 
-  function IsSpace(W: TDHVisualItem): Boolean;
+  function IsSpace(Z: TInternalItem): Boolean;
   begin
-    Result := (W is TDHVisualItem_Word) and TDHVisualItem_Word(W).Space;
+    Result := (Z is TInternalItem_Visual) and TInternalItem_Visual(Z).Space;
   end;
 
 type TSizes = record
   LineHeight, OverallWidth: Integer;
 end;
 var
-  W: TDHVisualItem;
+  Z: TInternalItem;
+  V: TInternalItem_Visual;
   I, X, Y: Integer;
   Max, OldMax: TSizes;
   LastTabX: Integer; LastTabF: Boolean;
@@ -1548,29 +1580,31 @@ begin
   FillMemory(@Max, SizeOf(Max), 0);
   OldMax := Max;
 
-  for I := 0 to Lb.LVisualItem.Count-1 do
+  for I := 0 to Items.Count-1 do
   begin
-    W := Lb.LVisualItem[I];
+    Z := Items[I];
 
-    if W is TDHVisualItem_Tab then
+    if Z is TInternalItem_Tab then
     begin
-      LastTabX := TDHVisualItem_Tab(W).Position;
-      LastTabF := TDHVisualItem_Tab(W).Fixed;
+      LastTabX := TInternalItem_Tab(Z).Position;
+      LastTabF := TInternalItem_Tab(Z).Fixed;
 
       IncPreviousGroup(X, LastTabX);
       X := LastTabX;
       Continue;
     end;
 
-    if (W is TDHVisualItem_Break) or IsToWrapText(X+W.Size.Width) then
+    if (Z is TInternalItem_Break) or
+      ((Z is TInternalItem_Visual) and IsToWrapText(X+TInternalItem_Visual(Z).Size.Width)) then
     begin //LINE BREAK
-      if (I>0) and IsSpace(Lb.LVisualItem[I-1]) then
+      if (I>0) and IsSpace(Items[I-1]) then
       begin //remove previous space
-        Lb.LVisualItem[I-1].Print := False;
+        TInternalItem_Visual(Items[I-1]).Print := False;
         Max := OldMax; //revert bounds
       end;
 
-      if Max.LineHeight=0 then Max.LineHeight := W.Size.Height; //line without content
+      if Z is TInternalItem_Break then
+        if Max.LineHeight=0 then Max.LineHeight := TInternalItem_Break(Z).Height; //line without content
 
       Inc(Y, Max.LineHeight);
       LLineHeight.Add(Max.LineHeight);
@@ -1579,7 +1613,7 @@ begin
       X := 0;
       Max.LineHeight := 0;
 
-      if (W is TDHVisualItem_Break) then
+      if (Z is TInternalItem_Break) then
       begin
         LastTabF := False;
         Continue;
@@ -1587,61 +1621,70 @@ begin
 
       if LastTabF then X := LastTabX;
 
-      if IsSpace(W) then Continue;
+      if IsSpace(Z) then Continue;
     end;
 
-    if W.FixedPosition.Active then X := W.FixedPosition.Left;
+    if not (Z is TInternalItem_Visual) then raise Exception.Create('Must be visual item here!');
+    V := TInternalItem_Visual(Z);
 
-    W.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+W.Size.Width, Y+W.Size.Height);
-    W.Line := LLineHeight.Count;
-    W.Group := LGroupBound.Count;
-    W.Print := True;
+    if V.FixedPosition.Active then X := V.FixedPosition.Left;
+
+    V.Visual.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+V.Size.Width, Y+V.Size.Height);
+    V.Line := LLineHeight.Count;
+    V.Group := LGroupBound.Count;
+    V.Print := True;
 
     OldMax := Max;
-    if W.Rect.Right>Max.OverallWidth then Max.OverallWidth := W.Rect.Right;
-    if W.Rect.Height>Max.LineHeight then Max.LineHeight := W.Rect.Height;
+    if V.Visual.Rect.Right>Max.OverallWidth then Max.OverallWidth := V.Visual.Rect.Right;
+    if V.Visual.Rect.Height>Max.LineHeight then Max.LineHeight := V.Visual.Rect.Height;
 
-    X := W.Rect.Right;
+    X := V.Visual.Rect.Right;
   end;
 
-  CalcWidth := Max.OverallWidth;
-  CalcHeight := Y;
+  Builder.CalcWidth := Max.OverallWidth;
+  Builder.CalcHeight := Y;
 end;
 
-procedure TBuilder.CheckAligns;
+procedure TTokensProcess.Publish;
 var
-  W: TDHVisualItem;
+  Z: TInternalItem;
+  V: TInternalItem_Visual;
   B: TGroupBound;
   Offset, GrpLim: Integer;
 begin
-  for W in Lb.LVisualItem do
+  for Z in Items do
   begin
-    if not W.Print then Continue;
+    if not (Z is TInternalItem_Visual) then Continue;
+    V := TInternalItem_Visual(Z);
+    if not V.Print then Continue;
 
     //horizontal align
-    if W.Align in [taCenter, taRightJustify] then
+    if V.Align in [taCenter, taRightJustify] then
     begin
-      B := LGroupBound[W.Group];
+      B := LGroupBound[V.Group];
       if B.Limit = -1 then
       begin //group has no limit
-        if Lb.FAutoWidth then GrpLim := CalcWidth else GrpLim := Lb.Width;
+        if Lb.FAutoWidth then GrpLim := Builder.CalcWidth else GrpLim := Lb.Width;
       end
         else GrpLim := B.Limit;
 
       Offset := GrpLim - B.Right;
-      if W.Align=taCenter then Offset := Offset div 2;
+      if V.Align=taCenter then Offset := Offset div 2;
 
-      W.Rect.Offset(Offset, 0);
+      V.Visual.Rect.Offset(Offset, 0);
     end;
 
     //vertical align
     if Lb.FLineVertAlign in [vaCenter, vaBottom] then
     begin
-      Offset := LLineHeight[W.Line] - W.Rect.Height;
+      Offset := LLineHeight[V.Line] - V.Visual.Rect.Height;
       if Lb.FLineVertAlign=vaCenter then Offset := Offset div 2;
 
-      W.Rect.Offset(0, Offset);
+      V.Visual.Rect.Offset(0, Offset);
     end;
+
+    Lb.LVisualItem.Add(V.Visual);
+    V.Visual := nil;
   end;
 end;
 
