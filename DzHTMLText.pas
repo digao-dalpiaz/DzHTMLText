@@ -795,8 +795,8 @@ type
     function ProcessTag(const Tag: String): Boolean;
     procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: String = ''; aValue: Integer = 0);
 
-    procedure BuildTokens; //create list of tokens
-    procedure BuildWords; //create list of words
+    procedure ReadTokens; //create list of tokens
+    procedure ProcessTokens; //create list of visual itens
   public
     constructor Create;
     destructor Destroy; override;
@@ -826,10 +826,8 @@ begin
   try
     B.Lb := Self;
 
-    B.BuildTokens;
-    B.BuildWords;
-
-    //FLines := B.LLineHeight.Count;
+    B.ReadTokens;
+    B.ProcessTokens;
 
     FTextWidth := B.CalcWidth;
     FTextHeight := B.CalcHeight;
@@ -840,8 +838,7 @@ begin
       if FAutoHeight then Height := B.CalcHeight;
     finally
       InternalResizing := False;
-    end
-
+    end;
   finally
     B.Free;
   end;
@@ -1049,7 +1046,7 @@ CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
   end;
 end;
 
-procedure TBuilder.BuildTokens;
+procedure TBuilder.ReadTokens;
 var Text, A: String;
     CharIni: Char;
     I, Jump: Integer;
@@ -1148,11 +1145,20 @@ begin
     Delete(Count-1);
 end;
 
-//
-
 type
   TGroupBound = class
     Right, Limit: Integer;
+  end;
+
+  TPreObj = class(TObject);
+
+  TPreObj_Break = class(TPreObj)
+    Height: Integer;
+  end;
+
+  TPreObj_Tab = class(TPreObj)
+    Position: Integer;
+    Fixed: Boolean;
   end;
 
   TFixedPosition = record
@@ -1161,23 +1167,12 @@ type
     Left: Integer;
   end;
 
-  TInternalItem = class(TObject);
-
-  TInternalItem_Break = class(TInternalItem)
-    Height: Integer;
-  end;
-
-  TInternalItem_Tab = class(TInternalItem)
-    Position: Integer;
-    Fixed: Boolean;
-  end;
-
-  TInternalItem_Visual = class(TInternalItem)
+  TPreObj_Visual = class(TPreObj)
     Size: TSize;
     Line: Integer; //line number
     Group: Integer; //group number
-    {The group is isolated at each line or tabulation to delimit text align area}
-    FixedPosition: TFixedPosition;
+    {The group is isolated at each line or tabulation to delimit text horizontal align area}
+    FixedPos: TFixedPosition;
     Align: TAlignment;
     Space: Boolean;
     Print: Boolean;
@@ -1186,15 +1181,13 @@ type
     destructor Destroy; override;
   end;
 
-  TListInternalItem = class(TObjectList<TInternalItem>);
+  TListPreObj = class(TObjectList<TPreObj>);
 
-destructor TInternalItem_Visual.Destroy;
+destructor TPreObj_Visual.Destroy;
 begin
   if Assigned(Visual) then Visual.Free;
   inherited;
 end;
-
-//
 
 type
   TTokensProcess = class
@@ -1205,7 +1198,7 @@ type
     LLineHeight: TList<Integer>;
     LGroupBound: TObjectList<TGroupBound>;
 
-    Items: TListInternalItem;
+    Items: TListPreObj;
 
     LinkOn: Boolean;
     LinkID: Integer;
@@ -1244,7 +1237,7 @@ type
     procedure Publish;
   end;
 
-procedure TBuilder.BuildWords;
+procedure TBuilder.ProcessTokens;
 var P: TTokensProcess;
 begin
   P := TTokensProcess.Create(Self);
@@ -1269,7 +1262,7 @@ begin
   BackColor := clNone;
   Align := taLeftJustify;
 
-  Items := TListInternalItem.Create;
+  Items := TListPreObj.Create;
   LLineHeight := TList<Integer>.Create;
   LGroupBound := TObjectList<TGroupBound>.Create;
 
@@ -1398,12 +1391,12 @@ end;
 procedure TTokensProcess.DoTextAndRelated(T: TToken);
 var
   Ex: TSize;
-  Z: TInternalItem_Visual;
+  Z: TPreObj_Visual;
   W: TDHVisualItem;
-  FixedPosition: TFixedPosition;
+  FixedPos: TFixedPosition;
 begin
   Ex := TSize.Create(0, 0);
-  FillMemory(@FixedPosition, SizeOf(FixedPosition), 0);
+  FillMemory(@FixedPos, SizeOf(FixedPos), 0);
 
   case T.Kind of
     ttSpace: T.Text := ' ';
@@ -1420,8 +1413,8 @@ begin
       if LHTMLList.Last is THTMLList_Number then T.Text := THTMLList_Number(LHTMLList.Last).Position.ToString+'. ' else
         raise Exception.Create('Invalid object');
 
-      FixedPosition.Active := True;
-      FixedPosition.Left := LHTMLList.Count * Lb.FListLevelPadding;
+      FixedPos.Active := True;
+      FixedPos.Left := LHTMLList.Count * Lb.FListLevelPadding;
     end;
   end;
 
@@ -1470,11 +1463,11 @@ begin
   W.Link := LinkOn;
   W.LinkID := LinkID;
 
-  Z := TInternalItem_Visual.Create;
+  Z := TPreObj_Visual.Create;
   Z.Size := Ex;
   Z.Align := Align;
   Z.Space := T.Kind=ttSpace;
-  Z.FixedPosition := FixedPosition;
+  Z.FixedPos := FixedPos;
   Z.Visual := W;
 
   Items.Add(Z);
@@ -1519,20 +1512,20 @@ begin
 end;
 
 procedure TTokensProcess.DoTab(T: TToken);
-var W: TInternalItem_Tab;
+var Z: TPreObj_Tab;
 begin
-  W := TInternalItem_Tab.Create;
-  W.Position := T.Value;
-  W.Fixed := (T.Kind=ttTabF);
-  Items.Add(W);
+  Z := TPreObj_Tab.Create;
+  Z.Position := T.Value;
+  Z.Fixed := (T.Kind=ttTabF);
+  Items.Add(Z);
 end;
 
 procedure TTokensProcess.DoBreak;
-var W: TInternalItem_Break;
+var Z: TPreObj_Break;
 begin
-  W := TInternalItem_Break.Create;
-  W.Height := C.TextHeight(' ');
-  Items.Add(W);
+  Z := TPreObj_Break.Create;
+  Z.Height := C.TextHeight(' ');
+  Items.Add(Z);
 end;
 
 //
@@ -1556,17 +1549,12 @@ procedure TTokensProcess.Realign;
       ( (not Lb.FAutoWidth) and (X>Lb.Width) );
   end;
 
-  function IsSpace(Z: TInternalItem): Boolean;
-  begin
-    Result := (Z is TInternalItem_Visual) and TInternalItem_Visual(Z).Space;
-  end;
-
 type TSizes = record
   LineHeight, OverallWidth: Integer;
 end;
 var
-  Z: TInternalItem;
-  V: TInternalItem_Visual;
+  Z: TPreObj;
+  V: TPreObj_Visual;
   I, X, Y: Integer;
   Max, OldMax: TSizes;
   LastTabX: Integer; LastTabF: Boolean;
@@ -1584,50 +1572,52 @@ begin
   begin
     Z := Items[I];
 
-    if Z is TInternalItem_Tab then
+    if Z is TPreObj_Tab then
     begin
-      LastTabX := TInternalItem_Tab(Z).Position;
-      LastTabF := TInternalItem_Tab(Z).Fixed;
+      LastTabX := TPreObj_Tab(Z).Position;
+      LastTabF := TPreObj_Tab(Z).Fixed;
 
       IncPreviousGroup(X, LastTabX);
       X := LastTabX;
       Continue;
     end;
 
-    if (Z is TInternalItem_Break) or
-      ((Z is TInternalItem_Visual) and IsToWrapText(X+TInternalItem_Visual(Z).Size.Width)) then
+    if (Z is TPreObj_Break) or
+      ((Z is TPreObj_Visual) and IsToWrapText(X+TPreObj_Visual(Z).Size.Width)) then
     begin //LINE BREAK
-      if (I>0) and IsSpace(Items[I-1]) then
+      if Z is TPreObj_Break then
+      begin
+        if Max.LineHeight=0 then Max.LineHeight := TPreObj_Break(Z).Height; //line without content
+      end else
+      if (I>0) and TPreObj_Visual(Items[I-1]).Space then
       begin //remove previous space
-        TInternalItem_Visual(Items[I-1]).Print := False;
+        TPreObj_Visual(Items[I-1]).Print := False;
         Max := OldMax; //revert bounds
       end;
 
-      if Z is TInternalItem_Break then
-        if Max.LineHeight=0 then Max.LineHeight := TInternalItem_Break(Z).Height; //line without content
-
       Inc(Y, Max.LineHeight);
       LLineHeight.Add(Max.LineHeight);
-
       IncPreviousGroup(X, -1);
       X := 0;
       Max.LineHeight := 0;
 
-      if (Z is TInternalItem_Break) then
+      if (Z is TPreObj_Break) then
       begin
         LastTabF := False;
         Continue;
+      end else
+      begin
+        if LastTabF then X := LastTabX;
+        if TPreObj_Visual(Z).Space then Continue;
       end;
-
-      if LastTabF then X := LastTabX;
-
-      if IsSpace(Z) then Continue;
     end;
 
-    if not (Z is TInternalItem_Visual) then raise Exception.Create('Must be visual item here!');
-    V := TInternalItem_Visual(Z);
+    if not (Z is TPreObj_Visual) then
+      raise Exception.CreateFmt('%s internal error: unexpected object', [Lb.ClassName]);
 
-    if V.FixedPosition.Active then X := V.FixedPosition.Left;
+    V := TPreObj_Visual(Z);
+
+    if V.FixedPos.Active then X := V.FixedPos.Left;
 
     V.Visual.Rect := {$IFDEF FPC}Types.{$ENDIF}Rect(X, Y, X+V.Size.Width, Y+V.Size.Height);
     V.Line := LLineHeight.Count;
@@ -1643,19 +1633,21 @@ begin
 
   Builder.CalcWidth := Max.OverallWidth;
   Builder.CalcHeight := Y;
+
+  Lb.FLines := LLineHeight.Count;
 end;
 
 procedure TTokensProcess.Publish;
 var
-  Z: TInternalItem;
-  V: TInternalItem_Visual;
+  Z: TPreObj;
+  V: TPreObj_Visual;
   B: TGroupBound;
   Offset, GrpLim: Integer;
 begin
   for Z in Items do
   begin
-    if not (Z is TInternalItem_Visual) then Continue;
-    V := TInternalItem_Visual(Z);
+    if not (Z is TPreObj_Visual) then Continue;
+    V := TPreObj_Visual(Z);
     if not V.Print then Continue;
 
     //horizontal align
