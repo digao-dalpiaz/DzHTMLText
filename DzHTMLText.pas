@@ -1644,6 +1644,7 @@ begin
 
     if Z is TPreObj_Float then
     begin
+      if TPreObj_Float(Z).Close<>InFloat then Continue;
       if TPreObj_Float(Z).Close then
       begin
         BreakSection(False);
