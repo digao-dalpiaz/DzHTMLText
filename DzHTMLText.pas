@@ -1580,6 +1580,11 @@ var
     LGroupBound.Add(B);
   end;
 
+  function GetXbnd: Integer;
+  begin
+    Result := LastTabX + FloatRect.Left;
+  end;
+
   function IsToWrapText(EndPos: Integer): Boolean;
   begin
     if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
@@ -1590,9 +1595,18 @@ var
       ( (not Lb.FAutoWidth) and (EndPos>Lb.Width) );
   end;
 
-  function GetXbnd: Integer;
+  procedure CheckPriorSpace;
+  var PV: TPreObj_Visual;
   begin
-    Result := LastTabX + FloatRect.Left;
+    if (I>0) and (Items[I-1] is TPreObj_Visual) then
+    begin
+      PV := TPreObj_Visual(Items[I-1]);
+      if PV.Space and (PV.Visual.Rect.Left>GetXbnd) then
+      begin //space remains at previous line before line break
+        PV.Print := False;
+        Max := OldMax; //revert bounds
+      end;
+    end;
   end;
 
   procedure BreakSection(NewLine: Boolean);
@@ -1674,15 +1688,7 @@ begin
         if Max.LineHeight=0 then Max.LineHeight := TPreObj_Break(Z).Height; //line without content
       end else
       if not TPreObj_Visual(Z).Space then //avoid duplicate space missing
-        if (I>0) and (Items[I-1] is TPreObj_Visual) then
-        begin
-          V := TPreObj_Visual(Items[I-1]);
-          if V.Space and (V.Visual.Rect.Left>GetXbnd) then
-          begin //space remains at previous line before line break
-            V.Print := False;
-            Max := OldMax; //revert bounds
-          end;
-        end;
+        CheckPriorSpace; //remove space at previous line if is the last obj
 
       if not InFloat then Inc(LineCount);
       Inc(Y, Max.LineHeight);
