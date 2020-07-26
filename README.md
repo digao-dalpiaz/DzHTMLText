@@ -352,7 +352,7 @@ Syntax: `<float:x,y[,width]>...</float>`
 
 Example: `<float:100,20,150>My text <b>floating</b> area.</float>`
 
-> You should not use a float tag inside another float tag!
+> You must not use a floating tag inside another floating tag!
 
 ## Literal tag character
 
