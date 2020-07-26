@@ -1625,7 +1625,7 @@ var
     end;
   end;
 
-  procedure BreakGroupAndLineCtrl(Forward: Boolean);
+  procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TPoint);
   var GrpLim: Integer;
   begin
     GrpLim := -1;
@@ -1642,6 +1642,9 @@ var
       CurLine := PrevLine; //restore current line
       Max.LineHeight := LLineHeight[CurLine]; //restore max height
     end;
+
+    X := NewPoint.X;
+    Y := NewPoint.Y;
   end;
 
 begin
@@ -1665,26 +1668,18 @@ begin
 
     if Z is TPreObj_Float then
     begin
-      if TPreObj_Float(Z).Close<>InFloat then Continue;
+      if TPreObj_Float(Z).Close<>InFloat then Continue; //avoid float inside float
       if TPreObj_Float(Z).Close then
       begin
-        BreakGroupAndLineCtrl(False);
-
-        X := PrevPos.X;
-        Y := PrevPos.Y;
+        BreakGroupAndLineCtrl(False, PrevPos);
         FloatRect := TRect.Empty;
-
         InFloat := False;
       end else
       begin
         PrevLine := CurLine; //save current line
-        BreakGroupAndLineCtrl(True);
-
-        PrevPos := TPoint.Create(X, Y);
+        PrevPos := TPoint.Create(X, Y); //save current position
+        BreakGroupAndLineCtrl(True, TPreObj_Float(Z).Rect.Location);
         FloatRect := TPreObj_Float(Z).Rect;
-        X := FloatRect.Left;
-        Y := FloatRect.Top;
-
         InFloat := True;
       end;
       Continue;
@@ -1711,9 +1706,7 @@ begin
         CheckPriorSpace; //remove space at previous line if is the last obj
 
       if not InFloat then Inc(LineCount);
-      Inc(Y, Max.LineHeight);
-      BreakGroupAndLineCtrl(True);
-      X := FloatRect.Left;
+      BreakGroupAndLineCtrl(True, TPoint.Create(FloatRect.Left, Y+Max.LineHeight));
 
       if (Z is TPreObj_Break) then
       begin
