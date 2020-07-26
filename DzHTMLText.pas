@@ -1597,7 +1597,7 @@ var
 
   function GetXbnd: Integer;
   begin
-    Result := LastTabX + FloatRect.Left;
+    Result := FloatRect.Left + LastTabX;
   end;
 
   function IsToWrapText(EndPos: Integer): Boolean;
@@ -1645,10 +1645,11 @@ begin
   LineCount := 0;
   CurLine := 0;
   PrevLine := -1;
-  InFloat := False;
+  PrevPos := TPoint.Zero;
   FloatRect := TRect.Empty;
   LastTabX := 0;
   LastTabF := False;
+  InFloat := False;
 
   FillMemory(@Max, SizeOf(Max), 0);
   OldMax := Max;
