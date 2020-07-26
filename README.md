@@ -16,6 +16,7 @@
 - [Link Tag](#link-tag)
 - [Image Tag](#image-tag)
 - [Tab Tag](#tab-tag)
+- [Float Tag](#float-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Transparency (why not?)](#transparency-why-not)
@@ -343,7 +344,7 @@ There are two **tab** tags you can use:
 
 - `<tf:nnn>` = The same as above, but if the text wraps to a new line, it will be aligned in the same position as the first line which the tab started. This tag will produce a better visual text alignment.
 
-## Float tag
+## Float Tag
 
 Use float tag to create an area at specific X and Y position. Optionally you can specify the area width.
 
