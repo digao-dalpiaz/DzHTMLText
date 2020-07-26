@@ -1619,23 +1619,28 @@ var
       if PV.Space and (PV.Visual.Rect.Left>GetXbnd) then
       begin //space remains at previous line before line break
         PV.Print := False;
+        X := PV.Visual.Rect.Left;
         Max := OldMax; //revert bounds
       end;
     end;
   end;
 
-  procedure BreakSection(NewLine: Boolean);
+  procedure BreakGroupAndLineCtrl(Forward: Boolean);
   var GrpLim: Integer;
   begin
     GrpLim := -1;
     if FloatRect.Width>0 then GrpLim := FloatRect.Right;
     IncPreviousGroup(X, GrpLim);
 
-    if NewLine then
+    LLineHeight.Add(Max.LineHeight);
+    if Forward then
     begin
-      LLineHeight.Add(Max.LineHeight);
       CurLine := LLineHeight.Count;
       Max.LineHeight := 0;
+    end else
+    begin
+      CurLine := PrevLine; //restore current line
+      Max.LineHeight := LLineHeight[CurLine]; //restore max height
     end;
   end;
 
@@ -1663,9 +1668,7 @@ begin
       if TPreObj_Float(Z).Close<>InFloat then Continue;
       if TPreObj_Float(Z).Close then
       begin
-        BreakSection(False);
-        CurLine := PrevLine; //restore current line
-        Max.LineHeight := LLineHeight[CurLine]; //restore max height
+        BreakGroupAndLineCtrl(False);
 
         X := PrevPos.X;
         Y := PrevPos.Y;
@@ -1675,7 +1678,7 @@ begin
       end else
       begin
         PrevLine := CurLine; //save current line
-        BreakSection(True);
+        BreakGroupAndLineCtrl(True);
 
         PrevPos := TPoint.Create(X, Y);
         FloatRect := TPreObj_Float(Z).Rect;
@@ -1709,7 +1712,7 @@ begin
 
       if not InFloat then Inc(LineCount);
       Inc(Y, Max.LineHeight);
-      BreakSection(True);
+      BreakGroupAndLineCtrl(True);
       X := FloatRect.Left;
 
       if (Z is TPreObj_Break) then
