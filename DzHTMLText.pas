@@ -660,7 +660,7 @@ begin
   for W in LVisualItem do
     if W.Link then
     begin
-      if W.Rect.Contains({$IFDEF FPC}Types.{$ENDIF}Point(X, Y)) then //selected
+      if W.Rect.Contains(TPoint.Create(X, Y)) then //selected
       begin
         FoundHover := True; //found word of a link selected
         LinkID := W.LinkID;
@@ -787,7 +787,6 @@ type
   end;
 
   TBuilder = class
-  private
     Lb: TDzHTMLText;
     LToken: TListToken;
 
@@ -798,7 +797,7 @@ type
 
     procedure ReadTokens; //create list of tokens
     procedure ProcessTokens; //create list of visual itens
-  public
+
     constructor Create;
     destructor Destroy; override;
   end;
@@ -1560,30 +1559,6 @@ end;
 //
 
 procedure TTokensProcess.Realign;
-
-  procedure IncPreviousGroup(Right, Limit: Integer);
-  var B: TGroupBound;
-  begin
-    B := TGroupBound.Create;
-    B.Right := Right;
-    B.Limit := Limit;
-    LGroupBound.Add(B);
-  end;
-
-var
-  FloatRect: TRect;
-  InFloat: Boolean;
-
-  function IsToWrapText(X: Integer): Boolean;
-  begin
-    if FloatRect.Width>0 then Exit(X>FloatRect.Right);
-
-    Result :=
-      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (X>Lb.FMaxWidth) )
-      or
-      ( (not Lb.FAutoWidth) and (X>Lb.Width) );
-  end;
-
 type TSizes = record
   LineHeight, OverallWidth, OverallHeight: Integer;
 end;
@@ -1594,6 +1569,26 @@ var
   Max, OldMax: TSizes;
   LastTabX: Integer; LastTabF: Boolean;
   PrevPos: TPoint; PrevLine, CurLine, LineCount: Integer;
+  FloatRect: TRect; InFloat: Boolean;
+
+  procedure IncPreviousGroup(Right, Limit: Integer);
+  var B: TGroupBound;
+  begin
+    B := TGroupBound.Create;
+    B.Right := Right;
+    B.Limit := Limit;
+    LGroupBound.Add(B);
+  end;
+
+  function IsToWrapText(EndPos: Integer): Boolean;
+  begin
+    if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
+
+    Result :=
+      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>Lb.FMaxWidth) )
+      or
+      ( (not Lb.FAutoWidth) and (EndPos>Lb.Width) );
+  end;
 
   function GetXbnd: Integer;
   begin
