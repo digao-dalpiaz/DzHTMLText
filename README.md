@@ -32,6 +32,8 @@
    - Fixed multiple space strange behavior on line break.
    - Fixed when there was only one word on the line and the limit was less than it, which caused the word to skip the line.
    - New tag `<float>`, allowing you to create floating panels with content in free positions. :smile: :smile: :smile:
+   - Implemented class functions to Escape and Unescape HTML text.
+   - Included `&` (`&amp;`) escape in internal reading of HTML text.   
 
 - 07/15/2020
 
@@ -356,10 +358,18 @@ Example: `<float:100,20,150>My text <b>floating</b> area.</float>`
 
 ## Literal tag character
 
-If you want to display characters `<` and `>` in the text, just type the HTML code:
+If you want to display literal special characters in the text, just type the HTML code:
 
+- `&amp;` = `&`
 - `&lt;` = `<`
 - `&gt;` = `>`
+
+There are two class functions to deal with HTML characters:
+
+```delphi
+class function UnescapeHTMLToText(const aHTML: String): String;
+class function EscapeTextToHTML(const aText: String): String;
+```
 
 > As this component is not a complete HTML language debugger, there is no need to escape the other special characters. Therefore, for characters such as accentuation, for example, or other signs, you must use them normally.
 

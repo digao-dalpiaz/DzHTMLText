@@ -207,6 +207,9 @@ type
 
     procedure BeginUpdate;
     procedure EndUpdate(ForceRepaint: Boolean = True);
+
+    class function UnescapeHTMLToText(const aHTML: String): String;
+    class function EscapeTextToHTML(const aText: String): String;
   published
     property Align;
     property Anchors;
@@ -339,6 +342,28 @@ begin
       PNG.Free;
     end;
   end;
+end;
+
+//
+
+class function TDzHTMLText.EscapeTextToHTML(const aText: String): String;
+begin
+  Result := aText;
+
+  Result := StringReplace(Result, '&', '&amp;', [rfReplaceAll]);
+
+  Result := StringReplace(Result, '<', '&lt;', [rfReplaceAll]);
+  Result := StringReplace(Result, '>', '&gt;', [rfReplaceAll]);
+end;
+
+class function TDzHTMLText.UnescapeHTMLToText(const aHTML: String): String;
+begin
+  Result := aHTML;
+
+  Result := StringReplace(Result, '&lt;', '<', [rfReplaceAll]);
+  Result := StringReplace(Result, '&gt;', '>', [rfReplaceAll]);
+
+  Result := StringReplace(Result, '&amp;', '&', [rfReplaceAll]);
 end;
 
 //
@@ -846,16 +871,6 @@ end;
 
 //
 
-function ReplaceForcedChars(A: String): String;
-begin
-  //Allow tag characters at text
-
-  A := StringReplace(A, '&lt;', '<', [rfReplaceAll]);
-  A := StringReplace(A, '&gt;', '>', [rfReplaceAll]);
-
-  Result := A;
-end;
-
 function ParamToColor(A: String): TColor;
 begin
   if A.StartsWith('$') then Insert('00', A, 2);
@@ -1098,7 +1113,7 @@ begin
         if I=0 then I := Length(A);
 
       A := Copy(A, 1, I);
-      AddToken(ttText, False, ReplaceForcedChars(A));
+      AddToken(ttText, False, TDzHTMLText.UnescapeHTMLToText(A));
       Jump := I;
     end;
 
