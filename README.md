@@ -352,6 +352,8 @@ Syntax: `<float:x,y[,width]>...</float>`
 
 Example: `<float:100,20,150>My text <b>floating</b> area.</float>`
 
+> You should not use a float tag inside another float tag!
+
 ## Literal tag character
 
 If you want to display characters `<` and `>` in the text, just type the HTML code:
