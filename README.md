@@ -33,7 +33,7 @@
    - Fixed when there was only one word on the line and the limit was less than it, which caused the word to skip the line.
    - New tag `<float>`, allowing you to create floating panels with content in free positions. :smile: :smile: :smile:
    - Implemented class functions to Escape and Unescape HTML text.
-   - Included `&` (`&amp;`) escape in internal reading of HTML text.   
+   - Included `&` (`&amp;`) unescape in internal reading of HTML text.   
 
 - 07/15/2020
 
