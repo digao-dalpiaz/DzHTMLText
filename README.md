@@ -318,9 +318,9 @@ This object stores the information about a link.
 
 **Properties:**
 
-- `Target: String` = The link target specified at `<a:target>` tag
+- `Target: String` = The link target specified at `<a:target>` tag.
 
-- `Text: String` = The link display text specified at `<a:target>Display Text</a>` tag
+- `Text: String` = The link display text specified at `<a:target>Display Text</a>` inner text.
 
 You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events. Also you can call `GetLinkData` or `GetSelectedLinkData`.
 
