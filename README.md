@@ -361,6 +361,8 @@ If you want to display characters `<` and `>` in the text, just type the HTML co
 - `&lt;` = `<`
 - `&gt;` = `>`
 
+> As this component is not a complete HTML language debugger, there is no need to escape the other special characters. Therefore, for characters such as accentuation, for example, or other signs, you should use them normally.
+
 ## Chinese/Japanese/Korean line break
 
 If you have component width smaller than your text, then it will break to a new line according to some specific chars.
