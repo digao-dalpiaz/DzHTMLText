@@ -367,8 +367,8 @@ If you want to display literal special characters in the text, just type the HTM
 There are two class functions to deal with HTML characters:
 
 ```delphi
-class function UnescapeHTMLToText(const aHTML: String): String;
 class function EscapeTextToHTML(const aText: String): String;
+class function UnescapeHTMLToText(const aHTML: String): String;
 ```
 
 > As this component is not a complete HTML language debugger, there is no need to escape the other special characters. Therefore, for characters such as accentuation, for example, or other signs, you must use them normally.
