@@ -38,10 +38,12 @@
    - Included `&` (`&amp;`) unescape in internal reading of HTML text.
    - New tag `<spoiler>` and `<sdetail>`, creating closed/expanded div. :smile: :smile: :smile:
    - TDHLinkData removed and link events signature changed!!! **It is necessary to adjust the implemented methods for compatibility.** :warning:
+   
       Removed:
 	  - property SelectedLinkID
 	  - function GetLinkData
 	  - function GetSelected
+	  
 	  Please, use new `GetSelectedLink` property and `DataLinks` list (*there is no longer the concept of link ID!*).
 
 - 07/15/2020
