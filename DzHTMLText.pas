@@ -48,6 +48,16 @@ type
     property Spoiler: TDHSpoiler read GetSpoiler;
   end;
 
+  TDHLinkRef = class(TDHBaseLink)
+  private
+    FTarget: String;
+    FText: String;
+  public
+    property Target: String read FTarget;
+    property Text: String read FText;
+  end;
+  TDHLinkRefList = class(TObjectList<TDHLinkRef>);
+
   TDHSpoiler = class(TDHBaseLink)
   private
     FName: String;
@@ -60,16 +70,6 @@ type
   public
     function Find(const Name: String): TDHSpoiler;
   end;
-
-  TDHLinkRef = class(TDHBaseLink)
-  private
-    FTarget: String;
-    FText: String;
-  public
-    property Target: String read FTarget;
-    property Text: String read FText;
-  end;
-  TDHLinkRefList = class(TObjectList<TDHLinkRef>);
 
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
@@ -229,7 +229,7 @@ type
     property IsLinkHover: Boolean read FIsLinkHover;
     property SelectedLink: TDHBaseLink read FSelectedLink;
 
-    property DataLinks: TDHLinkRefList read LLinkRef;
+    property LinkRefs: TDHLinkRefList read LLinkRef;
     property Spoilers: TDHSpoilerList read LSpoiler;
 
     procedure Rebuild; //rebuild words
