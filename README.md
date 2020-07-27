@@ -356,6 +356,7 @@ To create the detail div: `<sdetail:name>This is the detail div that will be exp
    - `Expanded: Boolean` = If the spoiler details is expanded.
 
 **Link events**
+
 You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events. Also you can call `GetSelectedLink` or reading `LinkRefs` and `Spoilers` lists.
 
 ## Image Tag
