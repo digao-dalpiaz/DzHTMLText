@@ -117,6 +117,7 @@ object FrmMain: TFrmMain
       'poiler:sp2>'#13#10'    Click here for sub-details</spoiler><sdetail:sp' +
       '2>'#13#10'        Some detailed info about this sub-spoiler.</sdetail>' +
       '</sdetail>'#13#10#13#10'You can open first spoiler <spoiler:sp1>here</spoi' +
-      'ler> too.'
+      'ler> too.'#13#10#13#10'<sdetail:sp1><i>This is more info about the first s' +
+      'poiler</i></sdetail>'
   end
 end

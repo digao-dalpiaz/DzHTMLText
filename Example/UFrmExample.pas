@@ -13,11 +13,11 @@ type
     MyImages: TImageList;
     Lb2: TDzHTMLText;
     Lb3: TDzHTMLText;
-    procedure LbLinkClick(Sender: TObject; LinkID: Integer;
-      LinkData: TDHLinkData; var Handled: Boolean);
     procedure FormCreate(Sender: TObject);
     procedure LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
       Picture: TPicture; var Handled: Boolean);
+    procedure LbLinkClick(Sender: TObject; Link: TDHBaseLink;
+      var Handled: Boolean);
   end;
 
 var
@@ -34,10 +34,10 @@ begin
   ReportMemoryLeaksOnShutdown := True;
 end;
 
-procedure TForm1.LbLinkClick(Sender: TObject; LinkID: Integer;
-  LinkData: TDHLinkData; var Handled: Boolean);
+procedure TForm1.LbLinkClick(Sender: TObject; Link: TDHBaseLink;
+  var Handled: Boolean);
 begin
-  if LinkData.Target='INFO_ABOUT' then
+  if Link.LinkRef.Target='INFO_ABOUT' then
   begin
     ShowMessage('This is the example app.');
     Handled := True;
