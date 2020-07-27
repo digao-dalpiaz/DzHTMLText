@@ -344,11 +344,13 @@ To create the detail div: `<sdetail:name>This is the detail div that will be exp
 - `Kind: TDHLinkKind` = The link kind (lkLinkRef or lkSpoiler).
 
 - `LinkRef: TDHLinkRef` = References the TDHLinkRef object when link kind is a `<a>` tag.
+
    **TDHLinkRef object:**
    - `Target: String` = The link target specified at `<a:target>` tag.
    - `Text: String` = The link display text specified at `<a:target>Display Text</a>` inner text.   
 
 - `Spoiler: TDHSpoiler` = References the TDHSpoiler object when link kind is a `<spoiler>` tag.
+
    **TDHSpoiler object:**
    - `Name: String` = The spoiler name.
    - `Expanded: Boolean` = If the spoiler details is expanded.
