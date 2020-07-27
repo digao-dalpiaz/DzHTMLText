@@ -33,7 +33,20 @@ type
 
   TDzHTMLText = class;
 
-  TDHBaseLink = class(TObject);
+  TDHLinkKind = (lkLinkRef, lkSpoiler);
+
+  TDHLinkRef = class;
+  TDHSpoiler = class;
+  TDHBaseLink = class
+  private
+    function GetKind: TDHLinkKind;
+    function GetLinkRef: TDHLinkRef;
+    function GetSpoiler: TDHSpoiler;
+  public
+    property Kind: TDHLinkKind read GetKind;
+    property LinkRef: TDHLinkRef read GetLinkRef;
+    property Spoiler: TDHSpoiler read GetSpoiler;
+  end;
 
   TDHSpoiler = class(TDHBaseLink)
   private
@@ -48,7 +61,7 @@ type
     function Find(const Name: String): TDHSpoiler;
   end;
 
-  TDHLinkData = class(TDHBaseLink)
+  TDHLinkRef = class(TDHBaseLink)
   private
     FTarget: String;
     FText: String;
@@ -56,7 +69,7 @@ type
     property Target: String read FTarget;
     property Text: String read FText;
   end;
-  TDHLinkDataList = class(TObjectList<TDHLinkData>);
+  TDHLinkRefList = class(TObjectList<TDHLinkRef>);
 
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
@@ -140,7 +153,7 @@ type
     FAbout: String;
 
     LVisualItem: TDHVisualItemList; //visual item list to paint event
-    LLinkData: TDHLinkDataList; //list of links info
+    LLinkRef: TDHLinkRefList; //list of links info
     LSpoiler: TDHSpoilerList;
 
     FText: String;
@@ -216,7 +229,7 @@ type
     property IsLinkHover: Boolean read FIsLinkHover;
     property SelectedLink: TDHBaseLink read FSelectedLink;
 
-    property DataLinks: TDHLinkDataList read LLinkData;
+    property DataLinks: TDHLinkRefList read LLinkRef;
     property Spoilers: TDHSpoilerList read LSpoiler;
 
     procedure Rebuild; //rebuild words
@@ -308,6 +321,44 @@ end;
 
 //
 
+{ TDHBaseLink }
+
+function TDHBaseLink.GetKind: TDHLinkKind;
+begin
+  if Self is TDHLinkRef then Result := lkLinkRef else
+  if Self is TDHSpoiler then Result := lkSpoiler else
+    raise Exception.Create('Invalid link kind');
+end;
+
+function TDHBaseLink.GetLinkRef: TDHLinkRef;
+begin
+  if Self is TDHLinkRef then
+    Result := TDHLinkRef(Self)
+  else
+    Result := nil;
+end;
+
+function TDHBaseLink.GetSpoiler: TDHSpoiler;
+begin
+  if Self is TDHSpoiler then
+    Result := TDHSpoiler(Self)
+  else
+    Result := nil;
+end;
+
+{ TDHSpoilerList }
+
+function TDHSpoilerList.Find(const Name: String): TDHSpoiler;
+var DHSpoiler: TDHSpoiler;
+begin
+  for DHSpoiler in Self do
+    if DHSpoiler.FName = Name then Exit(DHSpoiler);
+
+  Exit(nil);
+end;
+
+{ TDHVisualItem_Word }
+
 constructor TDHVisualItem_Word.Create;
 begin
   inherited;
@@ -319,6 +370,8 @@ begin
   Font.Free;
   inherited;
 end;
+
+{ TDHVisualItem_ImageResource }
 
 constructor TDHVisualItem_ImageResource.Create;
 begin
@@ -395,7 +448,7 @@ begin
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
   LVisualItem := TDHVisualItemList.Create;
-  LLinkData := TDHLinkDataList.Create;
+  LLinkRef := TDHLinkRefList.Create;
   LSpoiler := TDHSpoilerList.Create;
 
   FAutoOpenLink := True;
@@ -415,7 +468,7 @@ begin
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
   LVisualItem.Free;
-  LLinkData.Free;
+  LLinkRef.Free;
   LSpoiler.Free;
   inherited;
 end;
@@ -745,11 +798,11 @@ begin
 
     if not Handled then
     begin
-      if FSelectedLink is TDHLinkData then
+      if FSelectedLink is TDHLinkRef then
       begin
         if FAutoOpenLink then
         begin
-          aTarget := TDHLinkData(FSelectedLink).FTarget;
+          aTarget := TDHLinkRef(FSelectedLink).FTarget;
           {$IFDEF MSWINDOWS}
           ShellExecute(0, '', PChar(aTarget), '', '', 0);
           {$ELSE}
@@ -866,7 +919,7 @@ begin
   if csLoading in ComponentState then Exit;
 
   LVisualItem.Clear; //clean old words
-  LLinkData.Clear; //clean old links
+  LLinkRef.Clear; //clean old links
 
   B := TBuilder.Create;
   try
@@ -1386,8 +1439,12 @@ begin
   begin
     T := Builder.LToken[I];
 
-    if (LSpoilerDet.Count>0) and not (T.Kind in [ttSpoilerTitle, ttSpoilerDetail]) then //inside a spoiler detail tag
-      if not LSpoilerDet.IsAllOpened(Lb) then Continue;
+    if not (T.Kind in [ttSpoilerTitle, ttSpoilerDetail]) then
+    begin
+      //Bypass when inside a closed spoiler detail tag
+      if LSpoilerDet.Count>0 then
+        if not LSpoilerDet.IsAllOpened(Lb) then Continue;
+    end;
 
     case T.Kind of
       ttBold, ttItalic, ttUnderline, ttStrike: DoTypographicalEmphasis(T);
@@ -1548,21 +1605,21 @@ end;
 
 procedure TTokensProcess.DoLink(T: TToken; I: Integer);
 var
-  LinkData: TDHLinkData;
+  LinkRef: TDHLinkRef;
 begin
   if T.TagClose then
   begin
-    if CurrentLink is TDHLinkData then
-      TDHLinkData(CurrentLink).FText := Builder.LToken.GetLinkText(I); //set link display text on the link data object
+    if Assigned(CurrentLink) and (CurrentLink is TDHLinkRef) then
+        TDHLinkRef(CurrentLink).FText := Builder.LToken.GetLinkText(I); //set link display text on the link data object
 
     CurrentLink := nil;
   end else
   begin
-    LinkData := TDHLinkData.Create;
-    LinkData.FTarget := T.Text;
-    Lb.LLinkData.Add(LinkData); //add target of the link on list
+    LinkRef := TDHLinkRef.Create;
+    LinkRef.FTarget := T.Text;
+    Lb.LLinkRef.Add(LinkRef); //add target of the link on list
 
-    CurrentLink := LinkData;
+    CurrentLink := LinkRef;
   end;
 end;
 
@@ -1606,6 +1663,11 @@ end;
 procedure TTokensProcess.DoSpoilerTitle(T: TToken);
 var DHSpoiler: TDHSpoiler;
 begin
+  //When first time rebuild (or after text changes), the LSpoiler is empty.
+  //If rebuilding by spoiler click, the LSpoiler already contains all items.
+  //Anyway, we need to check if spoiler exists because it could already exists
+  //even at first building if there are multiple spoilers with same name.
+
   if T.TagClose then
     CurrentLink := nil
   else
@@ -1998,17 +2060,6 @@ begin
   finally
     SB.Free;
   end;
-end;
-
-{ TDHSpoilerList }
-
-function TDHSpoilerList.Find(const Name: String): TDHSpoiler;
-var DHSpoiler: TDHSpoiler;
-begin
-  for DHSpoiler in Self do
-    if DHSpoiler.FName = Name then Exit(DHSpoiler);
-
-  Exit(nil);
 end;
 
 end.

@@ -104,11 +104,19 @@ object FrmMain: TFrmMain
     Width = 289
     Height = 185
     Color = clWhite
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'Tahoma'
+    Font.Style = []
     ParentColor = False
+    ParentFont = False
     Text = 
-      'Spoiler Test:'#13#10'<spoiler:sp1>Click here for details</spoiler>'#13#10'<s' +
-      'detail:sp1>Some detailed info about this spoiler.'#13#10#13#10'<spoiler:sp' +
-      '2>Click here for sub-details</spoiler>'#13#10'<sdetail:sp2>Some detail' +
-      'ed info about this sub-spoiler.'#13#10#13#10'</sdetail>'
+      '<b>Spoiler Test:</b>'#13#10'<spoiler:sp1>Click here for details</spoil' +
+      'er><sdetail:sp1>'#13#10'    Some detailed info about this spoiler.'#13#10'<s' +
+      'poiler:sp2>'#13#10'    Click here for sub-details</spoiler><sdetail:sp' +
+      '2>'#13#10'        Some detailed info about this sub-spoiler.</sdetail>' +
+      '</sdetail>'#13#10#13#10'You can open first spoiler <spoiler:sp1>here</spoi' +
+      'ler> too.'
   end
 end
