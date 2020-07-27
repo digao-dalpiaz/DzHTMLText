@@ -98,4 +98,17 @@ object FrmMain: TFrmMain
     ParentFont = False
     Text = '<r>text spacing test</r>'
   end
+  object DzHTMLText6: TDzHTMLText
+    Left = 168
+    Top = 184
+    Width = 289
+    Height = 185
+    Color = clWhite
+    ParentColor = False
+    Text = 
+      'Spoiler Test:'#13#10'<spoiler:sp1>Click here for details</spoiler>'#13#10'<s' +
+      'detail:sp1>Some detailed info about this spoiler.'#13#10#13#10'<spoiler:sp' +
+      '2>Click here for sub-details</spoiler>'#13#10'<sdetail:sp2>Some detail' +
+      'ed info about this sub-spoiler.'#13#10#13#10'</sdetail>'
+  end
 end

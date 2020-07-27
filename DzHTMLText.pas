@@ -33,12 +33,36 @@ type
 
   TDzHTMLText = class;
 
+  TDHBaseLink = class(TObject);
+
+  TDHSpoiler = class(TDHBaseLink)
+  private
+    FName: String;
+    FExpanded: Boolean;
+  public
+    property Name: String read FName;
+    property Expanded: Boolean read FExpanded;
+  end;
+  TDHSpoilerList = class(TObjectList<TDHSpoiler>)
+  public
+    function Find(const Name: String): TDHSpoiler;
+  end;
+
+  TDHLinkData = class(TDHBaseLink)
+  private
+    FTarget: String;
+    FText: String;
+  public
+    property Target: String read FTarget;
+    property Text: String read FText;
+  end;
+  TDHLinkDataList = class(TObjectList<TDHLinkData>);
+
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
     Rect: TRect;
     BColor: TColor; //background color
-    Link: Boolean; //is a link
-    LinkID: Integer; //link number
+    Link: TDHBaseLink;
     {The link number is created sequentially, when reading text links
     and works to know the link target, stored on a TStringList, because if
     the link was saved here at a work, it will be repeat if has multiple words
@@ -101,18 +125,8 @@ type
     property Underline: Boolean read FUnderline write SetUnderline default False;
   end;
 
-  TDHLinkData = class
-  private
-    FTarget: String;
-    FText: String;
-  public
-    property Target: String read FTarget;
-    property Text: String read FText;
-  end;
-  TDHLinkDataList = class(TObjectList<TDHLinkData>);
-
-  TDHEvLink = procedure(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData) of object;
-  TDHEvLinkClick = procedure(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData; var Handled: Boolean) of object;
+  TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
+  TDHEvLinkClick = procedure(Sender: TObject; Link: TDHBaseLink; var Handled: Boolean) of object;
 
   TDHLineVertAlign = (vaTop, vaCenter, vaBottom);
 
@@ -127,6 +141,7 @@ type
 
     LVisualItem: TDHVisualItemList; //visual item list to paint event
     LLinkData: TDHLinkDataList; //list of links info
+    LSpoiler: TDHSpoilerList;
 
     FText: String;
     FAutoWidth: Boolean;
@@ -152,7 +167,7 @@ type
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
 
     FIsLinkHover: Boolean; //if has a selected link
-    FSelectedLinkID: Integer; //selected link ID
+    FSelectedLink: TDHBaseLink; //selected link
 
     NoCursorChange: Boolean; //lock CursorChange event
     DefaultCursor: TCursor; //default cursor when not over a link
@@ -199,9 +214,10 @@ type
     destructor Destroy; override;
 
     property IsLinkHover: Boolean read FIsLinkHover;
-    property SelectedLinkID: Integer read FSelectedLinkID;
-    function GetLinkData(LinkID: Integer): TDHLinkData; //get data by link id
-    function GetSelectedLinkData: TDHLinkData; //get data of selected link
+    property SelectedLink: TDHBaseLink read FSelectedLink;
+
+    property DataLinks: TDHLinkDataList read LLinkData;
+    property Spoilers: TDHSpoilerList read LSpoiler;
 
     procedure Rebuild; //rebuild words
 
@@ -380,11 +396,10 @@ begin
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
   LVisualItem := TDHVisualItemList.Create;
   LLinkData := TDHLinkDataList.Create;
+  LSpoiler := TDHSpoilerList.Create;
 
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
-
-  FSelectedLinkID := -1;
 
   DefaultCursor := Cursor;
 
@@ -401,6 +416,7 @@ begin
   FStyleLinkHover.Free;
   LVisualItem.Free;
   LLinkData.Free;
+  LSpoiler.Free;
   inherited;
 end;
 
@@ -486,6 +502,7 @@ begin
   begin
     FText := Value;
 
+    LSpoiler.Clear;
     BuildAndPaint;
   end;
 end;
@@ -601,7 +618,7 @@ begin
       else
         B.Canvas.Brush.Style := bsClear;
 
-      if W.Link then
+      if Assigned(W.Link) then
       begin
         if W.Hover then //selected
           FStyleLinkHover.SetPropsToCanvas(B.Canvas)
@@ -642,16 +659,6 @@ begin
   end;
 end;
 
-function TDzHTMLText.GetLinkData(LinkID: Integer): TDHLinkData;
-begin
-  Result := LLinkData[LinkID];
-end;
-
-function TDzHTMLText.GetSelectedLinkData: TDHLinkData;
-begin
-  Result := LLinkData[FSelectedLinkID];
-end;
-
 procedure TDzHTMLText.CMCursorchanged(var Message: TMessage);
 begin
   {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
@@ -674,21 +681,21 @@ end;
 
 procedure TDzHTMLText.CheckMouse(X, Y: Integer);
 var FoundHover, HasChange, Old: Boolean;
-    LinkID: Integer;
+    Link: TDHBaseLink;
     W: TDHVisualItem;
 begin
   FoundHover := False;
   HasChange := False;
-  LinkID := -1;
+  Link := nil;
 
   //find the first word, if there is any
   for W in LVisualItem do
-    if W.Link then
+    if Assigned(W.Link) then
     begin
       if W.Rect.Contains(TPoint.Create(X, Y)) then //selected
       begin
         FoundHover := True; //found word of a link selected
-        LinkID := W.LinkID;
+        Link := W.Link;
 
         Break;
       end;
@@ -696,10 +703,10 @@ begin
 
   //set as selected all the words of same link, and unselect another links
   for W in LVisualItem do
-    if W.Link then
+    if Assigned(W.Link) then
     begin
       Old := W.Hover;
-      W.Hover := (W.LinkID = LinkID);
+      W.Hover := (W.Link = Link);
       if Old<>W.Hover then HasChange := True; //changed
     end;
 
@@ -709,17 +716,17 @@ begin
     begin
       SetCursorWithoutChange(crHandPoint); //set HandPoint cursor
       FIsLinkHover := True;
-      FSelectedLinkID := LinkID;
+      FSelectedLink := Link;
       if Assigned(FOnLinkEnter) then
-        FOnLinkEnter(Self, LinkID, LLinkData[LinkID]);
+        FOnLinkEnter(Self, Link);
     end else
     begin //leave the link
       SetCursorWithoutChange(DefaultCursor); //back to default cursor
       FIsLinkHover := False;
-      LinkID := FSelectedLinkID; //save to use on OnLinkLeave event
-      FSelectedLinkID := -1;
+      Link := FSelectedLink; //save to use on OnLinkLeave event
+      FSelectedLink := nil;
       if Assigned(FOnLinkLeave) then
-        FOnLinkLeave(Self, LinkID, LLinkData[LinkID]);
+        FOnLinkLeave(Self, Link);
     end;
 
     Invalidate;
@@ -734,22 +741,35 @@ begin
   begin
     Handled := False;
     if Assigned(FOnLinkClick) then
-      FOnLinkClick(Self, FSelectedLinkID, LLinkData[FSelectedLinkID], Handled);
+      FOnLinkClick(Self, FSelectedLink, Handled);
 
-    if FAutoOpenLink and not Handled then
+    if not Handled then
     begin
-      aTarget := LLinkData[FSelectedLinkID].FTarget;
-      {$IFDEF MSWINDOWS}
-      ShellExecute(0, '', PChar(aTarget), '', '', 0);
-      {$ELSE}
-      if aTarget.StartsWith('http://', True)
-        or aTarget.StartsWith('https://', True)
-        or aTarget.StartsWith('www.', True)
-      then
-        OpenURL(aTarget)
-      else
-        OpenDocument(aTarget);
-      {$ENDIF}
+      if FSelectedLink is TDHLinkData then
+      begin
+        if FAutoOpenLink then
+        begin
+          aTarget := TDHLinkData(FSelectedLink).FTarget;
+          {$IFDEF MSWINDOWS}
+          ShellExecute(0, '', PChar(aTarget), '', '', 0);
+          {$ELSE}
+          if aTarget.StartsWith('http://', True)
+            or aTarget.StartsWith('https://', True)
+            or aTarget.StartsWith('www.', True)
+          then
+            OpenURL(aTarget)
+          else
+            OpenDocument(aTarget);
+          {$ENDIF}
+        end;
+      end else
+      if FSelectedLink is TDHSpoiler then
+      begin
+        TDHSpoiler(FSelectedLink).FExpanded :=
+          not TDHSpoiler(FSelectedLink).FExpanded;
+
+        BuildAndPaint;
+      end;
     end;
   end;
 
@@ -765,7 +785,7 @@ begin
       if Assigned(FOnLinkRightClick) then
       begin
         Handled := False;
-        FOnLinkRightClick(Self, FSelectedLinkID, LLinkData[FSelectedLinkID], Handled);
+        FOnLinkRightClick(Self, FSelectedLink, Handled);
       end;
 
   inherited;
@@ -798,7 +818,8 @@ type
     ttAlignLeft, ttAlignCenter, ttAlignRight,
     ttImage, ttImageResource,
     ttBulletList, ttNumberList, ttListItem,
-    ttFloat);
+    ttFloat,
+    ttSpoilerTitle, ttSpoilerDetail);
 
   TToken = class
     Kind: TTokenKind;
@@ -921,7 +942,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..20] of TDefToken = (
+const DEF_TOKENS: array[0..22] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -942,7 +963,9 @@ const DEF_TOKENS: array[0..20] of TDefToken = (
   (Ident: 'UL'; Kind: ttBulletList), //Unordered HTML List
   (Ident: 'OL'; Kind: ttNumberList), //Ordered HTML List
   (Ident: 'LI'; Kind: ttListItem), //HTML List Item
-  (Ident: 'FLOAT'; Kind: ttFloat; AllowPar: True) //Floating div
+  (Ident: 'FLOAT'; Kind: ttFloat; AllowPar: True), //Floating div
+  (Ident: 'SPOILER'; Kind: ttSpoilerTitle; AllowPar: True),
+  (Ident: 'SDETAIL'; Kind: ttSpoilerDetail; AllowPar: True)
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -1149,6 +1172,13 @@ type
     Position: Integer;
   end;
 
+  THTMLSpoilerDet = class(TObjectListStackItem)
+    Name: String;
+  end;
+  THTMLSpoilerDetList = class(TObjectListStack<THTMLSpoilerDet>)
+    function IsAllOpened(Lb: TDzHTMLText): Boolean;
+  end;
+
 function TObjectListStack<T>.New: T;
 begin
   Result := T.Create;
@@ -1159,6 +1189,20 @@ procedure TObjectListStack<T>.DelLast;
 begin
   if Count>0 then
     Delete(Count-1);
+end;
+
+function THTMLSpoilerDetList.IsAllOpened(Lb: TDzHTMLText): Boolean;
+var
+  SpoilerDet: THTMLSpoilerDet;
+  DHSpoiler: TDHSpoiler;
+begin
+  for SpoilerDet in Self do
+  begin
+    DHSpoiler := Lb.LSpoiler.Find(SpoilerDet.Name);
+    if not ( (DHSpoiler<>nil) and (DHSpoiler.FExpanded) ) then Exit(False);
+  end;
+
+  Exit(True);
 end;
 
 type
@@ -1221,9 +1265,6 @@ type
 
     Items: TListPreObj;
 
-    LinkOn: Boolean;
-    LinkID: Integer;
-
     BackColor: TColor;
     Align: TAlignment;
 
@@ -1237,6 +1278,9 @@ type
     LBackColor: TListStack<TColor>;
     LAlign: TListStack<TAlignment>;
     LHTMLList: TObjectListStack<THTMLList>;
+    LSpoilerDet: THTMLSpoilerDetList;
+
+    CurrentLink: TDHBaseLink;
 
     constructor Create(xBuilder: TBuilder);
     destructor Destroy; override;
@@ -1252,6 +1296,8 @@ type
     procedure DoLink(T: TToken; I: Integer);
     procedure DoLists(T: TToken);
     procedure DoFloat(T: TToken);
+    procedure DoSpoilerTitle(T: TToken);
+    procedure DoSpoilerDetail(T: TToken);
     procedure DoTab(T: TToken);
     procedure DoBreak;
 
@@ -1298,6 +1344,7 @@ begin
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TAlignment>.Create;
   LHTMLList := TObjectListStack<THTMLList>.Create;
+  LSpoilerDet := THTMLSpoilerDetList.Create;
 
   vBool := fsBold in C.Font.Style; LBold.Add(vBool);
   vBool := fsItalic in C.Font.Style; LItalic.Add(vBool);
@@ -1308,8 +1355,6 @@ begin
   LFontColor.Add(C.Font.Color);
   LBackColor.Add(BackColor);
   LAlign.Add(Align);
-
-  LinkID := -1;
 end;
 
 destructor TTokensProcess.Destroy;
@@ -1328,6 +1373,7 @@ begin
   LBackColor.Free;
   LAlign.Free;
   LHTMLList.Free;
+  LSpoilerDet.Free;
   inherited;
 end;
 
@@ -1340,6 +1386,9 @@ begin
   begin
     T := Builder.LToken[I];
 
+    if (LSpoilerDet.Count>0) and not (T.Kind in [ttSpoilerTitle, ttSpoilerDetail]) then //inside a spoiler detail tag
+      if not LSpoilerDet.IsAllOpened(Lb) then Continue;
+
     case T.Kind of
       ttBold, ttItalic, ttUnderline, ttStrike: DoTypographicalEmphasis(T);
       ttFontName: DoFontName(T);
@@ -1351,6 +1400,8 @@ begin
       ttLink: DoLink(T, I);
       ttBulletList, ttNumberList: DoLists(T);
       ttFloat: DoFloat(T);
+      ttSpoilerTitle: DoSpoilerTitle(T);
+      ttSpoilerDetail: DoSpoilerDetail(T);
       ttTab, ttTabF: DoTab(T);
       ttBreak: DoBreak;
     end;
@@ -1483,8 +1534,7 @@ begin
   end;
 
   W.BColor := BackColor;
-  W.Link := LinkOn;
-  W.LinkID := LinkID;
+  W.Link := CurrentLink;
 
   Z := TPreObj_Visual.Create;
   Z.Size := Ex;
@@ -1502,18 +1552,17 @@ var
 begin
   if T.TagClose then
   begin
-    if LinkID<>-1 then
-      Lb.LLinkData[LinkID].FText := Builder.LToken.GetLinkText(I); //set link display text on the link data object
+    if CurrentLink is TDHLinkData then
+      TDHLinkData(CurrentLink).FText := Builder.LToken.GetLinkText(I); //set link display text on the link data object
 
-    LinkOn := False;
-    LinkID := -1;
+    CurrentLink := nil;
   end else
   begin
     LinkData := TDHLinkData.Create;
     LinkData.FTarget := T.Text;
+    Lb.LLinkData.Add(LinkData); //add target of the link on list
 
-    LinkOn := True;
-    LinkID := Lb.LLinkData.Add(LinkData); //add target of the link on list
+    CurrentLink := LinkData;
   end;
 end;
 
@@ -1552,6 +1601,37 @@ begin
   end;
   Z.Close := T.TagClose;
   Items.Add(Z);
+end;
+
+procedure TTokensProcess.DoSpoilerTitle(T: TToken);
+var DHSpoiler: TDHSpoiler;
+begin
+  if T.TagClose then
+    CurrentLink := nil
+  else
+  begin
+    DHSpoiler := Lb.LSpoiler.Find(T.Text);
+    if DHSpoiler=nil then
+    begin
+      DHSpoiler := TDHSpoiler.Create;
+      DHSpoiler.FName := T.Text;
+      Lb.LSpoiler.Add(DHSpoiler);
+    end;
+    CurrentLink := DHSpoiler;
+  end;
+end;
+
+procedure TTokensProcess.DoSpoilerDetail(T: TToken);
+var
+  SpoilerDet: THTMLSpoilerDet;
+begin
+  if T.TagClose then
+    LSpoilerDet.DelLast
+  else
+  begin
+    SpoilerDet := LSpoilerDet.New;
+    SpoilerDet.Name := T.Text;
+  end;
 end;
 
 procedure TTokensProcess.DoTab(T: TToken);
@@ -1918,6 +1998,17 @@ begin
   finally
     SB.Free;
   end;
+end;
+
+{ TDHSpoilerList }
+
+function TDHSpoilerList.Find(const Name: String): TDHSpoiler;
+var DHSpoiler: TDHSpoiler;
+begin
+  for DHSpoiler in Self do
+    if DHSpoiler.FName = Name then Exit(DHSpoiler);
+
+  Exit(nil);
 end;
 
 end.
