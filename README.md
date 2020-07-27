@@ -325,6 +325,8 @@ To create the spoiler link: `<spoiler:name>This is the spoiler link text</spoile
 
 To create the detail div: `<sdetail:name>This is the detail div that will be expanded when the spoiler link is clicked.</sdetail>`
 
+Caution! The spoiler name is **case sensitive**.
+
 > You can handle spoiler link at *link events*. It's possible to bypass expand/collapse behavior using `Handled` property.
 
 > You can use another spoilers inside a spoiler detail div.
