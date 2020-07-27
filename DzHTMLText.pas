@@ -1610,7 +1610,7 @@ begin
   if T.TagClose then
   begin
     if Assigned(CurrentLink) and (CurrentLink is TDHLinkRef) then
-        TDHLinkRef(CurrentLink).FText := Builder.LToken.GetLinkText(I); //set link display text on the link data object
+      TDHLinkRef(CurrentLink).FText := Builder.LToken.GetLinkText(I); //set link display text on the link data object
 
     CurrentLink := nil;
   end else
