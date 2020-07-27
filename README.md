@@ -319,7 +319,7 @@ There are two ways to use link tag:
 
 ## Spoiler Tag
 
-This tag allows you to create a link and a detail div, where the link automatically expands and collapses the detail div when the mouse clicked over the link.
+This tag allows you to create a link and a detail div, where the detail is automatically expanded or collapsed when the mouse clicks on the link.
 
 To create the spoiler link: `<spoiler:name>This is the spoiler link text</spoiler>`
 
