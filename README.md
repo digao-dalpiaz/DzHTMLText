@@ -1,3 +1,5 @@
+![Preview](images/preview.gif)
+
 # DzHTMLText
 ## Delphi and Lazarus HTML Label component
 
