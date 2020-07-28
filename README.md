@@ -1,3 +1,5 @@
+![Preview](images/preview.gif)
+
 # DzHTMLText
 ## Delphi and Lazarus HTML Label component
 
@@ -13,15 +15,38 @@
 - [Component Properties](#component-properties)
 - [Events](#events)
 - [Procedures/Functions](#proceduresfunctions)
-- [Link Tag](#link-tag)
+- [Link Reference Tag](#link-reference-tag)
+- [Spoiler Tag](#spoiler-tag)
+- [Link object](#link-object)
 - [Image Tag](#image-tag)
 - [Tab Tag](#tab-tag)
+- [Float Tag](#float-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Transparency (why not?)](#transparency-why-not)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 
 ## What's New
+
+- 07/27/2020 (Version 2.0)
+
+   - Refactoring in all the methods that process the tokens.
+   - Improvement in the use of memory keeping in the objects that are used for visual construction only the necessary properties. For that, the internal properties were moved to new classes.
+   - Implemented full alignment support when using tab tags.
+   - Fixed multiple space strange behavior on line break.
+   - Fixed when there was only one word on the line and the limit was less than it, which caused the word to skip the line.
+   - New tag `<float>`, allowing you to create floating panels with content in free positions. :smile: :smile: :smile:
+   - Implemented class functions to Escape and Unescape HTML text.
+   - Included `&` (`&amp;`) unescape in internal reading of HTML text.
+   - New tag `<spoiler>` and `<sdetail>`, creating closed/expanded div. :smile: :smile: :smile:
+   - TDHLinkData removed and link events signature changed!!! **It is necessary to adjust the implemented methods for compatibility.** :warning:
+   
+      Removed:
+	  - property SelectedLinkID
+	  - function GetLinkData
+	  - function GetSelected
+	  
+	  Please, use new `GetSelectedLink` property and `DataLinks` list (*there is no longer the concept of link ID!*).
 
 - 07/15/2020
 
@@ -119,6 +144,9 @@ Here are all possible tags you can use in text:
 <UL></UL> - Unordered list
 <OL></OL> - Ordered list
 <LI></LI> - List item
+<FLOAT:X,Y[,Width]></FLOAT> - Floating area
+<SPOILER:name></SPOILER> - Spoiler Title
+<SDETAIL:name></SDETAIL> - Spoiler Detail
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
@@ -185,22 +213,22 @@ This property calls ShellExecute method.
 ## Events
 
 ```delphi
-procedure OnLinkEnter(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData);
+procedure OnLinkEnter(Sender: TObject; Link: TDHBaseLink);
 ```
 This event is fired when the mouse enters a link area
 
 ```delphi
-procedure OnLinkLeave(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData);
+procedure OnLinkLeave(Sender: TObject; Link: TDHBaseLink);
 ```
 This event is fired when the mouse leaves a link area
 
 ```delphi
-procedure OnLinkClick(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData; var Handled: Boolean);
+procedure OnLinkClick(Sender: TObject; Link: TDHBaseLink; var Handled: Boolean);
 ```
 This event is fired when a link is left-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
 ```delphi
-procedure OnLinkRightClick(Sender: TObject; LinkID: Integer; LinkData: TDHLinkData; var Handled: Boolean);
+procedure OnLinkRightClick(Sender: TObject; Link: TDHBaseLink; var Handled: Boolean);
 ```
 This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
@@ -240,19 +268,9 @@ function IsLinkHover: Boolean;
 This function returns true when the mouse is over a link
 
 ```delphi
-function SelectedLinkID: Integer;
+function SelectedLink: TDHBaseLink;
 ```
-This function returns the ID of the selected link. This ID is auto generated according by the links sequence in the text. The ID is used to get the target string, that is stored in a internal TStringList.
-
-```delphi
-function GetLinkData(LinkID: Integer): TDHLinkData;
-```
-Returns TDHLinkData object of the link id. The ID is auto generated according by the links sequence in the text.
-
-```delphi
-function GetSelectedLinkData: TDHLinkData;
-```
-Returns TDHLinkData object of the selected link. A link is selected when the mouse is over it.
+This function returns the object of the selected link. A link is selected when the mouse is over it. If there is no link selected, this property is `nil`.
 
 ```delphi
 procedure Rebuild;
@@ -281,7 +299,7 @@ finally
 end;
 ```
 
-## Link Tag
+## Link Reference Tag
 
 There are two ways to use link tag:
 
@@ -297,19 +315,53 @@ There are two ways to use link tag:
 
    *This will display: www.google.com*
 
-> You can use any text as internal link code. Then you can handle this code at OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events, reading `LinkData` parameter.
+> You can use any text as internal link code. Then you can handle this code at *link events*, reading `Link` parameter.
 
-### TDHLinkData object
+> Do not use link tags (`<a>`, `<spoiler>`, `<sdetail>`) inside a `<a>` tag!
 
-This object stores the information about a link.
+## Spoiler Tag
+
+This tag allows you to create a link and a detail div, where the detail is automatically expanded or collapsed when the mouse clicks on the link.
+
+To create the spoiler link: `<spoiler:name>This is the spoiler link text</spoiler>`
+
+To create the detail div: `<sdetail:name>This is the detail div that will be expanded when the spoiler link is clicked.</sdetail>`
+
+Caution! The spoiler name is **case sensitive**.
+
+> You can handle spoiler link at *link events*. It's possible to bypass expand/collapse behavior using `Handled` property.
+
+> You can use another spoilers inside a spoiler detail div.
+
+> It's allowed to create multiple links pointing to a single detail div, and it's allowed to create a single link pointing to multiple detail divs.
+
+> Do not use link tags (`<a>`, `<spoiler>`, `<sdetail>`) inside a `<spoiler>` tag!
+
+## Link object
+
+**TDHBaseLink has two child classes possible:**
+- TDHLinkRef: It's a link created by `<a>` tag.
+- TDHSpoiler: It's a spoiler created by `<spoiler>` tag.
 
 **Properties:**
 
-- `Target: String` = The link target specified at `<a:target>` tag
+- `Kind: TDHLinkKind` = The link kind (lkLinkRef or lkSpoiler).
 
-- `Text: String` = The link display text specified at `<a:target>Display Text</a>` tag
+- `LinkRef: TDHLinkRef` = References the TDHLinkRef object when link kind is a `<a>` tag.
 
-You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events. Also you can call `GetLinkData` or `GetSelectedLinkData`.
+   **TDHLinkRef object:**
+   - `Target: String` = The link target specified at `<a:target>` tag.
+   - `Text: String` = The link display text specified at `<a:target>Display Text</a>` inner text.   
+
+- `Spoiler: TDHSpoiler` = References the TDHSpoiler object when link kind is a `<spoiler>` tag.
+
+   **TDHSpoiler object:**
+   - `Name: String` = The spoiler name.
+   - `Expanded: Boolean` = If the spoiler details is expanded.
+
+**Link events**
+
+You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter / OnLinkLeave events. Also you can call `GetSelectedLink` or reading `LinkRefs` and `Spoilers` lists.
 
 ## Image Tag
 
@@ -333,12 +385,32 @@ There are two **tab** tags you can use:
 
 - `<tf:nnn>` = The same as above, but if the text wraps to a new line, it will be aligned in the same position as the first line which the tab started. This tag will produce a better visual text alignment.
 
+## Float Tag
+
+Use float tag to create an area at specific X and Y position. Optionally you can specify the area width.
+
+Syntax: `<float:x,y[,width]>...</float>`
+
+Example: `<float:100,20,150>My text <b>floating</b> area.</float>`
+
+> You must not use a floating tag inside another floating tag!
+
 ## Literal tag character
 
-If you want to display characters `<` and `>` in the text, just type the HTML code:
+If you want to display literal special characters in the text, just type the HTML code:
 
+- `&amp;` = `&`
 - `&lt;` = `<`
 - `&gt;` = `>`
+
+There are two class functions to deal with HTML characters:
+
+```delphi
+class function EscapeTextToHTML(const aText: String): String;
+class function UnescapeHTMLToText(const aHTML: String): String;
+```
+
+> As this component is not a complete HTML language debugger, there is no need to escape the other special characters. Therefore, for characters such as accentuation, for example, or other signs, you must use them normally.
 
 ## Chinese/Japanese/Korean line break
 
