@@ -46,7 +46,7 @@
 	  - function GetLinkData
 	  - function GetSelected
 	  
-	  Please, use new `GetSelectedLink` property and `DataLinks` list (*there is no longer the concept of link ID!*).
+	  Please, use new `GetSelectedLink` property and `LinkRefs` list (*there is no longer the concept of link ID!*).
 
 - 07/15/2020
 
