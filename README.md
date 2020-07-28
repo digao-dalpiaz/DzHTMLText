@@ -28,7 +28,7 @@
 
 ## What's New
 
-- 99/99/9999 (Version 2.0)
+- 07/27/2020 (Version 2.0)
 
    - Refactoring in all the methods that process the tokens.
    - Improvement in the use of memory keeping in the objects that are used for visual construction only the necessary properties. For that, the internal properties were moved to new classes.
