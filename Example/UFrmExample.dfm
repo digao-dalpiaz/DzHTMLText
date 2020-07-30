@@ -29,16 +29,21 @@ object Form1: TForm1
     Font.Style = []
     ParentColor = False
     ParentFont = False
-    Text = 
-      '<imgres:LOGO><fc:clGreen> Welcome to my app!</fc>'#13#10#13#10'<b>This is ' +
-      'an important text</b> and <i>this is italic text</i>.<br><u>But ' +
-      'we have underline too</u>, and <s>strike-out</s> if you want.<br' +
-      '><br>You can change the <fn:Courier New>font name</fn> and the <' +
-      'fs:14>font size</fs><br>The <fc:clRed>colors</fc> are <bc:clYell' +
-      'ow>allowed</bc> too! <img:0> <i>and images</i> <img:1><br><br><c' +
-      '>Alignment, we have!</c><br><r>This is great</r>'#13#10#13#10'Click <a:www' +
-      '.google.com.br>here</a> to open Google.'#13#10'This is an image from r' +
-      'esource: <a:INFO_ABOUT><imgres:about> About the program</a>'
+    Lines.Strings = (
+      '<imgres:LOGO><fc:clGreen> Welcome to my app!</fc>'
+      ''
+      
+        '<b>This is an important text</b> and <i>this is italic text</i>.' +
+        '<br><u>But we have underline too</u>, and <s>strike-out</s> if y' +
+        'ou want.<br><br>You can change the <fn:Courier New>font name</fn' +
+        '> and the <fs:14>font size</fs><br>The <fc:clRed>colors</fc> are' +
+        ' <bc:clYellow>allowed</bc> too! <img:0> <i>and images</i> <img:1' +
+        '><br><br><c>Alignment, we have!</c><br><r>This is great</r>'
+      ''
+      'Click <a:www.google.com.br>here</a> to open Google.'
+      
+        'This is an image from resource: <a:INFO_ABOUT><imgres:about> Abo' +
+        'ut the program</a>')
     Images = MyImages
     OnLinkClick = LbLinkClick
     OnRetrieveImgRes = LbRetrieveImgRes
@@ -57,17 +62,30 @@ object Form1: TForm1
     Font.Style = []
     ParentColor = False
     ParentFont = False
-    Text = 
-      'You can use tab align too:<fc:$EF7769>'#13#10'<t:10>1<t:30>JHON<t:100>' +
-      '<r>100,000</r><t:150>'#13#10'<t:10>2<t:30>SARAH<t:100><r>1,150,000</r>' +
-      '<t:150>'#13#10'<t:10>3<t:30>ERIC<t:100><r>180,000</r><t:150></fc>'#13#10#13#10'H' +
-      'TML Lists:<fc:$2768EF>'#13#10'<nbr><ul>'#13#10'<li>Item 1</li>'#13#10'<li>Item 2</' +
-      'li>'#13#10'<nbr><ol>'#13#10'<li>Sub item 1</li>'#13#10'<li>Sub item 2</li>'#13#10'<nbr><' +
-      'ol>'#13#10'<li><i>Detail 2.1</i></li>'#13#10'<li><i>Detail 2.2</i></li>'#13#10'<nb' +
-      'r></ol>'#13#10'<li>Sub item 3</li>'#13#10'<nbr></ol>'#13#10'<li>Item 3</li>'#13#10'<nbr>' +
-      '</ul></fc>'#13#10'<nbr><float:200,100,120><c>This is a <b>floating are' +
-      'a</b>, where you can write any text and even use tags!!!<c></flo' +
-      'at>'
+    Lines.Strings = (
+      'You can use tab align too:<fc:$EF7769>'
+      '<t:10>1<t:30>JHON<t:100><r>100,000</r><t:150>'
+      '<t:10>2<t:30>SARAH<t:100><r>1,150,000</r><t:150>'
+      '<t:10>3<t:30>ERIC<t:100><r>180,000</r><t:150></fc>'
+      ''
+      'HTML Lists:<fc:$2768EF>'
+      '<nbr><ul>'
+      '<li>Item 1</li>'
+      '<li>Item 2</li>'
+      '<nbr><ol>'
+      '<li>Sub item 1</li>'
+      '<li>Sub item 2</li>'
+      '<nbr><ol>'
+      '<li><i>Detail 2.1</i></li>'
+      '<li><i>Detail 2.2</i></li>'
+      '<nbr></ol>'
+      '<li>Sub item 3</li>'
+      '<nbr></ol>'
+      '<li>Item 3</li>'
+      '<nbr></ul></fc>'
+      
+        '<nbr><float:200,100,120><c>This is a <b>floating area</b>, where' +
+        ' you can write any text and even use tags!!!<c></float>')
     LineVertAlign = vaCenter
   end
   object Lb3: TDzHTMLText
@@ -81,11 +99,12 @@ object Form1: TForm1
     Font.Name = 'Segoe UI'
     Font.Style = [fsItalic]
     ParentFont = False
-    Text = 
-      '<c>Please note that components above have <b>White</b> backgound' +
-      ' only because I want to show the bounds, to understand line brea' +
-      'ks and alignments. Of course you can use parent backgound (defau' +
-      'lt), like this.<c>'
+    Lines.Strings = (
+      
+        '<c>Please note that components above have <b>White</b> backgound' +
+        ' only because I want to show the bounds, to understand line brea' +
+        'ks and alignments. Of course you can use parent backgound (defau' +
+        'lt), like this.<c>')
   end
   object MyImages: TImageList
     Height = 24

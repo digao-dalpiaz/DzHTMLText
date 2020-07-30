@@ -156,14 +156,14 @@ type
     LLinkRef: TDHLinkRefList; //list of links info
     LSpoiler: TDHSpoilerList;
 
-    FText: String;
+    FLines: TStrings;
     FAutoWidth: Boolean;
     FAutoHeight: Boolean;
     FMaxWidth: Integer; //max width when using AutoWidth
     //FTransparent: Boolean; //not used because of flickering
     FAutoOpenLink: Boolean; //link auto-open with ShellExecute
 
-    FLines: Integer; //read-only
+    FLineCount: Integer; //read-only
     FTextWidth: Integer; //read-only
     FTextHeight: Integer; //read-only
 
@@ -188,7 +188,11 @@ type
     UpdatingSemaphore: Integer;
     InternalResizing: Boolean;
 
+    procedure OnLinesChange(Sender: TObject);
+    procedure SetLines(const Value: TStrings);
+    function GetText: String;
     procedure SetText(const Value: String);
+
     procedure SetAutoHeight(const Value: Boolean);
     procedure SetAutoWidth(const Value: Boolean);
     procedure SetMaxWidth(const Value: Integer);
@@ -237,6 +241,8 @@ type
     procedure BeginUpdate;
     procedure EndUpdate(ForceRepaint: Boolean = True);
 
+    property Text: String read GetText write SetText;
+
     class function UnescapeHTMLToText(const aHTML: String): String;
     class function EscapeTextToHTML(const aText: String): String;
   published
@@ -271,7 +277,7 @@ type
     property OnStartDock;
     property OnStartDrag;
 
-    property Text: String read FText write SetText;
+    property Lines: TStrings read FLines write SetLines;
     //property Transparent: Boolean read FTransparent write SetTransparent default False;
 
     property AutoWidth: Boolean read FAutoWidth write SetAutoWidth default False;
@@ -283,7 +289,7 @@ type
 
     property Images: TCustomImageList read FImages write SetImages;
 
-    property Lines: Integer read FLines;
+    property LineCount: Integer read FLineCount;
     property TextWidth: Integer read FTextWidth;
     property TextHeight: Integer read FTextHeight;
 
@@ -443,7 +449,11 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.0';
+  FAbout := 'Digao Dalpiaz / Version 2.1';
+
+  FLines := TStringList.Create;
+  FLines.TrailingLineBreak := False;
+  TStringList(FLines).OnChange := OnLinesChange;
 
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
@@ -465,6 +475,7 @@ end;
 
 destructor TDzHTMLText.Destroy;
 begin
+  FLines.Free;
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
   LVisualItem.Free;
@@ -549,15 +560,25 @@ begin
   end;
 end;
 
+procedure TDzHTMLText.OnLinesChange(Sender: TObject);
+begin
+  LSpoiler.Clear;
+  BuildAndPaint;
+end;
+
+procedure TDzHTMLText.SetLines(const Value: TStrings);
+begin
+  FLines.Assign(Value);
+end;
+
+function TDzHTMLText.GetText: String;
+begin
+  Result := FLines.Text;
+end;
+
 procedure TDzHTMLText.SetText(const Value: String);
 begin
-  if Value<>FText then
-  begin
-    FText := Value;
-
-    LSpoiler.Clear;
-    BuildAndPaint;
-  end;
+  FLines.Text := Value;
 end;
 
 procedure TDzHTMLText.SetLineVertAlign(const Value: TDHLineVertAlign);
@@ -1143,7 +1164,7 @@ var Text, A: String;
     CharIni: Char;
     I, Jump: Integer;
 begin
-  Text := Lb.FText;
+  Text := Lb.FLines.Text;
 
   Text := StringReplace(Text, #13#10'<NBR>', EmptyStr, [rfReplaceAll, rfIgnoreCase]); //ignore next break
   Text := StringReplace(Text, #13#10, '<BR>', [rfReplaceAll]);
@@ -1849,6 +1870,8 @@ begin
 
       if not InFloat then Inc(LineCount);
       BreakGroupAndLineCtrl(True, TPoint.Create(FloatRect.Left, Y+Max.LineHeight));
+      //if line is empty, there is no visual item to check overall height
+      if Y>Max.OverallHeight then Max.OverallHeight := Y;
 
       if (Z is TPreObj_Break) then
       begin
@@ -1883,7 +1906,7 @@ begin
   Builder.CalcWidth := Max.OverallWidth;
   Builder.CalcHeight := Max.OverallHeight;
 
-  Lb.FLines := LineCount;
+  Lb.FLineCount := LineCount;
 end;
 
 procedure TTokensProcess.Publish;
