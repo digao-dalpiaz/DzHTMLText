@@ -26,7 +26,8 @@ object FrmMain: TFrmMain
     Font.Style = []
     ParentColor = False
     ParentFont = False
-    Text = 'text spacing test'
+    Lines.Strings = (
+      'text spacing test')
   end
   object DzHTMLText2: TDzHTMLText
     Left = 8
@@ -41,9 +42,10 @@ object FrmMain: TFrmMain
     Font.Style = []
     ParentColor = False
     ParentFont = False
-    Text = 
-      '<bc:clyellow>text<bc:clblue> </bc><bc:clred> </bc><bc:clgreen> <' +
-      '/bc>spacing test</bc>'
+    Lines.Strings = (
+      
+        '<bc:clyellow>text<bc:clblue> </bc><bc:clred> </bc><bc:clgreen> <' +
+        '/bc>spacing test</bc>')
   end
   object DzHTMLText3: TDzHTMLText
     Left = 168
@@ -58,12 +60,15 @@ object FrmMain: TFrmMain
     Font.Style = []
     ParentColor = False
     ParentFont = False
-    Text = 
-      'floating test:'#13#10'<nbr><float:200,20,60><c>my test panel 1234</c><' +
-      '/float>'#13#10'Text after floating.'#13#10'<nbr><float:100,65,80><r><bc:clsi' +
-      'lver>And here a new floating panel abc'#13#10'Break <fs:20>BIG</fs></b' +
-      'c></r></float>'#13#10'<bc:clyellow>Text <fs:18>after</fs> second panel' +
-      '</bc>'
+    Lines.Strings = (
+      'floating test:'
+      '<nbr><float:200,20,60><c>my test panel 1234</c></float>'
+      'Text after floating.'
+      
+        '<nbr><float:100,65,80><r><bc:clsilver>And here a new floating pa' +
+        'nel abc'
+      'Break <fs:20>BIG</fs></bc></r></float>'
+      '<bc:clyellow>Text <fs:18>after</fs> second panel</bc>')
     LineVertAlign = vaCenter
   end
   object DzHTMLText4: TDzHTMLText
@@ -79,9 +84,10 @@ object FrmMain: TFrmMain
     Font.Style = []
     ParentColor = False
     ParentFont = False
-    Text = 
-      '<r><bc:clyellow>text<bc:clblue> </bc><bc:clred> </bc><bc:clgreen' +
-      '> </bc>spacing test</bc></r>'
+    Lines.Strings = (
+      
+        '<r><bc:clyellow>text<bc:clblue> </bc><bc:clred> </bc><bc:clgreen' +
+        '> </bc>spacing test</bc></r>')
   end
   object DzHTMLText5: TDzHTMLText
     Left = 8
@@ -96,7 +102,8 @@ object FrmMain: TFrmMain
     Font.Style = []
     ParentColor = False
     ParentFont = False
-    Text = '<r>text spacing test</r>'
+    Lines.Strings = (
+      '<r>text spacing test</r>')
   end
   object DzHTMLText6: TDzHTMLText
     Left = 168
@@ -111,13 +118,20 @@ object FrmMain: TFrmMain
     Font.Style = []
     ParentColor = False
     ParentFont = False
-    Text = 
-      '<b>Spoiler Test:</b>'#13#10'<spoiler:sp1>Click here for details</spoil' +
-      'er><sdetail:sp1>'#13#10'    Some detailed info about this spoiler.'#13#10'<s' +
-      'poiler:sp2>'#13#10'    Click here for sub-details</spoiler><sdetail:sp' +
-      '2>'#13#10'        Some detailed info about this sub-spoiler.</sdetail>' +
-      '</sdetail>'#13#10#13#10'You can open first spoiler <spoiler:sp1>here</spoi' +
-      'ler> too.'#13#10#13#10'<sdetail:sp1><i>This is more info about the first s' +
-      'poiler</i></sdetail>'
+    Lines.Strings = (
+      '<b>Spoiler Test:</b>'
+      '<spoiler:sp1>Click here for details</spoiler><sdetail:sp1>'
+      '    Some detailed info about this spoiler.'
+      '<spoiler:sp2>'
+      '    Click here for sub-details</spoiler><sdetail:sp2>'
+      
+        '        Some detailed info about this sub-spoiler.</sdetail></sd' +
+        'etail>'
+      ''
+      'You can open first spoiler <spoiler:sp1>here</spoiler> too.'
+      ''
+      
+        '<sdetail:sp1><i>This is more info about the first spoiler</i></s' +
+        'detail>')
   end
 end
