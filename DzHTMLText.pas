@@ -1870,6 +1870,8 @@ begin
 
       if not InFloat then Inc(LineCount);
       BreakGroupAndLineCtrl(True, TPoint.Create(FloatRect.Left, Y+Max.LineHeight));
+      //if line is empty, there is no visual item to check overall height
+      if Y>Max.OverallHeight then Max.OverallHeight := Y;
 
       if (Z is TPreObj_Break) then
       begin
