@@ -216,6 +216,10 @@ This property calls ShellExecute method.
 
 `LineCount: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
 
+`Lines: TStrings` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
+
+> The component automatically converts #13#10 sequence into a line break. Because of this behavior, all typed line breaks will appear as a real line break. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after #13#10 characters. This will tell the component to not consider the sequence as a line break (Please check this tag at Example project).
+
 `LineVertAlign: TDHLineVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights. Default is `vaTop`.
 
 `ListLevelPadding: Integer` = Determines the width of each list level in pixels, when using HTML list tags.
@@ -225,10 +229,6 @@ This property calls ShellExecute method.
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 
 `StyleLinkHover: TDHStyleLinkProp` = Properties to format a link when is selected by mouse.
-
-`Lines: TStrings` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
-
-> The component automatically converts #13#10 sequence into a line break. Because of this behavior, all typed line breaks will appear as a real line break. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after #13#10 characters. This will tell the component to not consider the sequence as a line break (Please check this tag at Example project).
 
 `Text: String` (public) = This property is a shortcut to `Lines` property. At run-time, you can read and write this property directly, but the component will store the text at `Lines` property.
 
