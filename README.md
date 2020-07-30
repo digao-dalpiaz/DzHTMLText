@@ -28,6 +28,30 @@
 
 ## What's New
 
+- 07/30/2020 (Version 2.1)
+
+   - Implemented new Lines (TStrings) property and removed Text published property. :warning:
+   - Implemented Text (String) public property as a shortcut to new Lines property. :warning:
+   - Changed Lines (Integer) property name to LineCount. :warning:
+
+     | :exclamation: Component property change. Risk of data loss! |
+     |-------------------------------------------------------------|
+
+     In order to keep TDzHTMLText Text string property content of your projects, you'll need to manually change property on DFM file, before opening projects in Delphi.
+     Open the DFM files (using a text editor) that contains TDzHTMLText objects and replace as in the example:
+
+     ```delphi
+     object DzHTMLText1: TDzHTMLText
+	   //FROM:
+       Text = 'Line 1'#13#10'Line 2'#13#10'Line 3'
+	   //TO:
+       Lines.Strings = (
+         'Line 1'#13#10'Line 2'#13#10'Line 3')
+     end
+     ```
+
+     If you want to keep old Text property, please download the older version here: [TDzHTMLText v2.0](https://github.com/digao-dalpiaz/DzHTMLText/releases/tag/v2.0)
+
 - 07/27/2020 (Version 2.0)
 
    - Refactoring in all the methods that process the tokens.
@@ -190,7 +214,7 @@ This property calls ShellExecute method.
 
 `Images: TCustomImageList` = When using `<img>` tag, you should set this property to specify the ImageList where the images are stored.
 
-`Lines: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
+`LineCount: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
 
 `LineVertAlign: TDHLineVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights. Default is `vaTop`.
 
@@ -202,9 +226,11 @@ This property calls ShellExecute method.
 
 `StyleLinkHover: TDHStyleLinkProp` = Properties to format a link when is selected by mouse.
 
-`Text: String` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
+`Lines: TStrings` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
 
 > The component automatically converts #13#10 sequence into a line break. Because of this behavior, all typed line breaks will appear as a real line break. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after #13#10 characters. This will tell the component to not consider the sequence as a line break (Please check this tag at Example project).
+
+`Text: String` (public) = This property is a shortcut to `Lines` property. At run-time, you can read and write this property directly, but the component will store the text at `Lines` property.
 
 `TextHeight: Integer` = Returns the total text height. This property is read-only.
 
@@ -298,6 +324,8 @@ finally
   DzHTMLText1.EndUpdate;
 end;
 ```
+
+> Do not use `Lines.BeginUpdate/Lines.EndUpdate`. These methods are not controlled by the component.
 
 ## Link Reference Tag
 
