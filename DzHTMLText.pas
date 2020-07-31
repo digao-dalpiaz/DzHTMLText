@@ -1440,8 +1440,8 @@ begin
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TAlignment>.Create;
-
   LLineSpace := TListStack<Integer>.Create;
+
   LHTMLList := TObjectListStack<THTMLList>.Create;
   LSpoilerDet := THTMLSpoilerDetList.Create;
 
