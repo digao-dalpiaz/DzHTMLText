@@ -175,7 +175,7 @@ Here are all possible tags you can use in text:
 <FLOAT:X,Y[,Width]></FLOAT> - Floating area
 <SPOILER:name></SPOILER> - Spoiler Title
 <SDETAIL:name></SDETAIL> - Spoiler Detail
-<LS:nnn> - Line spacing where 'nnn' is the height in pixels
+<LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
