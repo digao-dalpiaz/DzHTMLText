@@ -14,6 +14,8 @@ type
     DzHTMLText4: TDzHTMLText;
     DzHTMLText5: TDzHTMLText;
     DzHTMLText6: TDzHTMLText;
+    DzHTMLText7: TDzHTMLText;
+    DzHTMLText8: TDzHTMLText;
   private
     { Private declarations }
   public

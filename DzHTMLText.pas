@@ -174,6 +174,7 @@ type
     FOnRetrieveImgRes: TDHEvRetrieveImgRes;
 
     FLineVertAlign: TDHLineVertAlign;
+    FLineSpacing: Integer;
     FListLevelPadding: Integer;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
@@ -208,6 +209,7 @@ type
     procedure SetCursorWithoutChange(C: TCursor);
     procedure SetImages(const Value: TCustomImageList);
     procedure SetLineVertAlign(const Value: TDHLineVertAlign);
+    procedure SetLineSpacing(const Value: Integer);
     procedure SetListLevelPadding(const Value: Integer);
     //procedure SetTransparent(const Value: Boolean);
   protected
@@ -303,6 +305,7 @@ type
     property AutoOpenLink: Boolean read FAutoOpenLink write FAutoOpenLink default True;
 
     property LineVertAlign: TDHLineVertAlign read FLineVertAlign write SetLineVertAlign default vaTop;
+    property LineSpacing: Integer read FLineSpacing write SetLineSpacing default 0;
     property ListLevelPadding: Integer read FListLevelPadding write SetListLevelPadding default _DEF_LISTLEVELPADDING;
 
     property About: String read FAbout;
@@ -449,7 +452,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.1';
+  FAbout := 'Digao Dalpiaz / Version 2.2';
 
   FLines := TStringList.Create;
   FLines.TrailingLineBreak := False;
@@ -586,6 +589,16 @@ begin
   if Value<>FLineVertAlign then
   begin
     FLineVertAlign := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetLineSpacing(const Value: Integer);
+begin
+  if Value<>FLineSpacing then
+  begin
+    FLineSpacing := Value;
 
     BuildAndPaint;
   end;
@@ -893,7 +906,8 @@ type
     ttImage, ttImageResource,
     ttBulletList, ttNumberList, ttListItem,
     ttFloat,
-    ttSpoilerTitle, ttSpoilerDetail);
+    ttSpoilerTitle, ttSpoilerDetail,
+    ttLineSpace);
 
   TToken = class
     Kind: TTokenKind;
@@ -991,13 +1005,13 @@ begin
   LToken.Add(T);
 end;
 
-function Tag_Index_ProcValue(const Value: String; var Valid: Boolean): Integer;
+function Tag_IntZeroBased_ProcValue(const Value: String; var Valid: Boolean): Integer;
 begin
   Result := StrToIntDef(Value, -1);
   Valid := (Result>-1);
 end;
 
-function Tag_Number_ProcValue(const Value: String; var Valid: Boolean): Integer;
+function Tag_IntOneBased_ProcValue(const Value: String; var Valid: Boolean): Integer;
 begin
   Result := StrToIntDef(Value, 0);
   Valid := (Result>0);
@@ -1016,30 +1030,31 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..22] of TDefToken = (
+const DEF_TOKENS: array[0..23] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
   (Ident: 'U'; Kind: ttUnderline),
   (Ident: 'S'; Kind: ttStrike),
   (Ident: 'FN'; Kind: ttFontName; AllowPar: True),
-  (Ident: 'FS'; Kind: ttFontSize; AllowPar: True; ProcValue: Tag_Number_ProcValue),
+  (Ident: 'FS'; Kind: ttFontSize; AllowPar: True; ProcValue: Tag_IntOneBased_ProcValue),
   (Ident: 'FC'; Kind: ttFontColor; AllowPar: True; ProcValue: Tag_Color_ProcValue),
   (Ident: 'BC'; Kind: ttBackColor; AllowPar: True; ProcValue: Tag_Color_ProcValue),
   (Ident: 'A'; Kind: ttLink; AllowPar: True; OptionalPar: True),
   (Ident: 'L'; Kind: ttAlignLeft),
   (Ident: 'C'; Kind: ttAlignCenter),
   (Ident: 'R'; Kind: ttAlignRight),
-  (Ident: 'T'; Kind: ttTab; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
-  (Ident: 'TF'; Kind: ttTabF; Single: True; AllowPar: True; ProcValue: Tag_Number_ProcValue),
-  (Ident: 'IMG'; Kind: ttImage; Single: True; AllowPar: True; ProcValue: Tag_Index_ProcValue),
+  (Ident: 'T'; Kind: ttTab; Single: True; AllowPar: True; ProcValue: Tag_IntOneBased_ProcValue),
+  (Ident: 'TF'; Kind: ttTabF; Single: True; AllowPar: True; ProcValue: Tag_IntOneBased_ProcValue),
+  (Ident: 'IMG'; Kind: ttImage; Single: True; AllowPar: True; ProcValue: Tag_IntZeroBased_ProcValue),
   (Ident: 'IMGRES'; Kind: ttImageResource; Single: True; AllowPar: True),
   (Ident: 'UL'; Kind: ttBulletList), //Unordered HTML List
   (Ident: 'OL'; Kind: ttNumberList), //Ordered HTML List
   (Ident: 'LI'; Kind: ttListItem), //HTML List Item
   (Ident: 'FLOAT'; Kind: ttFloat; AllowPar: True), //Floating div
   (Ident: 'SPOILER'; Kind: ttSpoilerTitle; AllowPar: True),
-  (Ident: 'SDETAIL'; Kind: ttSpoilerDetail; AllowPar: True)
+  (Ident: 'SDETAIL'; Kind: ttSpoilerDetail; AllowPar: True),
+  (Ident: 'LS'; Kind: ttLineSpace; AllowPar: True; ProcValue: Tag_IntZeroBased_ProcValue)
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -1168,7 +1183,7 @@ begin
 
   Text := StringReplace(Text, #13#10'<NBR>', EmptyStr, [rfReplaceAll, rfIgnoreCase]); //ignore next break
   Text := StringReplace(Text, #13#10, '<BR>', [rfReplaceAll]);
-  if not Text.IsEmpty then Text := Text + '<BR>'; //final height and linecount adjust
+  if not Text.IsEmpty then Text := Text + '<BR>'; //internal final break
 
   while not Text.IsEmpty do
   begin
@@ -1280,6 +1295,9 @@ begin
 end;
 
 type
+  TLineInfo = class
+    Height, Space: Integer;
+  end;
   TGroupBound = class
     Right, Limit: Integer;
   end;
@@ -1313,6 +1331,7 @@ type
     {The group is isolated at each line or tabulation to delimit text horizontal align area}
     FixedPos: TFixedPosition;
     Align: TAlignment;
+    LineSpace: Integer;
     Space: Boolean;
     Print: Boolean;
 
@@ -1334,13 +1353,14 @@ type
     Lb: TDzHTMLText;
     C: TCanvas;
 
-    LLineHeight: TList<Integer>;
+    LLineInfo: TObjectList<TLineInfo>;
     LGroupBound: TObjectList<TGroupBound>;
 
     Items: TListPreObj;
 
     BackColor: TColor;
     Align: TAlignment;
+    LineSpace: Integer;
 
     LBold: TListStack<Boolean>;
     LItalic: TListStack<Boolean>;
@@ -1351,6 +1371,7 @@ type
     LFontColor: TListStack<TColor>;
     LBackColor: TListStack<TColor>;
     LAlign: TListStack<TAlignment>;
+    LLineSpace: TListStack<Integer>;
     LHTMLList: TObjectListStack<THTMLList>;
     LSpoilerDet: THTMLSpoilerDetList;
 
@@ -1366,6 +1387,7 @@ type
     procedure DoFontColor(T: TToken);
     procedure DoBackColor(T: TToken);
     procedure DoAlignment(T: TToken);
+    procedure DoLineSpace(T: TToken);
     procedure DoTextAndRelated(T: TToken);
     procedure DoLink(T: TToken; I: Integer);
     procedure DoLists(T: TToken);
@@ -1403,9 +1425,10 @@ begin
 
   BackColor := clNone;
   Align := taLeftJustify;
+  LineSpace := Lb.FLineSpacing;
 
   Items := TListPreObj.Create;
-  LLineHeight := TList<Integer>.Create;
+  LLineInfo := TObjectList<TLineInfo>.Create;
   LGroupBound := TObjectList<TGroupBound>.Create;
 
   LBold := TListStack<Boolean>.Create;
@@ -1417,6 +1440,8 @@ begin
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TAlignment>.Create;
+  LLineSpace := TListStack<Integer>.Create;
+
   LHTMLList := TObjectListStack<THTMLList>.Create;
   LSpoilerDet := THTMLSpoilerDetList.Create;
 
@@ -1429,12 +1454,13 @@ begin
   LFontColor.Add(C.Font.Color);
   LBackColor.Add(BackColor);
   LAlign.Add(Align);
+  LLineSpace.Add(LineSpace);
 end;
 
 destructor TTokensProcess.Destroy;
 begin
   Items.Free;
-  LLineHeight.Free;
+  LLineInfo.Free;
   LGroupBound.Free;
 
   LBold.Free;
@@ -1446,6 +1472,8 @@ begin
   LFontColor.Free;
   LBackColor.Free;
   LAlign.Free;
+  LLineSpace.Free;
+
   LHTMLList.Free;
   LSpoilerDet.Free;
   inherited;
@@ -1474,6 +1502,7 @@ begin
       ttFontColor: DoFontColor(T);
       ttBackColor: DoBackColor(T);
       ttAlignLeft, ttAlignCenter, ttAlignRight: DoAlignment(T);
+      ttLineSpace: DoLineSpace(T);
       ttText, ttSpace, ttInvalid, ttImage, ttImageResource, ttListItem: DoTextAndRelated(T);
       ttLink: DoLink(T, I);
       ttBulletList, ttNumberList: DoLists(T);
@@ -1538,6 +1567,12 @@ begin
   end;
   LAlign.AddOrDel(T, Align);
   Align := LAlign.Last;
+end;
+
+procedure TTokensProcess.DoLineSpace(T: TToken);
+begin
+  LLineSpace.AddOrDel(T, T.Value);
+  LineSpace := LLineSpace.Last;
 end;
 
 procedure TTokensProcess.DoTextAndRelated(T: TToken);
@@ -1617,6 +1652,7 @@ begin
   Z := TPreObj_Visual.Create;
   Z.Size := Ex;
   Z.Align := Align;
+  Z.LineSpace := LineSpace;
   Z.Space := T.Kind=ttSpace;
   Z.FixedPos := FixedPos;
   Z.Visual := W;
@@ -1738,7 +1774,7 @@ end;
 
 procedure TTokensProcess.Realign;
 type TSizes = record
-  LineHeight, OverallWidth, OverallHeight: Integer;
+  LineHeight, LineSpace, OverallWidth, OverallHeight: Integer;
 end;
 var
   Z: TPreObj;
@@ -1790,20 +1826,27 @@ var
 
   procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TPoint);
   var GrpLim: Integer;
+    LI: TLineInfo;
   begin
     GrpLim := -1;
     if FloatRect.Width>0 then GrpLim := FloatRect.Right;
     IncPreviousGroup(X, GrpLim);
 
-    LLineHeight.Add(Max.LineHeight);
+    LI := TLineInfo.Create;
+    LI.Height := Max.LineHeight;
+    LI.Space := Max.LineSpace;
+    LLineInfo.Add(LI);
     if Forward then
     begin
-      CurLine := LLineHeight.Count;
+      CurLine := LLineInfo.Count;
       Max.LineHeight := 0;
+      Max.LineSpace := 0;
     end else
     begin
-      CurLine := PrevLine; //restore current line
-      Max.LineHeight := LLineHeight[CurLine]; //restore max height
+      //restore line info
+      CurLine := PrevLine;
+      Max.LineHeight := LLineInfo[CurLine].Height;
+      Max.LineSpace := LLineInfo[CurLine].Space;
     end;
 
     X := NewPoint.X;
@@ -1869,7 +1912,7 @@ begin
         CheckPriorSpace; //remove space at previous line if is the last obj
 
       if not InFloat then Inc(LineCount);
-      BreakGroupAndLineCtrl(True, TPoint.Create(FloatRect.Left, Y+Max.LineHeight));
+      BreakGroupAndLineCtrl(True, TPoint.Create(FloatRect.Left, Y+Max.LineHeight+Max.LineSpace));
       //if line is empty, there is no visual item to check overall height
       if Y>Max.OverallHeight then Max.OverallHeight := Y;
 
@@ -1899,6 +1942,7 @@ begin
     if V.Visual.Rect.Right>Max.OverallWidth then Max.OverallWidth := V.Visual.Rect.Right;
     if V.Visual.Rect.Bottom>Max.OverallHeight then Max.OverallHeight := V.Visual.Rect.Bottom;
     if V.Visual.Rect.Height>Max.LineHeight then Max.LineHeight := V.Visual.Rect.Height;
+    if V.LineSpace>Max.LineSpace then Max.LineSpace := V.LineSpace;
 
     X := V.Visual.Rect.Right;
   end;
@@ -1941,7 +1985,7 @@ begin
     //vertical align
     if Lb.FLineVertAlign in [vaCenter, vaBottom] then
     begin
-      Offset := LLineHeight[V.Line] - V.Visual.Rect.Height;
+      Offset := LLineInfo[V.Line].Height - V.Visual.Rect.Height;
       if Lb.FLineVertAlign=vaCenter then Offset := Offset div 2;
 
       V.Visual.Rect.Offset(0, Offset);

@@ -134,4 +134,44 @@ object FrmMain: TFrmMain
         '<sdetail:sp1><i>This is more info about the first spoiler</i></s' +
         'detail>')
   end
+  object DzHTMLText7: TDzHTMLText
+    Left = 464
+    Top = 8
+    Width = 281
+    Height = 205
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -21
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    Lines.Strings = (
+      'Line 1'
+      'Line 2'
+      'Line 3'
+      ''
+      'Line 5')
+    AutoHeight = True
+    LineSpacing = 20
+  end
+  object DzHTMLText8: TDzHTMLText
+    Left = 464
+    Top = 224
+    Width = 281
+    Height = 190
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -21
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    Lines.Strings = (
+      '<bc:clYellow>Line 1'
+      '<ls:5>Line 2 (Line Space: 5px)</ls>'
+      'Line 3'
+      ''
+      'Line 5</bc>')
+    AutoHeight = True
+    LineSpacing = 20
+  end
 end

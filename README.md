@@ -28,6 +28,10 @@
 
 ## What's New
 
+- 07/31/2020 (Version 2.2)
+
+   - Add new tag `<LS>` for line spacing.
+
 - 07/30/2020 (Version 2.1)
 
    - Implemented new Lines (TStrings) property and removed Text published property. :warning:
@@ -171,6 +175,7 @@ Here are all possible tags you can use in text:
 <FLOAT:X,Y[,Width]></FLOAT> - Floating area
 <SPOILER:name></SPOILER> - Spoiler Title
 <SDETAIL:name></SDETAIL> - Spoiler Detail
+<LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
@@ -219,6 +224,8 @@ This property calls ShellExecute method.
 `Lines: TStrings` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
 
 > The component automatically converts #13#10 sequence into a line break. Because of this behavior, all typed line breaks will appear as a real line break. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after #13#10 characters. This will tell the component to not consider the sequence as a line break (Please check this tag at Example project).
+
+`LineSpacing: Integer` = Specify the default line spacing in overall text. You can use `<LS>` tag to determine line spacing at specific lines.
 
 `LineVertAlign: TDHLineVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights. Default is `vaTop`.
 
