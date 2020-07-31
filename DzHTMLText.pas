@@ -452,7 +452,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.1';
+  FAbout := 'Digao Dalpiaz / Version 2.2';
 
   FLines := TStringList.Create;
   FLines.TrailingLineBreak := False;

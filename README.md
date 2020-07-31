@@ -28,7 +28,7 @@
 
 ## What's New
 
-- 07/31/2020
+- 07/31/2020 (Version 2.2)
 
    - Add new tag `<LS>` for line spacing.
 
