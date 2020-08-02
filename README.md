@@ -25,8 +25,13 @@
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Transparency (why not?)](#transparency-why-not)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
+- [Donate](#donate)
 
 ## What's New
+
+- 08/02/2020
+  
+   - Included donate button. Consider making a donation if the project is useful to you.
 
 - 07/31/2020 (Version 2.2)
 
@@ -467,3 +472,13 @@ https://github.com/digao-dalpiaz/Dam
 Message Dialog Example:
 
 ![Dam Example](https://github.com/digao-dalpiaz/Dam/blob/master/images/dam_super_print.png)
+
+## Donate
+
+This project has been developed by several years, and I am trying to continuously updating it. To do that, I need to stop another projects, to make time.
+
+If you like this work and it's useful to you, consider to contribute, so I can spend more time to enhance the code and functionalities.
+
+[![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=623699KF25VZY&item_name=GitHub+Digao+Dalpiaz&currency_code=USD&source=url)
+
+**Thank you very much.** :grin:
