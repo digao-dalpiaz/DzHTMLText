@@ -455,7 +455,7 @@ begin
   FAbout := 'Digao Dalpiaz / Version 2.2';
 
   FLines := TStringList.Create;
-  FLines.TrailingLineBreak := False;
+  //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full funcionally in Lazarus
   TStringList(FLines).OnChange := OnLinesChange;
 
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
@@ -577,6 +577,7 @@ end;
 function TDzHTMLText.GetText: String;
 begin
   Result := FLines.Text;
+  Result := Result.Substring(0, Result.Length-FLines.LineBreak.Length); //remove last line break
 end;
 
 procedure TDzHTMLText.SetText(const Value: String);
@@ -1179,11 +1180,11 @@ var Text, A: String;
     CharIni: Char;
     I, Jump: Integer;
 begin
-  Text := Lb.FLines.Text;
+  Text := Lb.FLines.Text; //when is not empty, always comes with a final line break
 
   Text := StringReplace(Text, #13#10'<NBR>', EmptyStr, [rfReplaceAll, rfIgnoreCase]); //ignore next break
   Text := StringReplace(Text, #13#10, '<BR>', [rfReplaceAll]);
-  if not Text.IsEmpty then Text := Text + '<BR>'; //internal final break
+  //if not Text.IsEmpty then Text := Text + '<BR>'; //internal final break
 
   while not Text.IsEmpty do
   begin
@@ -1859,7 +1860,7 @@ begin
   LineCount := 0;
   CurLine := 0;
   PrevLine := -1;
-  PrevPos := TPoint.Zero;
+  PrevPos := TPoint.Create(0, 0);
   FloatRect := TRect.Empty;
   LastTabX := 0;
   LastTabF := False;

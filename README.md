@@ -29,6 +29,12 @@
 
 ## What's New
 
+- 08/03/2020
+
+   - Fixed Lazarus extra line break (issue #23).
+   - Fixed Delphi unsupported property TrailingLineBreak (only available in Delphi 10.1).
+   - Fixed Delphi unsupported method TPoint.Zero (Delphi XE7 and below?).
+
 - 08/02/2020
   
    - Included donate button. Consider making a donation if the project is useful to you.
