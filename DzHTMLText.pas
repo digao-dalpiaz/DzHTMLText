@@ -459,7 +459,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.2';
+  FAbout := 'Digao Dalpiaz / Version 2.3';
 
   FLines := TStringList.Create;
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full funcionally in Lazarus

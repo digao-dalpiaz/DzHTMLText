@@ -29,7 +29,7 @@
 
 ## What's New
 
-- 08/27/2020
+- 08/27/2020 (Version 2.3)
 
    - Included overall align properties.
 
