@@ -1425,7 +1425,7 @@ type
     procedure DoTab(T: TToken);
     procedure DoBreak;
 
-    procedure Realign;
+    procedure DefineVisualRect;
     procedure Publish;
 
     procedure CheckAlign(V: TPreObj_Visual);
@@ -1437,7 +1437,7 @@ begin
   P := TTokensProcess.Create(Self);
   try
     P.Execute;
-    P.Realign;
+    P.DefineVisualRect;
     P.Publish;
   finally
     P.Free;
@@ -1802,7 +1802,7 @@ end;
 
 //
 
-procedure TTokensProcess.Realign;
+procedure TTokensProcess.DefineVisualRect;
 type TSizes = record
   LineHeight, LineSpace, OverallWidth, OverallHeight: Integer;
 end;
