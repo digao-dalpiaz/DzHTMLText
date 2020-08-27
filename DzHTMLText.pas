@@ -1427,6 +1427,8 @@ type
 
     procedure Realign;
     procedure Publish;
+
+    procedure CheckAlign(V: TPreObj_Visual);
   end;
 
 procedure TBuilder.ProcessTokens;
@@ -1981,40 +1983,89 @@ begin
   Lb.FLineCount := LineCount;
 end;
 
-procedure TTokensProcess.Publish;
-var
-  V: TPreObj_Visual;
-  
-type 
+procedure TTokensProcess.CheckAlign(V: TPreObj_Visual);
+type
   TFuncAlignResult = record
     Outside, Inside: Integer;
   end;
-  TFuncAlign = reference to function: TFuncAlignResult;
 
-  procedure CheckAlign(horz: Boolean; prop: Variant; func: TFuncAlign);
+  function funcAlignHorz: TFuncAlignResult;
+  var
+    B: TGroupBound;
+    GrpLim: Integer;
+  begin
+    B := LGroupBound[V.Group];
+    if B.Limit = -1 then
+    begin //group has no limit
+      if Lb.FAutoWidth or (Lb.FOverallHorzAlign in [haCenter, haRight]) then
+        GrpLim := Builder.CalcWidth
+      else
+        GrpLim := Lb.Width;
+    end
+      else GrpLim := B.Limit;
+
+    Result.Outside := GrpLim;
+    Result.Inside := B.Right;
+  end;
+
+  function funcAlignVert: TFuncAlignResult;
+  begin
+    Result.Outside := LLineInfo[V.Line].Height;
+    Result.Inside := V.Visual.Rect.Height;
+  end;
+
+  function funcOverallAlignHorz: TFuncAlignResult;
+  begin
+    Result.Outside := Lb.Width;
+    Result.Inside := Builder.CalcWidth;
+  end;
+
+  function funcOverallAlignVert: TFuncAlignResult;
+  begin
+    Result.Outside := Lb.Height;
+    Result.Inside := Builder.CalcHeight;
+  end;
+
+  procedure Check(fnIndex: Byte; horz: Boolean; prop: Variant);
   var
     R: TFuncAlignResult;
     P: TPoint;
     Offset: Integer;
-  begin   
+  begin
     if prop>0 then //center or right
     begin
-      R := func;
+      case fnIndex of
+        0: R := funcAlignHorz;
+        1: R := funcAlignVert;
+        2: R := funcOverallAlignHorz;
+        3: R := funcOverallAlignVert;
+      end;
+
       Offset := R.Outside - R.Inside;
       if prop=1 then Offset := Offset div 2; //center
-            
+
       P := TPoint.Create(0, 0);
       if horz then
         P.X := Offset
       else
         P.Y := Offset;
-        
+
       V.Visual.Rect.Offset(P);
-    end;    
+    end;
   end;
 
+begin
+  Check(0, True, V.Align);
+  Check(1, False, Lb.FLineVertAlign);
+
+  Check(2, True, Lb.FOverallHorzAlign);
+  Check(3, False, Lb.FOverallVertAlign);
+end;
+
+procedure TTokensProcess.Publish;
 var
-  Z: TPreObj; 
+  Z: TPreObj;
+  V: TPreObj_Visual;
 begin
   for Z in Items do
   begin
@@ -2022,50 +2073,7 @@ begin
     V := TPreObj_Visual(Z);
     if not V.Print then Continue;
 
-    //horizontal align
-    CheckAlign(True, V.Align, 
-      function: TFuncAlignResult
-      var 
-        B: TGroupBound; 
-        GrpLim: Integer;
-      begin
-        B := LGroupBound[V.Group];
-        if B.Limit = -1 then
-        begin //group has no limit
-          if Lb.FAutoWidth or (Lb.FOverallHorzAlign in [haCenter, haRight]) then
-            GrpLim := Builder.CalcWidth
-          else
-            GrpLim := Lb.Width;
-        end
-          else GrpLim := B.Limit;
-
-        Result.Outside := GrpLim;
-        Result.Inside := B.Right;
-      end);  
-
-    //vertical align 
-    CheckAlign(False, Lb.FLineVertAlign,
-      function: TFuncAlignResult
-      begin
-        Result.Outside := LLineInfo[V.Line].Height;
-        Result.Inside := V.Visual.Rect.Height;
-      end);
-
-    //overall horizontal align
-    CheckAlign(True, Lb.FOverallHorzAlign,
-      function: TFuncAlignResult
-      begin
-        Result.Outside := Lb.Width;
-        Result.Inside := Builder.CalcWidth;
-      end);
-      
-    //overall vertical align
-    CheckAlign(False, Lb.FOverallVertAlign,
-      function: TFuncAlignResult
-      begin
-        Result.Outside := Lb.Height;
-        Result.Inside := Builder.CalcHeight
-      end);
+    CheckAlign(V);
 
     Lb.LVisualItem.Add(V.Visual);
     V.Visual := nil;
