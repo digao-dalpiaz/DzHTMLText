@@ -29,6 +29,10 @@
 
 ## What's New
 
+- 08/30/2020 (Version 2.3)
+
+   - Included overall align properties.
+
 - 08/03/2020
 
    - Fixed Lazarus extra line break (issue #23).
@@ -238,11 +242,15 @@ This property calls ShellExecute method.
 
 `LineSpacing: Integer` = Specify the default line spacing in overall text. You can use `<LS>` tag to determine line spacing at specific lines.
 
-`LineVertAlign: TDHLineVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights. Default is `vaTop`.
+`LineVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights at same line. Default is `vaTop`.
 
 `ListLevelPadding: Integer` = Determines the width of each list level in pixels, when using HTML list tags.
 
 `MaxWidth: Integer` = Specify the maximum width of text, when using AutoWidth property.
+
+`OverallHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Determines overall text horizontal alignment. This property only take effects if `AutoWidth` is false.
+
+`OverallVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Determines overall text vertical alignment. This property only take effects if `AutoHeight` is false.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 

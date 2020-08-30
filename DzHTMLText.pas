@@ -141,7 +141,8 @@ type
   TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
   TDHEvLinkClick = procedure(Sender: TObject; Link: TDHBaseLink; var Handled: Boolean) of object;
 
-  TDHLineVertAlign = (vaTop, vaCenter, vaBottom);
+  TDHVertAlign = (vaTop, vaCenter, vaBottom);
+  TDHHorzAlign = (haLeft, haCenter, haRight);
 
   TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: String; Picture: TPicture; var Handled: Boolean) of object;
 
@@ -173,7 +174,9 @@ type
 
     FOnRetrieveImgRes: TDHEvRetrieveImgRes;
 
-    FLineVertAlign: TDHLineVertAlign;
+    FLineVertAlign: TDHVertAlign;
+    FOverallVertAlign: TDHVertAlign;
+    FOverallHorzAlign: TDHHorzAlign;
     FLineSpacing: Integer;
     FListLevelPadding: Integer;
 
@@ -208,7 +211,9 @@ type
     procedure CheckMouse(X, Y: Integer); //check links by mouse position
     procedure SetCursorWithoutChange(C: TCursor);
     procedure SetImages(const Value: TCustomImageList);
-    procedure SetLineVertAlign(const Value: TDHLineVertAlign);
+    procedure SetLineVertAlign(const Value: TDHVertAlign);
+    procedure SetOverallVertAlign(const Value: TDHVertAlign);
+    procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
     procedure SetLineSpacing(const Value: Integer);
     procedure SetListLevelPadding(const Value: Integer);
     //procedure SetTransparent(const Value: Boolean);
@@ -304,7 +309,9 @@ type
 
     property AutoOpenLink: Boolean read FAutoOpenLink write FAutoOpenLink default True;
 
-    property LineVertAlign: TDHLineVertAlign read FLineVertAlign write SetLineVertAlign default vaTop;
+    property LineVertAlign: TDHVertAlign read FLineVertAlign write SetLineVertAlign default vaTop;
+    property OverallVertAlign: TDHVertAlign read FOverallVertAlign write SetOverallVertAlign default vaTop;
+    property OverallHorzAlign: TDHHorzAlign read FOverallHorzAlign write SetOverallHorzAlign default haLeft;
     property LineSpacing: Integer read FLineSpacing write SetLineSpacing default 0;
     property ListLevelPadding: Integer read FListLevelPadding write SetListLevelPadding default _DEF_LISTLEVELPADDING;
 
@@ -452,7 +459,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.2';
+  FAbout := 'Digao Dalpiaz / Version 2.3';
 
   FLines := TStringList.Create;
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full funcionally in Lazarus
@@ -585,11 +592,31 @@ begin
   FLines.Text := Value;
 end;
 
-procedure TDzHTMLText.SetLineVertAlign(const Value: TDHLineVertAlign);
+procedure TDzHTMLText.SetLineVertAlign(const Value: TDHVertAlign);
 begin
   if Value<>FLineVertAlign then
   begin
     FLineVertAlign := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetOverallVertAlign(const Value: TDHVertAlign);
+begin
+  if Value<>FOverallVertAlign then
+  begin
+    FOverallVertAlign := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetOverallHorzAlign(const Value: TDHHorzAlign);
+begin
+  if Value<>FOverallHorzAlign then
+  begin
+    FOverallHorzAlign := Value;
 
     BuildAndPaint;
   end;
@@ -1331,7 +1358,7 @@ type
     Group: Integer; //group number
     {The group is isolated at each line or tabulation to delimit text horizontal align area}
     FixedPos: TFixedPosition;
-    Align: TAlignment;
+    Align: TDHHorzAlign;
     LineSpace: Integer;
     Space: Boolean;
     Print: Boolean;
@@ -1360,7 +1387,7 @@ type
     Items: TListPreObj;
 
     BackColor: TColor;
-    Align: TAlignment;
+    Align: TDHHorzAlign;
     LineSpace: Integer;
 
     LBold: TListStack<Boolean>;
@@ -1371,7 +1398,7 @@ type
     LFontSize: TListStack<Integer>;
     LFontColor: TListStack<TColor>;
     LBackColor: TListStack<TColor>;
-    LAlign: TListStack<TAlignment>;
+    LAlign: TListStack<TDHHorzAlign>;
     LLineSpace: TListStack<Integer>;
     LHTMLList: TObjectListStack<THTMLList>;
     LSpoilerDet: THTMLSpoilerDetList;
@@ -1398,8 +1425,10 @@ type
     procedure DoTab(T: TToken);
     procedure DoBreak;
 
-    procedure Realign;
+    procedure DefineVisualRect;
     procedure Publish;
+
+    procedure CheckAlign(V: TPreObj_Visual);
   end;
 
 procedure TBuilder.ProcessTokens;
@@ -1408,7 +1437,7 @@ begin
   P := TTokensProcess.Create(Self);
   try
     P.Execute;
-    P.Realign;
+    P.DefineVisualRect;
     P.Publish;
   finally
     P.Free;
@@ -1425,7 +1454,7 @@ begin
   C.Font.Assign(Lb.Font);
 
   BackColor := clNone;
-  Align := taLeftJustify;
+  Align := haLeft;
   LineSpace := Lb.FLineSpacing;
 
   Items := TListPreObj.Create;
@@ -1440,7 +1469,7 @@ begin
   LFontSize := TListStack<Integer>.Create;
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
-  LAlign := TListStack<TAlignment>.Create;
+  LAlign := TListStack<TDHHorzAlign>.Create;
   LLineSpace := TListStack<Integer>.Create;
 
   LHTMLList := TObjectListStack<THTMLList>.Create;
@@ -1562,9 +1591,9 @@ end;
 procedure TTokensProcess.DoAlignment(T: TToken);
 begin
   case T.Kind of
-    ttAlignLeft: Align := taLeftJustify;
-    ttAlignCenter: Align := taCenter;
-    ttAlignRight: Align := taRightJustify;
+    ttAlignLeft: Align := haLeft;
+    ttAlignCenter: Align := haCenter;
+    ttAlignRight: Align := haRight;
   end;
   LAlign.AddOrDel(T, Align);
   Align := LAlign.Last;
@@ -1773,7 +1802,7 @@ end;
 
 //
 
-procedure TTokensProcess.Realign;
+procedure TTokensProcess.DefineVisualRect;
 type TSizes = record
   LineHeight, LineSpace, OverallWidth, OverallHeight: Integer;
 end;
@@ -1954,12 +1983,89 @@ begin
   Lb.FLineCount := LineCount;
 end;
 
+procedure TTokensProcess.CheckAlign(V: TPreObj_Visual);
+type
+  TFuncAlignResult = record
+    Outside, Inside: Integer;
+  end;
+
+  function funcAlignHorz: TFuncAlignResult;
+  var
+    B: TGroupBound;
+    GrpLim: Integer;
+  begin
+    B := LGroupBound[V.Group];
+    if B.Limit = -1 then
+    begin //group has no limit
+      if Lb.FAutoWidth or (Lb.FOverallHorzAlign in [haCenter, haRight]) then
+        GrpLim := Builder.CalcWidth
+      else
+        GrpLim := Lb.Width;
+    end
+      else GrpLim := B.Limit;
+
+    Result.Outside := GrpLim;
+    Result.Inside := B.Right;
+  end;
+
+  function funcAlignVert: TFuncAlignResult;
+  begin
+    Result.Outside := LLineInfo[V.Line].Height;
+    Result.Inside := V.Visual.Rect.Height;
+  end;
+
+  function funcOverallAlignHorz: TFuncAlignResult;
+  begin
+    Result.Outside := Lb.Width;
+    Result.Inside := Builder.CalcWidth;
+  end;
+
+  function funcOverallAlignVert: TFuncAlignResult;
+  begin
+    Result.Outside := Lb.Height;
+    Result.Inside := Builder.CalcHeight;
+  end;
+
+  procedure Check(fnIndex: Byte; horz: Boolean; prop: Variant);
+  var
+    R: TFuncAlignResult;
+    P: TPoint;
+    Offset: Integer;
+  begin
+    if prop>0 then //center or right
+    begin
+      case fnIndex of
+        0: R := funcAlignHorz;
+        1: R := funcAlignVert;
+        2: R := funcOverallAlignHorz;
+        3: R := funcOverallAlignVert;
+      end;
+
+      Offset := R.Outside - R.Inside;
+      if prop=1 then Offset := Offset div 2; //center
+
+      P := TPoint.Create(0, 0);
+      if horz then
+        P.X := Offset
+      else
+        P.Y := Offset;
+
+      V.Visual.Rect.Offset(P);
+    end;
+  end;
+
+begin
+  Check(0, True, V.Align);
+  Check(1, False, Lb.FLineVertAlign);
+
+  Check(2, True, Lb.FOverallHorzAlign);
+  Check(3, False, Lb.FOverallVertAlign);
+end;
+
 procedure TTokensProcess.Publish;
 var
   Z: TPreObj;
   V: TPreObj_Visual;
-  B: TGroupBound;
-  Offset, GrpLim: Integer;
 begin
   for Z in Items do
   begin
@@ -1967,30 +2073,7 @@ begin
     V := TPreObj_Visual(Z);
     if not V.Print then Continue;
 
-    //horizontal align
-    if V.Align in [taCenter, taRightJustify] then
-    begin
-      B := LGroupBound[V.Group];
-      if B.Limit = -1 then
-      begin //group has no limit
-        if Lb.FAutoWidth then GrpLim := Builder.CalcWidth else GrpLim := Lb.Width;
-      end
-        else GrpLim := B.Limit;
-
-      Offset := GrpLim - B.Right;
-      if V.Align=taCenter then Offset := Offset div 2;
-
-      V.Visual.Rect.Offset(Offset, 0);
-    end;
-
-    //vertical align
-    if Lb.FLineVertAlign in [vaCenter, vaBottom] then
-    begin
-      Offset := LLineInfo[V.Line].Height - V.Visual.Rect.Height;
-      if Lb.FLineVertAlign=vaCenter then Offset := Offset div 2;
-
-      V.Visual.Rect.Offset(0, Offset);
-    end;
+    CheckAlign(V);
 
     Lb.LVisualItem.Add(V.Visual);
     V.Visual := nil;
