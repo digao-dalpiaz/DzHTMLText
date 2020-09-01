@@ -45,7 +45,7 @@
 
 - 07/31/2020 (Version 2.2)
 
-   - Add new tag `<LS>` for line spacing.
+   - Add a new tag `<LS>` for line spacing.
 
 - 07/30/2020 (Version 2.1)
 
@@ -130,11 +130,11 @@
 
    - Add BeginUpdate/EndUpdate feature.
    - Move Rebuild procedure to public session.
-   - Fix redundant call to rebuild on component bounds resized by auto properties.
+   - Fix redundant call to rebuild on component bounds resized by auto-properties.
 
 - 02/15/2020
 
-   - Add line vertical align property.
+   - Add line vertical-align property.
    - Add image support, based on ImageList. :art:
 
 - 06/03/2019
@@ -147,11 +147,11 @@
 
 - 02/11/2019
 
-   - Include auto install app
+   - Include auto-install app
 
 - 02/08/2019
 
-   - Component renamed. Please full uninstall previous version before install this version. :warning:
+   - Component renamed. Please fully uninstall the previous version before installing this version. :warning:
    
       *The component was renamed because of other commercial component conflict.*
 
@@ -202,9 +202,9 @@ Here are all possible tags you can use in text:
 
 ## Installing
 
-> If you are using Lazarus: go to Package menu; Open Package File (.lpk); locate LazDzHTMLText.lpk; open the package; Compile it and Install it.
+> If you are using Lazarus: go to the Package menu; Open Package File (.lpk); locate LazDzHTMLText.lpk; open the package; Compile it and Install it.
 
-### Auto install
+### Autoinstall
 
 Close Delphi IDE and run **CompInstall.exe** app to auto install component into Delphi.
 
@@ -489,7 +489,7 @@ Message Dialog Example:
 
 ## Donate
 
-This project has been developed by several years, and I am trying to continuously updating it. To do that, I need to stop another projects, to make time.
+This project has been developed by several years, and I am trying to continuously updating it. To do that, I need to stop other projects, to make time.
 
 If you like this work and it's useful to you, consider to contribute, so I can spend more time to enhance the code and functionalities.
 
