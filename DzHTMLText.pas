@@ -10,7 +10,12 @@ Please, read the documentation at GitHub link.
 
 unit DzHTMLText;
 
-{$IFDEF FPC}{$mode delphi}{$ENDIF}
+{$IFDEF FPC}
+{$mode delphi}
+{$WARN 6058 off : Call to subroutine "$1" marked as inline is not inlined}
+{$WARN 3175 off : Some fields coming before "$1" were not initialized}
+{$WARN 3177 off : Some fields coming after "$1" were not initialized}
+{$ENDIF}
 
 interface
 

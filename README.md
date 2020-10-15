@@ -29,6 +29,10 @@
 
 ## What's New
 
+- 10/14/2020
+
+   - Removed Lazarus warnings.
+
 - 08/30/2020 (Version 2.3)
 
    - Included overall align properties.

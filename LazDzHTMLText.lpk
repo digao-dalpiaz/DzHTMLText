@@ -8,8 +8,13 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
+      <Other>
+        <CompilerMessages>
+          <IgnoredMessages idx3124="True" idx3123="True"/>
+        </CompilerMessages>
+      </Other>
     </CompilerOptions>
     <Files Count="1">
       <Item1>
