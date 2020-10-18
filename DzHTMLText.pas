@@ -239,6 +239,8 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
   public
+    const Version = 204;
+
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
@@ -464,7 +466,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.3';
+  FAbout := 'Digao Dalpiaz / Version ' + FormatFloat('0.00', Version/100, TFormatSettings.Invariant);
 
   FLines := TStringList.Create;
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full funcionally in Lazarus

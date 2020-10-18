@@ -29,6 +29,10 @@
 
 ## What's New
 
+- 10/18/2020 (Version 2.04 *changed version format*)
+
+   - Since the Dam component depends on this component and it needs to know its version, an internal version constant has been added, and the format of About property has been changed from "0.0" to "0.00", where the previous version was 2.3 and now the version is 2.04.
+
 - 10/14/2020
 
    - Removed Lazarus warnings.
