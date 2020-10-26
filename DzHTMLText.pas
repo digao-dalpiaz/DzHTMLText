@@ -28,6 +28,8 @@ uses
   System.Generics.Collections, Vcl.Graphics, System.Types
 {$ENDIF};
 
+const DZHTMLTEXT_INTERNAL_VERSION = 701; //Synchronizes TDam component
+
 const _DEF_LISTLEVELPADDING = 20;
 
 type
@@ -238,9 +240,7 @@ type
 
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
-  public
-    const Version = 205;
-
+  public  
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
@@ -466,10 +466,10 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version ' + FormatFloat('0.00', Version/100, TFormatSettings.Invariant);
+  FAbout := 'Digao Dalpiaz / Version 2.6';
 
   FLines := TStringList.Create;
-  //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full funcionally in Lazarus
+  //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full functional in Lazarus
   TStringList(FLines).OnChange := OnLinesChange;
 
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
