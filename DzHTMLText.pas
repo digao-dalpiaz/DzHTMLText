@@ -239,7 +239,7 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
   public
-    const Version = 204;
+    const Version = 205;
 
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;

@@ -29,7 +29,7 @@
 
 ## What's New
 
-- 10/26/2020
+- 10/26/2020 (Version 2.05)
 
    - Updated CompInstall to version 2.0 (now supports GitHub auto-update)
 
