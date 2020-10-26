@@ -85,7 +85,7 @@
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_Description>Digao Dalpiaz - HTML Label Component</DCC_Description>
+        <DCC_Description>Digao Dalpiaz - DzHTMLText component</DCC_Description>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
