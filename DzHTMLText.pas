@@ -466,7 +466,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.6';
+  FAbout := 'Digao Dalpiaz / Version 2.7';
 
   FLines := TStringList.Create;
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full functional in Lazarus
@@ -751,8 +751,8 @@ begin
       if W is TDHVisualItem_Word then
         with TDHVisualItem_Word(W) do
         begin
-          DrawText(B.Canvas.Handle,
-           {$IFDEF FPC}PChar({$ENDIF}Text{$IFDEF FPC}){$ENDIF},
+          DrawTextW(B.Canvas.Handle,
+           PWideChar({$IFDEF FPC}UnicodeString(Text){$ELSE}Text{$ENDIF}),
            -1, W.Rect, DT_NOCLIP or DT_NOPREFIX);
           {Using DrawText, because TextOut has no clip option, which causes
           bad overload of text when painting using background, oversizing the

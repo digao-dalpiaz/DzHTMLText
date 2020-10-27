@@ -29,6 +29,10 @@
 
 ## What's New
 
+- 10/27/2020 (Version 2.7)
+
+   - Fixed incorrect Unicode characters on Lazarus (issue #31).
+
 - 10/26/2020 (Version 2.6 *version format reverted to original*)
 
    - Implemented internal Version Control used by TDam component to synchronize TDzHTMLText dependency.
