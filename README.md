@@ -29,6 +29,12 @@
 
 ## What's New
 
+- 10/27/2020 (Version 2.8)
+
+   - Fixed previous Delphi versions (at least on XE2, XE3, XE4 and XE5) package tag. It was causing package compilation error.
+   - Fixed the use of System.ImageList unit in Demo project because it's only available from XE8.
+   - Fixed internal .ToString conversion because is not available at some Delphi versions.
+
 - 10/27/2020 (Version 2.7)
 
    - Fixed incorrect Unicode characters on Lazarus (issue #31).

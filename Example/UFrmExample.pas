@@ -2,8 +2,8 @@ unit UFrmExample;
 
 interface
 
-uses Vcl.Forms, System.ImageList, Vcl.ImgList, Vcl.Controls, System.Classes,
-  DzHTMLText,
+uses Vcl.Forms, Vcl.ImgList, Vcl.Controls, System.Classes, DzHTMLText,
+  {$IF CompilerVersion >= 29}System.ImageList, {$IFEND}
   //
   Vcl.Graphics;
 

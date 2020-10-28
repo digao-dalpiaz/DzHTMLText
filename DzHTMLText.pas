@@ -466,7 +466,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.7';
+  FAbout := 'Digao Dalpiaz / Version 2.8';
 
   FLines := TStringList.Create;
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full functional in Lazarus
@@ -1634,7 +1634,7 @@ begin
         Inc(THTMLList_Number(LHTMLList.Last).Position);
 
       if LHTMLList.Last is THTMLList_Bullet then T.Text := {$IFDEF FPC}'- '{$ELSE}'• '{$ENDIF} else
-      if LHTMLList.Last is THTMLList_Number then T.Text := THTMLList_Number(LHTMLList.Last).Position.ToString+'. ' else
+      if LHTMLList.Last is THTMLList_Number then T.Text := IntToStr(THTMLList_Number(LHTMLList.Last).Position)+'. ' else
         raise Exception.Create('Invalid object');
 
       FixedPos.Active := True;
