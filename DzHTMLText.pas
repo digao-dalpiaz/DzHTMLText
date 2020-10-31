@@ -336,6 +336,8 @@ uses
   System.SysUtils, System.UITypes, Winapi.Windows, Winapi.ShellAPI
 {$ENDIF};
 
+const STR_VERSION = '2.9';
+
 procedure Register;
 begin
   {$IFDEF FPC}{$I DzHTMLText.lrs}{$ENDIF}
@@ -466,7 +468,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
 
-  FAbout := 'Digao Dalpiaz / Version 2.8';
+  FAbout := 'Digao Dalpiaz / Version '+STR_VERSION;
 
   FLines := TStringList.Create;
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full functional in Lazarus
