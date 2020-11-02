@@ -29,6 +29,10 @@
 
 ## What's New
 
+- 11/02/2020 (Version 2.10)
+
+   - 
+
 - 10/31/2020 (Version 2.9)
 
    - Included Delphi 10.4 auto-install support.
@@ -221,6 +225,8 @@ Here are all possible tags you can use in text:
 <SPOILER:name></SPOILER> - Spoiler Title
 <SDETAIL:name></SDETAIL> - Spoiler Detail
 <LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
+<SUP></SUP> - Superscript
+<SUB></SUB> - Subscript
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
