@@ -1333,7 +1333,7 @@ begin
       Delete(Count-1);
   end else
   begin
-    Add(T(&Class.Create));
+    Add(&Class.Create as T);
   end;
 end;
 
