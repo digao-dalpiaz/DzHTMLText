@@ -781,6 +781,8 @@ begin
         begin
           B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
         end
+      else
+        raise Exception.Create('Invalid visual item object');
     end;
 
     Canvas.Draw(0, 0, B); //to reduce flickering
@@ -899,7 +901,8 @@ begin
           not TDHSpoiler(FSelectedLink).FExpanded;
 
         BuildAndPaint;
-      end;
+      end else
+        raise Exception.Create('Invalid link object');
     end;
   end;
 
@@ -1920,6 +1923,7 @@ var
     PV: TPreObj_Visual;
   begin
     EndPos := X + TPreObj_Visual(Z).Size.Width;
+    //if tags are used in the middle of a word, we need to check where text ends by breakable char
     for J := I+1 to Items.Count-1 do
     begin
       if not (Items[J] is TPreObj_Visual) then Break;
