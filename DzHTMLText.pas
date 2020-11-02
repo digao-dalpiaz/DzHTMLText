@@ -1203,9 +1203,9 @@ Block                                   Range       Comment
 CJK Unified Ideographs                  4E00-9FFF   Common
 CJK Unified Ideographs Extension A      3400-4DBF   Rare
 CJK Unified Ideographs Extension B      20000-2A6DF Rare, historic
-CJK Unified Ideographs Extension C      2A700–2B73F Rare, historic
-CJK Unified Ideographs Extension D      2B740–2B81F Uncommon, some in current use
-CJK Unified Ideographs Extension E      2B820–2CEAF Rare, historic
+CJK Unified Ideographs Extension C      2A700â€“2B73F Rare, historic
+CJK Unified Ideographs Extension D      2B740â€“2B81F Uncommon, some in current use
+CJK Unified Ideographs Extension E      2B820â€“2CEAF Rare, historic
 CJK Compatibility Ideographs            F900-FAFF   Duplicates, unifiable variants, corporate characters
 CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
 }
@@ -1663,7 +1663,7 @@ begin
       if LHTMLList.Last is THTMLList_Number then
         Inc(THTMLList_Number(LHTMLList.Last).Position);
 
-      if LHTMLList.Last is THTMLList_Bullet then T.Text := '• ' else
+      if LHTMLList.Last is THTMLList_Bullet then T.Text := 'â€¢ ' else
       if LHTMLList.Last is THTMLList_Number then T.Text := IntToStr(THTMLList_Number(LHTMLList.Last).Position)+'. ' else
         raise Exception.Create('Invalid object');
 
