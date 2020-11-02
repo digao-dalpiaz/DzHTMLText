@@ -332,7 +332,7 @@ implementation
 
 uses
 {$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, LResources
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, Math, LResources
 {$ELSE}
   System.SysUtils, System.Math, System.UITypes,
   Winapi.Windows, Winapi.ShellAPI
@@ -1333,7 +1333,7 @@ begin
       Delete(Count-1);
   end else
   begin
-    Add(&Class.Create);
+    Add(T(&Class.Create));
   end;
 end;
 
