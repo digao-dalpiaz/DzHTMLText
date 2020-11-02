@@ -1203,9 +1203,9 @@ Block                                   Range       Comment
 CJK Unified Ideographs                  4E00-9FFF   Common
 CJK Unified Ideographs Extension A      3400-4DBF   Rare
 CJK Unified Ideographs Extension B      20000-2A6DF Rare, historic
-CJK Unified Ideographs Extension C      2A700–2B73F Rare, historic
-CJK Unified Ideographs Extension D      2B740–2B81F Uncommon, some in current use
-CJK Unified Ideographs Extension E      2B820–2CEAF Rare, historic
+CJK Unified Ideographs Extension C      2A700-2B73F Rare, historic
+CJK Unified Ideographs Extension D      2B740-2B81F Uncommon, some in current use
+CJK Unified Ideographs Extension E      2B820-2CEAF Rare, historic
 CJK Compatibility Ideographs            F900-FAFF   Duplicates, unifiable variants, corporate characters
 CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
 }
@@ -1304,7 +1304,7 @@ end;
 type
   TObjectListStackItem = class(TObject);
   TObjectListStackItemClass = class of TObjectListStackItem;
-  TObjectListStack<T: TObjectListStackItem, constructor> = class(TObjectList<T>)
+  TObjectListStack<T: TObjectListStackItem{, constructor}> = class(TObjectList<T>)
     procedure AddOrDel(Token: TToken; &Class: TObjectListStackItemClass);
   end;
 
@@ -1391,7 +1391,7 @@ type
     LineSpace: Integer;
     Space: Boolean;
     Print: Boolean;
-    BreakableChar: Boolean;
+    BreakableChar: Boolean; //text with only one letter using breakable char
 
     Visual: TDHVisualItem;
     destructor Destroy; override;
@@ -1416,9 +1416,11 @@ type
 
     Items: TListPreObj;
 
-    BackColor: TColor;
-    Align: TDHHorzAlign;
-    LineSpace: Integer;
+    CurrentProps: record
+      BackColor: TColor;
+      Align: TDHHorzAlign;
+      LineSpace: Integer;
+    end;
 
     LBold: TListStack<Boolean>;
     LItalic: TListStack<Boolean>;
@@ -1487,9 +1489,9 @@ begin
   C := Lb.Canvas;
   C.Font.Assign(Lb.Font);
 
-  BackColor := clNone;
-  Align := haLeft;
-  LineSpace := Lb.FLineSpacing;
+  CurrentProps.BackColor := clNone;
+  CurrentProps.Align := haLeft;
+  CurrentProps.LineSpace := Lb.FLineSpacing;
 
   Items := TListPreObj.Create;
   LLineInfo := TObjectList<TLineInfo>.Create;
@@ -1517,9 +1519,9 @@ begin
   LFontName.Add(C.Font.Name);
   LFontSize.Add(C.Font.Size);
   LFontColor.Add(C.Font.Color);
-  LBackColor.Add(BackColor);
-  LAlign.Add(Align);
-  LLineSpace.Add(LineSpace);
+  LBackColor.Add(CurrentProps.BackColor);
+  LAlign.Add(CurrentProps.Align);
+  LLineSpace.Add(CurrentProps.LineSpace);
 end;
 
 destructor TTokensProcess.Destroy;
@@ -1591,6 +1593,7 @@ begin
     ttItalic: LItalic.AddOrDel(T, True);
     ttUnderline: LUnderline.AddOrDel(T, True);
     ttStrike: LStrike.AddOrDel(T, True);
+    else raise Exception.Create('Invalid typographical emphasis token kind');
   end;
 
   FS := [];
@@ -1622,24 +1625,26 @@ end;
 procedure TTokensProcess.DoBackColor(T: TToken);
 begin
   LBackColor.AddOrDel(T, T.Value);
-  BackColor := LBackColor.Last;
+  CurrentProps.BackColor := LBackColor.Last;
 end;
 
 procedure TTokensProcess.DoAlignment(T: TToken);
+var Align: TDHHorzAlign;
 begin
   case T.Kind of
     ttAlignLeft: Align := haLeft;
     ttAlignCenter: Align := haCenter;
     ttAlignRight: Align := haRight;
+    else raise Exception.Create('Invalid align token kind');
   end;
   LAlign.AddOrDel(T, Align);
-  Align := LAlign.Last;
+  CurrentProps.Align := LAlign.Last;
 end;
 
 procedure TTokensProcess.DoLineSpace(T: TToken);
 begin
   LLineSpace.AddOrDel(T, T.Value);
-  LineSpace := LLineSpace.Last;
+  CurrentProps.LineSpace := LLineSpace.Last;
 end;
 
 procedure TTokensProcess.DoTextAndRelated(T: TToken);
@@ -1653,7 +1658,7 @@ begin
   FillMemory(@FixedPos, SizeOf(FixedPos), 0);
 
   case T.Kind of
-    ttSpace: T.Text := ' ';
+    //ttSpace: T.Text := ' ';
     ttInvalid: T.Text := '<?>';
     ttListItem:
     begin
@@ -1665,7 +1670,7 @@ begin
 
       if LHTMLList.Last is THTMLList_Bullet then T.Text := '• ' else
       if LHTMLList.Last is THTMLList_Number then T.Text := IntToStr(THTMLList_Number(LHTMLList.Last).Position)+'. ' else
-        raise Exception.Create('Invalid object');
+        raise Exception.Create('Invalid HTML List object');
 
       FixedPos.Active := True;
       FixedPos.Left := LHTMLList.Count * Lb.FListLevelPadding;
@@ -1715,13 +1720,13 @@ begin
     end;
   end;
 
-  W.BColor := BackColor;
+  W.BColor := CurrentProps.BackColor;
   W.Link := CurrentLink;
 
   Z := TPreObj_Visual.Create;
   Z.Size := Ex;
-  Z.Align := Align;
-  Z.LineSpace := LineSpace;
+  Z.Align := CurrentProps.Align;
+  Z.LineSpace := CurrentProps.LineSpace;
   Z.Space := (T.Kind=ttSpace);
   Z.BreakableChar := (T.Kind=ttText) and (T.Value=INT_BREAKABLE_CHAR);
   Z.FixedPos := FixedPos;
@@ -1795,7 +1800,7 @@ begin
   case T.Kind of
     ttBulletList: &Class := THTMLList_Bullet;
     ttNumberList: &Class := THTMLList_Number;
-    else raise Exception.Create('Invalid token kind');
+    else raise Exception.Create('Invalid HTML List token kind');
   end;
 
   LHTMLList.AddOrDel(T, &Class);
@@ -1808,7 +1813,7 @@ begin
   case T.Kind of
     ttSuperscript: &Class := THTMLSupTag;
     ttSubscript: &Class := THTMLSubTag;
-    else raise Exception.Create('Invalid token kind');
+    else raise Exception.Create('Invalid sup/sub token kind');
   end;
 
   LSupAndSubScript.AddOrDel(T, &Class);
