@@ -1406,7 +1406,7 @@ type
     Space: Boolean;
     Print: Boolean;
     BreakableChar: Boolean; //text with only one letter using breakable char
-    BreakChecked: Boolean; //if already checked for break line behavior
+    BreakCheckDone: Boolean; //if already checked for break line behavior
 
     Visual: TDHVisualItem;
     destructor Destroy; override;
@@ -1934,7 +1934,7 @@ var
   var EndPos, J: Integer;
     PV: TPreObj_Visual;
   begin
-    if TPreObj_Visual(Z).BreakChecked then Exit(False); //avoid re-break continuous text
+    if TPreObj_Visual(Z).BreakCheckDone then Exit(False); //avoid re-break continuous text
 
     EndPos := X + TPreObj_Visual(Z).Size.Width;
     //if tags are used in the middle of a word, we need to check where text ends by breakable char
@@ -1944,7 +1944,7 @@ var
       PV := TPreObj_Visual(Items[J]);
       if PV.Space or PV.BreakableChar then Break;
       Inc(EndPos, PV.Size.Width);
-      PV.BreakChecked := True;
+      PV.BreakCheckDone := True;
     end;
 
     if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
