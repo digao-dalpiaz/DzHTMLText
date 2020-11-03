@@ -1934,7 +1934,7 @@ var
   var EndPos, J: Integer;
     PV: TPreObj_Visual;
   begin
-    if TPreObj_Visual(Z).BreakChecked then Exit(False);
+    if TPreObj_Visual(Z).BreakChecked then Exit(False); //avoid re-break continuous text
 
     EndPos := X + TPreObj_Visual(Z).Size.Width;
     //if tags are used in the middle of a word, we need to check where text ends by breakable char
@@ -2048,7 +2048,7 @@ begin
     end;
 
     if (Z is TPreObj_Break) or
-      ((Z is TPreObj_Visual) and (X>GetXbnd) and IsToWrapText) then
+      ((Z is TPreObj_Visual) {and (X>GetXbnd)} and IsToWrapText) then
     begin //LINE BREAK
       if Z is TPreObj_Break then
       begin
