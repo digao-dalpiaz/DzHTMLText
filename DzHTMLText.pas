@@ -355,7 +355,7 @@ type
 
 constructor EInternalExcept.Create(const Msg: String);
 begin
-  inherited Create('DzHTMLText internal error: '+Msg);
+  inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
 end;
 
 
