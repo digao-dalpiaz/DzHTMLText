@@ -348,13 +348,24 @@ end;
 
 //
 
+type
+  EInternalExcept = class(Exception)
+    constructor Create(const Msg: String);
+  end;
+
+constructor TInternalExcept.Create(const Msg: String);
+begin
+  inherited Create('DzHTMLText internal error: '+Msg);
+end;
+
+
 { TDHBaseLink }
 
 function TDHBaseLink.GetKind: TDHLinkKind;
 begin
   if Self is TDHLinkRef then Result := lkLinkRef else
   if Self is TDHSpoiler then Result := lkSpoiler else
-    raise Exception.Create('Invalid link kind');
+    raise EInternalExcept.Create('Invalid link kind');
 end;
 
 function TDHBaseLink.GetLinkRef: TDHLinkRef;
@@ -661,7 +672,7 @@ end;
 procedure TDzHTMLText.EndUpdate(ForceRepaint: Boolean = True);
 begin
   if UpdatingSemaphore=0 then
-    raise Exception.Create('There is no update started');
+    raise Exception.Create('There is no update started'); //standard exception
 
   Dec(UpdatingSemaphore);
   if ForceRepaint and (UpdatingSemaphore=0) then
@@ -782,7 +793,7 @@ begin
           B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
         end
       else
-        raise Exception.Create('Invalid visual item object');
+        raise EInternalExcept.Create('Invalid visual item object');
     end;
 
     Canvas.Draw(0, 0, B); //to reduce flickering
@@ -902,7 +913,7 @@ begin
 
         BuildAndPaint;
       end else
-        raise Exception.Create('Invalid link object');
+        raise EInternalExcept.Create('Invalid link object');
     end;
   end;
 
@@ -1395,6 +1406,7 @@ type
     Space: Boolean;
     Print: Boolean;
     BreakableChar: Boolean; //text with only one letter using breakable char
+    BreakChecked: Boolean; //if already checked for break line behavior
 
     Visual: TDHVisualItem;
     destructor Destroy; override;
@@ -1596,7 +1608,7 @@ begin
     ttItalic: LItalic.AddOrDel(T, True);
     ttUnderline: LUnderline.AddOrDel(T, True);
     ttStrike: LStrike.AddOrDel(T, True);
-    else raise Exception.Create('Invalid typographical emphasis token kind');
+    else raise EInternalExcept.Create('Invalid typographical emphasis token kind');
   end;
 
   FS := [];
@@ -1638,7 +1650,7 @@ begin
     ttAlignLeft: Align := haLeft;
     ttAlignCenter: Align := haCenter;
     ttAlignRight: Align := haRight;
-    else raise Exception.Create('Invalid align token kind');
+    else raise EInternalExcept.Create('Invalid align token kind');
   end;
   LAlign.AddOrDel(T, Align);
   CurrentProps.Align := LAlign.Last;
@@ -1673,7 +1685,7 @@ begin
 
       if LHTMLList.Last is THTMLList_Bullet then T.Text := '• ' else
       if LHTMLList.Last is THTMLList_Number then T.Text := IntToStr(THTMLList_Number(LHTMLList.Last).Position)+'. ' else
-        raise Exception.Create('Invalid HTML List object');
+        raise EInternalExcept.Create('Invalid HTML List object');
 
       FixedPos.Active := True;
       FixedPos.Left := LHTMLList.Count * Lb.FListLevelPadding;
@@ -1761,7 +1773,7 @@ begin
 
     if Tag is THTMLSupTag then Y := 0 else
     if Tag is THTMLSubTag then Y := H - TextH else
-      raise Exception.Create('Invalid sup/sub object');
+      raise EInternalExcept.Create('Invalid sup/sub object');
 
     H := TextH;
     Inc(OuterY, Y);
@@ -1803,7 +1815,7 @@ begin
   case T.Kind of
     ttBulletList: &Class := THTMLList_Bullet;
     ttNumberList: &Class := THTMLList_Number;
-    else raise Exception.Create('Invalid HTML List token kind');
+    else raise EInternalExcept.Create('Invalid HTML List token kind');
   end;
 
   LHTMLList.AddOrDel(T, &Class);
@@ -1816,7 +1828,7 @@ begin
   case T.Kind of
     ttSuperscript: &Class := THTMLSupTag;
     ttSubscript: &Class := THTMLSubTag;
-    else raise Exception.Create('Invalid sup/sub token kind');
+    else raise EInternalExcept.Create('Invalid sup/sub token kind');
   end;
 
   LSupAndSubScript.AddOrDel(T, &Class);
@@ -1922,6 +1934,8 @@ var
   var EndPos, J: Integer;
     PV: TPreObj_Visual;
   begin
+    if TPreObj_Visual(Z).BreakChecked then Exit(False);
+
     EndPos := X + TPreObj_Visual(Z).Size.Width;
     //if tags are used in the middle of a word, we need to check where text ends by breakable char
     for J := I+1 to Items.Count-1 do
@@ -1930,6 +1944,7 @@ var
       PV := TPreObj_Visual(Items[J]);
       if PV.Space or PV.BreakableChar then Break;
       Inc(EndPos, PV.Size.Width);
+      PV.BreakChecked := True;
     end;
 
     if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
@@ -2058,7 +2073,7 @@ begin
     end;
 
     if not (Z is TPreObj_Visual) then
-      raise Exception.CreateFmt('%s internal error: unexpected object', [Lb.ClassName]);
+      raise EInternalExcept.Create('Unexpected object');
 
     V := TPreObj_Visual(Z);
 
