@@ -353,7 +353,7 @@ type
     constructor Create(const Msg: String);
   end;
 
-constructor TInternalExcept.Create(const Msg: String);
+constructor EInternalExcept.Create(const Msg: String);
 begin
   inherited Create('DzHTMLText internal error: '+Msg);
 end;
