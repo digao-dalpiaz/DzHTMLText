@@ -34,6 +34,7 @@
    - Implemented new `<sup>` and `<sub>` tags.
    - Fixed to not break line in the middle of a word when using tags inside the word.
    - Fixed Lazarus Bullet symbol.
+   - New internal exception class.
 
 - 10/31/2020 (Version 2.9)
 
