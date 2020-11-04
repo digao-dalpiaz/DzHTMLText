@@ -29,7 +29,7 @@
 
 ## What's New
 
-- 11/02/2020 (Version 2.10)
+- 11/03/2020 (Version 2.10)
 
    - Implemented new `<sup>` and `<sub>` tags.
    - Fixed to not break line in the middle of a word when using tags inside the word.
