@@ -1,4 +1,4 @@
-{------------------------------------------------------------------------------
+ï»¿{------------------------------------------------------------------------------
 TDzHTMLText component
 Developed by Rodrigo Depine Dalpiaz (digao dalpiaz)
 Label with formatting tags support
@@ -94,6 +94,7 @@ type
   private
     Text: String;
     Font: TFont;
+    YPos: Integer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -331,12 +332,13 @@ implementation
 
 uses
 {$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, LResources
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, Math, LResources
 {$ELSE}
-  System.SysUtils, System.UITypes, Winapi.Windows, Winapi.ShellAPI
+  System.SysUtils, System.Math, System.UITypes,
+  Winapi.Windows, Winapi.ShellAPI
 {$ENDIF};
 
-const STR_VERSION = '2.9';
+const STR_VERSION = '2.10';
 
 procedure Register;
 begin
@@ -346,13 +348,24 @@ end;
 
 //
 
+type
+  EInternalExcept = class(Exception)
+    constructor Create(const Msg: String);
+  end;
+
+constructor EInternalExcept.Create(const Msg: String);
+begin
+  inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
+end;
+
+
 { TDHBaseLink }
 
 function TDHBaseLink.GetKind: TDHLinkKind;
 begin
   if Self is TDHLinkRef then Result := lkLinkRef else
   if Self is TDHSpoiler then Result := lkSpoiler else
-    raise Exception.Create('Invalid link kind');
+    raise EInternalExcept.Create('Invalid link kind');
 end;
 
 function TDHBaseLink.GetLinkRef: TDHLinkRef;
@@ -659,7 +672,7 @@ end;
 procedure TDzHTMLText.EndUpdate(ForceRepaint: Boolean = True);
 begin
   if UpdatingSemaphore=0 then
-    raise Exception.Create('There is no update started');
+    raise Exception.Create('There is no update started'); //standard exception
 
   Dec(UpdatingSemaphore);
   if ForceRepaint and (UpdatingSemaphore=0) then
@@ -709,6 +722,7 @@ end;
 procedure TDzHTMLText.DoPaint;
 var W: TDHVisualItem;
     B: {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap;
+    R: TRect;
 begin
   //Using internal bitmap as a buffer to reduce flickering
   B := {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap.Create;
@@ -750,12 +764,17 @@ begin
           FStyleLinkNormal.SetPropsToCanvas(B.Canvas);
       end;
 
+      B.Canvas.FillRect(W.Rect);
+
       if W is TDHVisualItem_Word then
         with TDHVisualItem_Word(W) do
         begin
+          R := W.Rect;
+          R.Top := R.Top + YPos;
+
           DrawTextW(B.Canvas.Handle,
            PWideChar({$IFDEF FPC}UnicodeString(Text){$ELSE}Text{$ENDIF}),
-           -1, W.Rect, DT_NOCLIP or DT_NOPREFIX);
+           -1, R, DT_NOCLIP or DT_NOPREFIX);
           {Using DrawText, because TextOut has no clip option, which causes
           bad overload of text when painting using background, oversizing the
           text area wildly.}
@@ -764,7 +783,6 @@ begin
       if W is TDHVisualItem_Image then
         with TDHVisualItem_Image(W) do
         begin
-          B.Canvas.FillRect(W.Rect);
           if Assigned(FImages) then
             FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
         end
@@ -772,9 +790,10 @@ begin
       if W is TDHVisualItem_ImageResource then
         with TDHVisualItem_ImageResource(W) do
         begin
-          B.Canvas.FillRect(W.Rect);
           B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
         end
+      else
+        raise EInternalExcept.Create('Invalid visual item object');
     end;
 
     Canvas.Draw(0, 0, B); //to reduce flickering
@@ -893,7 +912,8 @@ begin
           not TDHSpoiler(FSelectedLink).FExpanded;
 
         BuildAndPaint;
-      end;
+      end else
+        raise EInternalExcept.Create('Invalid link object');
     end;
   end;
 
@@ -944,7 +964,8 @@ type
     ttBulletList, ttNumberList, ttListItem,
     ttFloat,
     ttSpoilerTitle, ttSpoilerDetail,
-    ttLineSpace);
+    ttLineSpace,
+    ttSuperscript, ttSubscript);
 
   TToken = class
     Kind: TTokenKind;
@@ -1067,7 +1088,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: String; var Valid: Boolean): Integer;
 end;
-const DEF_TOKENS: array[0..23] of TDefToken = (
+const DEF_TOKENS: array[0..25] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -1091,7 +1112,9 @@ const DEF_TOKENS: array[0..23] of TDefToken = (
   (Ident: 'FLOAT'; Kind: ttFloat; AllowPar: True), //Floating div
   (Ident: 'SPOILER'; Kind: ttSpoilerTitle; AllowPar: True),
   (Ident: 'SDETAIL'; Kind: ttSpoilerDetail; AllowPar: True),
-  (Ident: 'LS'; Kind: ttLineSpace; AllowPar: True; ProcValue: Tag_IntZeroBased_ProcValue)
+  (Ident: 'LS'; Kind: ttLineSpace; AllowPar: True; ProcValue: Tag_IntZeroBased_ProcValue),
+  (Ident: 'SUP'; Kind: ttSuperscript),
+  (Ident: 'SUB'; Kind: ttSubscript)
 );
 
 function TBuilder.ProcessTag(const Tag: String): Boolean;
@@ -1159,6 +1182,8 @@ begin
   end;
 end;
 
+const INT_BREAKABLE_CHAR = -1;
+
 type
   TCharUtils = class
     class function FindNextWordBreakChar(const A: String): Integer; inline;
@@ -1166,7 +1191,8 @@ type
   end;
 
 class function TCharUtils.FindNextWordBreakChar(const A: String): Integer;
-var I: Integer;
+var
+  I: Integer;
   C: Char;
 begin
   Result := 0;
@@ -1174,6 +1200,7 @@ begin
   for I := 1 to A.Length do
   begin
     C := A[I];
+
     if CharInSet(C, [' ','<','>','/','\']) or IsCJKChar(C) then
     begin // !!! should never find space or tags at first char
       Result := I;
@@ -1190,9 +1217,9 @@ Block                                   Range       Comment
 CJK Unified Ideographs                  4E00-9FFF   Common
 CJK Unified Ideographs Extension A      3400-4DBF   Rare
 CJK Unified Ideographs Extension B      20000-2A6DF Rare, historic
-CJK Unified Ideographs Extension C      2A700–2B73F Rare, historic
-CJK Unified Ideographs Extension D      2B740–2B81F Uncommon, some in current use
-CJK Unified Ideographs Extension E      2B820–2CEAF Rare, historic
+CJK Unified Ideographs Extension C      2A700-2B73F Rare, historic
+CJK Unified Ideographs Extension D      2B740-2B81F Uncommon, some in current use
+CJK Unified Ideographs Extension E      2B820-2CEAF Rare, historic
 CJK Compatibility Ideographs            F900-FAFF   Duplicates, unifiable variants, corporate characters
 CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
 }
@@ -1212,9 +1239,11 @@ CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
 end;
 
 procedure TBuilder.ReadTokens;
-var Text, A: String;
-    CharIni: Char;
-    I, Jump: Integer;
+var
+  Text, A: String;
+  CharIni: Char;
+  I, Jump: Integer;
+  BreakableChar: Boolean;
 begin
   Text := Lb.FLines.Text; //when is not empty, always comes with a final line break
 
@@ -1256,13 +1285,14 @@ begin
     end else
     begin //all the rest is text
       I := TCharUtils.FindNextWordBreakChar(A);
+      BreakableChar := (I=1);
       //when word break at first char, let add the char itself alone.
       //when word break at other next chars, consider until char before word-break char.
       if I>1 then Dec(I) else
         if I=0 then I := Length(A);
 
       A := Copy(A, 1, I);
-      AddToken(ttText, False, TDzHTMLText.UnescapeHTMLToText(A));
+      AddToken(ttText, False, TDzHTMLText.UnescapeHTMLToText(A), IfThen(BreakableChar, INT_BREAKABLE_CHAR));
       Jump := I;
     end;
 
@@ -1287,9 +1317,9 @@ end;
 
 type
   TObjectListStackItem = class(TObject);
-  TObjectListStack<T: TObjectListStackItem, constructor> = class(TObjectList<T>)
-    procedure DelLast;
-    function New: T;
+  TObjectListStackItemClass = class of TObjectListStackItem;
+  TObjectListStack<T: TObjectListStackItem{, constructor}> = class(TObjectList<T>)
+    procedure AddOrDel(Token: TToken; &Class: TObjectListStackItemClass);
   end;
 
   THTMLList = class(TObjectListStackItem);
@@ -1305,16 +1335,20 @@ type
     function IsAllOpened(Lb: TDzHTMLText): Boolean;
   end;
 
-function TObjectListStack<T>.New: T;
-begin
-  Result := T.Create;
-  Add(Result);
-end;
+  THTMLSupSubTag = class(TObjectListStackItem);
+  THTMLSupTag = class(THTMLSupSubTag);
+  THTMLSubTag = class(THTMLSupSubTag);
 
-procedure TObjectListStack<T>.DelLast;
+procedure TObjectListStack<T>.AddOrDel(Token: TToken; &Class: TObjectListStackItemClass);
 begin
-  if Count>0 then
-    Delete(Count-1);
+  if Token.TagClose then
+  begin
+    if (Count>0) and (Last is &Class) then
+      Delete(Count-1);
+  end else
+  begin
+    Add(&Class.Create as T);
+  end;
 end;
 
 function THTMLSpoilerDetList.IsAllOpened(Lb: TDzHTMLText): Boolean;
@@ -1371,6 +1405,8 @@ type
     LineSpace: Integer;
     Space: Boolean;
     Print: Boolean;
+    BreakableChar: Boolean; //text with only one letter using breakable char
+    BreakCheckDone: Boolean; //if already checked for break line behavior
 
     Visual: TDHVisualItem;
     destructor Destroy; override;
@@ -1395,9 +1431,11 @@ type
 
     Items: TListPreObj;
 
-    BackColor: TColor;
-    Align: TDHHorzAlign;
-    LineSpace: Integer;
+    CurrentProps: record
+      BackColor: TColor;
+      Align: TDHHorzAlign;
+      LineSpace: Integer;
+    end;
 
     LBold: TListStack<Boolean>;
     LItalic: TListStack<Boolean>;
@@ -1410,6 +1448,7 @@ type
     LAlign: TListStack<TDHHorzAlign>;
     LLineSpace: TListStack<Integer>;
     LHTMLList: TObjectListStack<THTMLList>;
+    LSupAndSubScript: TObjectListStack<THTMLSupSubTag>;
     LSpoilerDet: THTMLSpoilerDetList;
 
     CurrentLink: TDHBaseLink;
@@ -1423,6 +1462,7 @@ type
     procedure DoFontSize(T: TToken);
     procedure DoFontColor(T: TToken);
     procedure DoBackColor(T: TToken);
+    procedure DoSupOrSubScript(T: TToken);
     procedure DoAlignment(T: TToken);
     procedure DoLineSpace(T: TToken);
     procedure DoTextAndRelated(T: TToken);
@@ -1433,6 +1473,8 @@ type
     procedure DoSpoilerDetail(T: TToken);
     procedure DoTab(T: TToken);
     procedure DoBreak;
+
+    procedure CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
 
     procedure DefineVisualRect;
     procedure Publish;
@@ -1462,9 +1504,9 @@ begin
   C := Lb.Canvas;
   C.Font.Assign(Lb.Font);
 
-  BackColor := clNone;
-  Align := haLeft;
-  LineSpace := Lb.FLineSpacing;
+  CurrentProps.BackColor := clNone;
+  CurrentProps.Align := haLeft;
+  CurrentProps.LineSpace := Lb.FLineSpacing;
 
   Items := TListPreObj.Create;
   LLineInfo := TObjectList<TLineInfo>.Create;
@@ -1482,6 +1524,7 @@ begin
   LLineSpace := TListStack<Integer>.Create;
 
   LHTMLList := TObjectListStack<THTMLList>.Create;
+  LSupAndSubScript := TObjectListStack<THTMLSupSubTag>.Create;
   LSpoilerDet := THTMLSpoilerDetList.Create;
 
   vBool := fsBold in C.Font.Style; LBold.Add(vBool);
@@ -1491,9 +1534,9 @@ begin
   LFontName.Add(C.Font.Name);
   LFontSize.Add(C.Font.Size);
   LFontColor.Add(C.Font.Color);
-  LBackColor.Add(BackColor);
-  LAlign.Add(Align);
-  LLineSpace.Add(LineSpace);
+  LBackColor.Add(CurrentProps.BackColor);
+  LAlign.Add(CurrentProps.Align);
+  LLineSpace.Add(CurrentProps.LineSpace);
 end;
 
 destructor TTokensProcess.Destroy;
@@ -1514,6 +1557,7 @@ begin
   LLineSpace.Free;
 
   LHTMLList.Free;
+  LSupAndSubScript.Free;
   LSpoilerDet.Free;
   inherited;
 end;
@@ -1540,6 +1584,7 @@ begin
       ttFontSize: DoFontSize(T);
       ttFontColor: DoFontColor(T);
       ttBackColor: DoBackColor(T);
+      ttSuperscript, ttSubscript: DoSupOrSubScript(T);
       ttAlignLeft, ttAlignCenter, ttAlignRight: DoAlignment(T);
       ttLineSpace: DoLineSpace(T);
       ttText, ttSpace, ttInvalid, ttImage, ttImageResource, ttListItem: DoTextAndRelated(T);
@@ -1563,6 +1608,7 @@ begin
     ttItalic: LItalic.AddOrDel(T, True);
     ttUnderline: LUnderline.AddOrDel(T, True);
     ttStrike: LStrike.AddOrDel(T, True);
+    else raise EInternalExcept.Create('Invalid typographical emphasis token kind');
   end;
 
   FS := [];
@@ -1594,24 +1640,26 @@ end;
 procedure TTokensProcess.DoBackColor(T: TToken);
 begin
   LBackColor.AddOrDel(T, T.Value);
-  BackColor := LBackColor.Last;
+  CurrentProps.BackColor := LBackColor.Last;
 end;
 
 procedure TTokensProcess.DoAlignment(T: TToken);
+var Align: TDHHorzAlign;
 begin
   case T.Kind of
     ttAlignLeft: Align := haLeft;
     ttAlignCenter: Align := haCenter;
     ttAlignRight: Align := haRight;
+    else raise EInternalExcept.Create('Invalid align token kind');
   end;
   LAlign.AddOrDel(T, Align);
-  Align := LAlign.Last;
+  CurrentProps.Align := LAlign.Last;
 end;
 
 procedure TTokensProcess.DoLineSpace(T: TToken);
 begin
   LLineSpace.AddOrDel(T, T.Value);
-  LineSpace := LLineSpace.Last;
+  CurrentProps.LineSpace := LLineSpace.Last;
 end;
 
 procedure TTokensProcess.DoTextAndRelated(T: TToken);
@@ -1625,7 +1673,7 @@ begin
   FillMemory(@FixedPos, SizeOf(FixedPos), 0);
 
   case T.Kind of
-    ttSpace: T.Text := ' ';
+    //ttSpace: T.Text := ' ';
     ttInvalid: T.Text := '<?>';
     ttListItem:
     begin
@@ -1635,9 +1683,9 @@ begin
       if LHTMLList.Last is THTMLList_Number then
         Inc(THTMLList_Number(LHTMLList.Last).Position);
 
-      if LHTMLList.Last is THTMLList_Bullet then T.Text := {$IFDEF FPC}'- '{$ELSE}'• '{$ENDIF} else
+      if LHTMLList.Last is THTMLList_Bullet then T.Text := 'â€¢ ' else
       if LHTMLList.Last is THTMLList_Number then T.Text := IntToStr(THTMLList_Number(LHTMLList.Last).Position)+'. ' else
-        raise Exception.Create('Invalid object');
+        raise EInternalExcept.Create('Invalid HTML List object');
 
       FixedPos.Active := True;
       FixedPos.Left := LHTMLList.Count * Lb.FListLevelPadding;
@@ -1681,22 +1729,63 @@ begin
         Font.Assign(C.Font);
 
         Ex := C.TextExtent(Text);
+
+        CheckSupSubScript(TDHVisualItem_Word(W), Ex);
       end;
     end;
   end;
 
-  W.BColor := BackColor;
+  W.BColor := CurrentProps.BackColor;
   W.Link := CurrentLink;
 
   Z := TPreObj_Visual.Create;
   Z.Size := Ex;
-  Z.Align := Align;
-  Z.LineSpace := LineSpace;
-  Z.Space := T.Kind=ttSpace;
+  Z.Align := CurrentProps.Align;
+  Z.LineSpace := CurrentProps.LineSpace;
+  Z.Space := (T.Kind=ttSpace);
+  Z.BreakableChar := (T.Kind=ttText) and (T.Value=INT_BREAKABLE_CHAR);
   Z.FixedPos := FixedPos;
   Z.Visual := W;
 
   Items.Add(Z);
+end;
+
+procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
+var
+  OriginalFontSize: Integer;
+  I: Integer;
+  Tag: THTMLSupSubTag;
+  H, Y, TextH, OuterY: Integer;
+begin
+  if LSupAndSubScript.Count=0 then Exit;
+
+  OriginalFontSize := C.Font.Size;
+
+  H := Size.Height; //initial height
+  OuterY := 0;
+
+  for I := 0 to LSupAndSubScript.Count-1 do
+  begin
+    Tag := LSupAndSubScript[I];
+
+    C.Font.Size := Round(OriginalFontSize * Power(0.75, I+1));
+    TextH := C.TextHeight(' ');
+
+    if Tag is THTMLSupTag then Y := 0 else
+    if Tag is THTMLSubTag then Y := H - TextH else
+      raise EInternalExcept.Create('Invalid sup/sub object');
+
+    H := TextH;
+    Inc(OuterY, Y);
+  end;
+
+  //keep height but adjust new text width
+  Size.Width := C.TextWidth(W.Text);
+  W.Font.Size := C.Font.Size;
+  W.YPos := OuterY;
+
+  //restore canvas original font size
+  C.Font.Size := OriginalFontSize;
 end;
 
 procedure TTokensProcess.DoLink(T: TToken; I: Integer);
@@ -1720,20 +1809,29 @@ begin
 end;
 
 procedure TTokensProcess.DoLists(T: TToken);
+var
+  &Class: TObjectListStackItemClass;
 begin
-  if T.TagClose then
-  begin
-    if LHTMLList.Count>0 then
-      if ((T.Kind=ttBulletList) and (LHTMLList.Last is THTMLList_Bullet)) or
-         ((T.Kind=ttNumberList) and (LHTMLList.Last is THTMLList_Number)) then
-        LHTMLList.DelLast;
-  end else
-  begin
-    case T.Kind of
-      ttBulletList: LHTMLList.Add(THTMLList_Bullet.Create);
-      ttNumberList: LHTMLList.Add(THTMLList_Number.Create);
-    end;
+  case T.Kind of
+    ttBulletList: &Class := THTMLList_Bullet;
+    ttNumberList: &Class := THTMLList_Number;
+    else raise EInternalExcept.Create('Invalid HTML List token kind');
   end;
+
+  LHTMLList.AddOrDel(T, &Class);
+end;
+
+procedure TTokensProcess.DoSupOrSubScript(T: TToken);
+var
+  &Class: TObjectListStackItemClass;
+begin
+  case T.Kind of
+    ttSuperscript: &Class := THTMLSupTag;
+    ttSubscript: &Class := THTMLSubTag;
+    else raise EInternalExcept.Create('Invalid sup/sub token kind');
+  end;
+
+  LSupAndSubScript.AddOrDel(T, &Class);
 end;
 
 procedure TTokensProcess.DoFloat(T: TToken);
@@ -1780,16 +1878,10 @@ begin
 end;
 
 procedure TTokensProcess.DoSpoilerDetail(T: TToken);
-var
-  SpoilerDet: THTMLSpoilerDet;
 begin
-  if T.TagClose then
-    LSpoilerDet.DelLast
-  else
-  begin
-    SpoilerDet := LSpoilerDet.New;
-    SpoilerDet.Name := T.Text;
-  end;
+  LSpoilerDet.AddOrDel(T, THTMLSpoilerDet);
+  if not T.TagClose then
+    LSpoilerDet.Last.Name := T.Text;
 end;
 
 procedure TTokensProcess.DoTab(T: TToken);
@@ -1838,8 +1930,23 @@ var
     Result := FloatRect.Left + LastTabX;
   end;
 
-  function IsToWrapText(EndPos: Integer): Boolean;
+  function IsToWrapText: Boolean;
+  var EndPos, J: Integer;
+    PV: TPreObj_Visual;
   begin
+    if TPreObj_Visual(Z).BreakCheckDone then Exit(False); //avoid re-break continuous text
+
+    EndPos := X + TPreObj_Visual(Z).Size.Width;
+    //if tags are used in the middle of a word, we need to check where text ends by breakable char
+    for J := I+1 to Items.Count-1 do
+    begin
+      if not (Items[J] is TPreObj_Visual) then Break;
+      PV := TPreObj_Visual(Items[J]);
+      if PV.Space or PV.BreakableChar then Break;
+      Inc(EndPos, PV.Size.Width);
+      PV.BreakCheckDone := True;
+    end;
+
     if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
 
     Result :=
@@ -1941,7 +2048,7 @@ begin
     end;
 
     if (Z is TPreObj_Break) or
-      ((Z is TPreObj_Visual) and (X>GetXbnd) and IsToWrapText(X+TPreObj_Visual(Z).Size.Width)) then
+      ((Z is TPreObj_Visual) {and (X>GetXbnd)} and IsToWrapText) then
     begin //LINE BREAK
       if Z is TPreObj_Break then
       begin
@@ -1966,7 +2073,7 @@ begin
     end;
 
     if not (Z is TPreObj_Visual) then
-      raise Exception.CreateFmt('%s internal error: unexpected object', [Lb.ClassName]);
+      raise EInternalExcept.Create('Unexpected object');
 
     V := TPreObj_Visual(Z);
 

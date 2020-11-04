@@ -29,6 +29,13 @@
 
 ## What's New
 
+- 11/03/2020 (Version 2.10)
+
+   - Implemented new `<sup>` and `<sub>` tags.
+   - Fixed to not break line in the middle of a word when using tags inside the word.
+   - Fixed Lazarus Bullet symbol.
+   - New internal exception class.
+
 - 10/31/2020 (Version 2.9)
 
    - Included Delphi 10.4 auto-install support.
@@ -221,6 +228,8 @@ Here are all possible tags you can use in text:
 <SPOILER:name></SPOILER> - Spoiler Title
 <SDETAIL:name></SDETAIL> - Spoiler Detail
 <LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
+<SUP></SUP> - Superscript
+<SUB></SUB> - Subscript
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
