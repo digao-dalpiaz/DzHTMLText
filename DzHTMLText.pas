@@ -57,25 +57,25 @@ type
 
   TDHLinkRef = class(TDHBaseLink)
   private
-    FTarget: String;
-    FText: String;
+    FTarget: string;
+    FText: string;
   public
-    property Target: String read FTarget;
-    property Text: String read FText;
+    property Target: string read FTarget;
+    property Text: string read FText;
   end;
   TDHLinkRefList = class(TObjectList<TDHLinkRef>);
 
   TDHSpoiler = class(TDHBaseLink)
   private
-    FName: String;
+    FName: string;
     FExpanded: Boolean;
   public
-    property Name: String read FName;
+    property Name: string read FName;
     property Expanded: Boolean read FExpanded;
   end;
   TDHSpoilerList = class(TObjectList<TDHSpoiler>)
   public
-    function Find(const Name: String): TDHSpoiler;
+    function Find(const Name: string): TDHSpoiler;
   end;
 
   TDHVisualItem = class //represents each visual item printed to then canvas
@@ -92,7 +92,7 @@ type
 
   TDHVisualItem_Word = class(TDHVisualItem)
   private
-    Text: String;
+    Text: string;
     Font: TFont;
     YPos: Integer;
   public
@@ -108,7 +108,7 @@ type
   TDHVisualItem_ImageResource = class(TDHVisualItem)
   private
     Picture: TPicture;
-    procedure Load(Lb: TDzHTMLText; const ResourceName: String);
+    procedure Load(Lb: TDzHTMLText; const ResourceName: string);
   public
     constructor Create;
     destructor Destroy; override;
@@ -152,14 +152,14 @@ type
   TDHVertAlign = (vaTop, vaCenter, vaBottom);
   TDHHorzAlign = (haLeft, haCenter, haRight);
 
-  TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: String; Picture: TPicture; var Handled: Boolean) of object;
+  TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: string; Picture: TPicture; var Handled: Boolean) of object;
 
   TDHModifiedFlag = (mfBuild, mfPaint);
   TDHModifiedFlags = set of TDHModifiedFlag;
 
   TDzHTMLText = class(TGraphicControl)
   private
-    FAbout: String;
+    FAbout: string;
 
     LVisualItem: TDHVisualItemList; //visual item list to paint event
     LLinkRef: TDHLinkRefList; //list of links info
@@ -202,8 +202,8 @@ type
 
     procedure OnLinesChange(Sender: TObject);
     procedure SetLines(const Value: TStrings);
-    function GetText: String;
-    procedure SetText(const Value: String);
+    function GetText: string;
+    procedure SetText(const Value: string);
 
     procedure SetAutoHeight(const Value: Boolean);
     procedure SetAutoWidth(const Value: Boolean);
@@ -256,10 +256,10 @@ type
     procedure BeginUpdate;
     procedure EndUpdate(ForceRepaint: Boolean = True);
 
-    property Text: String read GetText write SetText;
+    property Text: string read GetText write SetText;
 
-    class function UnescapeHTMLToText(const aHTML: String): String;
-    class function EscapeTextToHTML(const aText: String): String;
+    class function UnescapeHTMLToText(const aHTML: string): string;
+    class function EscapeTextToHTML(const aText: string): string;
   published
     property Align;
     property Anchors;
@@ -323,7 +323,7 @@ type
     property LineSpacing: Integer read FLineSpacing write SetLineSpacing default 0;
     property ListLevelPadding: Integer read FListLevelPadding write SetListLevelPadding default _DEF_LISTLEVELPADDING;
 
-    property About: String read FAbout;
+    property About: string read FAbout;
   end;
 
 procedure Register;
@@ -350,10 +350,10 @@ end;
 
 type
   EInternalExcept = class(Exception)
-    constructor Create(const Msg: String);
+    constructor Create(const Msg: string);
   end;
 
-constructor EInternalExcept.Create(const Msg: String);
+constructor EInternalExcept.Create(const Msg: string);
 begin
   inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
 end;
@@ -386,7 +386,7 @@ end;
 
 { TDHSpoilerList }
 
-function TDHSpoilerList.Find(const Name: String): TDHSpoiler;
+function TDHSpoilerList.Find(const Name: string): TDHSpoiler;
 var DHSpoiler: TDHSpoiler;
 begin
   for DHSpoiler in Self do
@@ -423,7 +423,7 @@ begin
   inherited;
 end;
 
-procedure TDHVisualItem_ImageResource.Load(Lb: TDzHTMLText; const ResourceName: String);
+procedure TDHVisualItem_ImageResource.Load(Lb: TDzHTMLText; const ResourceName: string);
 type TPNG={$IFDEF FPC}TPortableNetworkGraphic{$ELSE}TPngImage{$ENDIF};
 var
   Handled: Boolean;
@@ -453,7 +453,7 @@ end;
 
 //
 
-class function TDzHTMLText.EscapeTextToHTML(const aText: String): String;
+class function TDzHTMLText.EscapeTextToHTML(const aText: string): string;
 begin
   Result := aText;
 
@@ -463,7 +463,7 @@ begin
   Result := StringReplace(Result, '>', '&gt;', [rfReplaceAll]);
 end;
 
-class function TDzHTMLText.UnescapeHTMLToText(const aHTML: String): String;
+class function TDzHTMLText.UnescapeHTMLToText(const aHTML: string): string;
 begin
   Result := aHTML;
 
@@ -603,13 +603,13 @@ begin
   FLines.Assign(Value);
 end;
 
-function TDzHTMLText.GetText: String;
+function TDzHTMLText.GetText: string;
 begin
   Result := FLines.Text;
   Result := Result.Substring(0, Result.Length-FLines.LineBreak.Length); //remove last line break
 end;
 
-procedure TDzHTMLText.SetText(const Value: String);
+procedure TDzHTMLText.SetText(const Value: string);
 begin
   FLines.Text := Value;
 end;
@@ -878,7 +878,7 @@ end;
 
 procedure TDzHTMLText.Click;
 var Handled: Boolean;
-  aTarget: String;
+  aTarget: string;
 begin
   if FIsLinkHover then
   begin
@@ -970,12 +970,12 @@ type
   TToken = class
     Kind: TTokenKind;
     TagClose: Boolean;
-    Text: String;
+    Text: string;
     Value: Integer;
   end;
 
   TListToken = class(TObjectList<TToken>)
-    function GetLinkText(IEnd: Integer): String;
+    function GetLinkText(IEnd: Integer): string;
   end;
 
   TBuilder = class
@@ -984,8 +984,8 @@ type
 
     CalcWidth, CalcHeight: Integer; //width and height to set at component when using auto
 
-    function ProcessTag(const Tag: String): Boolean;
-    procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: String = ''; aValue: Integer = 0);
+    function ProcessTag(const Tag: string): Boolean;
+    procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: Integer = 0);
 
     procedure ReadTokens; //create list of tokens
     procedure ProcessTokens; //create list of visual itens
@@ -1038,7 +1038,7 @@ end;
 
 //
 
-function ParamToColor(A: String): TColor;
+function ParamToColor(A: string): TColor;
 begin
   if A.StartsWith('$') then Insert('00', A, 2);
   {At HTML, is used Hexadecimal color code with 6 digits, the same used at
@@ -1052,7 +1052,7 @@ begin
   end;
 end;
 
-procedure TBuilder.AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: String = ''; aValue: Integer = 0);
+procedure TBuilder.AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: Integer = 0);
 var T: TToken;
 begin
   T := TToken.Create;
@@ -1063,30 +1063,30 @@ begin
   LToken.Add(T);
 end;
 
-function Tag_IntZeroBased_ProcValue(const Value: String; var Valid: Boolean): Integer;
+function Tag_IntZeroBased_ProcValue(const Value: string; var Valid: Boolean): Integer;
 begin
   Result := StrToIntDef(Value, -1);
   Valid := (Result>-1);
 end;
 
-function Tag_IntOneBased_ProcValue(const Value: String; var Valid: Boolean): Integer;
+function Tag_IntOneBased_ProcValue(const Value: string; var Valid: Boolean): Integer;
 begin
   Result := StrToIntDef(Value, 0);
   Valid := (Result>0);
 end;
 
-function Tag_Color_ProcValue(const Value: String; var Valid: Boolean): Integer;
+function Tag_Color_ProcValue(const Value: string; var Valid: Boolean): Integer;
 begin
   Result := ParamToColor(Value);
   Valid := (Result<>clNone);
 end;
 
 type TDefToken = record
-  Ident: String;
+  Ident: string;
   Kind: TTokenKind;
   Single: Boolean; //without close tag
   AllowPar, OptionalPar: Boolean;
-  ProcValue: function(const Value: String; var Valid: Boolean): Integer;
+  ProcValue: function(const Value: string; var Valid: Boolean): Integer;
 end;
 const DEF_TOKENS: array[0..25] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
@@ -1117,10 +1117,10 @@ const DEF_TOKENS: array[0..25] of TDefToken = (
   (Ident: 'SUB'; Kind: ttSubscript)
 );
 
-function TBuilder.ProcessTag(const Tag: String): Boolean;
+function TBuilder.ProcessTag(const Tag: string): Boolean;
 var TOff, TOn, HasPar, ValidPar: Boolean;
     Value: Integer;
-    A, Par: String;
+    A, Par: string;
     I: Integer;
     Def: TDefToken;
 begin
@@ -1186,11 +1186,11 @@ const INT_BREAKABLE_CHAR = -1;
 
 type
   TCharUtils = class
-    class function FindNextWordBreakChar(const A: String): Integer; inline;
+    class function FindNextWordBreakChar(const A: string): Integer; inline;
     class function IsCJKChar(const C: Char): Boolean; inline;
   end;
 
-class function TCharUtils.FindNextWordBreakChar(const A: String): Integer;
+class function TCharUtils.FindNextWordBreakChar(const A: string): Integer;
 var
   I: Integer;
   C: Char;
@@ -1240,7 +1240,7 @@ end;
 
 procedure TBuilder.ReadTokens;
 var
-  Text, A: String;
+  Text, A: string;
   CharIni: Char;
   I, Jump: Integer;
   BreakableChar: Boolean;
@@ -1329,7 +1329,7 @@ type
   end;
 
   THTMLSpoilerDet = class(TObjectListStackItem)
-    Name: String;
+    Name: string;
   end;
   THTMLSpoilerDetList = class(TObjectListStack<THTMLSpoilerDet>)
     function IsAllOpened(Lb: TDzHTMLText): Boolean;
@@ -1441,7 +1441,7 @@ type
     LItalic: TListStack<Boolean>;
     LUnderline: TListStack<Boolean>;
     LStrike: TListStack<Boolean>;
-    LFontName: TListStack<String>;
+    LFontName: TListStack<string>;
     LFontSize: TListStack<Integer>;
     LFontColor: TListStack<TColor>;
     LBackColor: TListStack<TColor>;
@@ -1516,7 +1516,7 @@ begin
   LItalic := TListStack<Boolean>.Create;
   LUnderline := TListStack<Boolean>.Create;
   LStrike := TListStack<Boolean>.Create;
-  LFontName := TListStack<String>.Create;
+  LFontName := TListStack<string>.Create;
   LFontSize := TListStack<Integer>.Create;
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
@@ -1836,7 +1836,7 @@ end;
 
 procedure TTokensProcess.DoFloat(T: TToken);
 var Z: TPreObj_Float;
-  Ar: TArray<String>;
+  Ar: TArray<string>;
 begin
   Z := TPreObj_Float.Create;
   if not T.TagClose then
@@ -2303,7 +2303,7 @@ end;
 
 { TListToken }
 
-function TListToken.GetLinkText(IEnd: Integer): String;
+function TListToken.GetLinkText(IEnd: Integer): string;
 var
   SB: TStringBuilder;
   I: Integer;
