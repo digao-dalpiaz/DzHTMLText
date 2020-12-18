@@ -338,7 +338,7 @@ uses
   Winapi.Windows, Winapi.ShellAPI
 {$ENDIF};
 
-const STR_VERSION = '2.10';
+const STR_VERSION = '2.11';
 
 procedure Register;
 begin

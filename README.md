@@ -30,6 +30,10 @@
 
 ## What's New
 
+- 12/18/2020 (Version 2.11)
+
+   - Updated Component Installer app (Fixed call to rsvars.bat when Delphi is installed in a path containing spaces characters).
+
 - 11/03/2020 (Version 2.10)
 
    - Implemented new `<sup>` and `<sub>` tags.
