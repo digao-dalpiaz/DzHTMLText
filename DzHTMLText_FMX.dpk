@@ -26,10 +26,10 @@ package DzHTMLText_FMX;
 {$IMAGEBASE $400000}
 {$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText component'}
 {$IMPLICITBUILD ON}
 
 requires
-  rtl,
   fmx;
 
 contains
