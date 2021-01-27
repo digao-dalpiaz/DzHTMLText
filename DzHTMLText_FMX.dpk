@@ -26,7 +26,7 @@ package DzHTMLText_FMX;
 {$IMAGEBASE $400000}
 {$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText component'}
+{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText component (FMX)'}
 {$IMPLICITBUILD ON}
 
 requires

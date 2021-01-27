@@ -93,6 +93,7 @@
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
+        <DCC_Description>Digao Dalpiaz - DzHTMLText component (FMX)</DCC_Description>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
