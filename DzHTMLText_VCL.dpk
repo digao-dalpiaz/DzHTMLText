@@ -1,4 +1,4 @@
-package DzHTMLText;
+package DzHTMLText_VCL;
 
 {$R *.res}
 {$R 'DzHTMLText.dcr'}
@@ -26,13 +26,13 @@ package DzHTMLText;
 {$IMAGEBASE $400000}
 {$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText component'}
+{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText component (VCL)'}
 {$IMPLICITBUILD ON}
 
 requires
   rtl,
-  vcl,
-  vclimg;
+  vclimg,
+  vcl;
 
 contains
   DzHTMLText in 'DzHTMLText.pas';
