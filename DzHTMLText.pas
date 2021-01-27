@@ -10,11 +10,9 @@ Please, read the documentation at GitHub link.
 
 unit DzHTMLText;
 
-//{$IF DECLARED(FireMonkeyVersion)}
-  {$DEFINE FMX}
-//{$ELSE}
-//  {$DEFINE VCL}
-//{$ENDIF}
+{$IFNDEF FMX}
+  {$DEFINE VCL}
+{$ENDIF}
 
 {$IFDEF FPC}
 {$mode delphi}
