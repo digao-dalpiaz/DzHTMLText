@@ -25,7 +25,6 @@ package DzHTMLText_FMX;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DEFINE RELEASE}
-{$DEFINE FMX}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'Digao Dalpiaz - DzHTMLText component (FMX)'}
 {$IMPLICITBUILD ON}
@@ -34,6 +33,6 @@ requires
   fmx;
 
 contains
-  DzHTMLText in 'DzHTMLText.pas';
+  FMX.DzHTMLText in 'FMX.DzHTMLText.pas';
 
 end.
