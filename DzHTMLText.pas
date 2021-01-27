@@ -10,6 +10,12 @@ Please, read the documentation at GitHub link.
 
 unit DzHTMLText;
 
+//{$IF DECLARED(FireMonkeyVersion)}
+  {$DEFINE FMX}
+//{$ELSE}
+//  {$DEFINE VCL}
+//{$ENDIF}
+
 {$IFDEF FPC}
 {$mode delphi}
 {$WARN 6058 off : Call to subroutine "$1" marked as inline is not inlined}
@@ -23,19 +29,38 @@ uses
 {$IFDEF FPC}
   Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf, ImgList
 {$ELSE}
-  Vcl.Controls, System.Classes, Winapi.Messages,
-  Vcl.ImgList, Vcl.Imaging.pngimage,
-  System.Generics.Collections, Vcl.Graphics, System.Types
+  System.Generics.Collections, System.Types, System.Classes,
+  {$IFDEF FMX}
+  FMX.Controls, FMX.StdCtrls, FMX.Graphics, FMX.MultiResBitmap, FMX.ImgList,
+  System.UITypes
+  {$ELSE}
+  Vcl.Controls, Vcl.Graphics, Vcl.ImgList, Vcl.Imaging.pngimage,
+  Winapi.Messages
+  {$ENDIF}
 {$ENDIF};
 
 const DZHTMLTEXT_INTERNAL_VERSION = 701; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
+{$IFDEF FMX}
+const clNone = TAlphaColors.Null;
+{$ENDIF}
+
 type
   {$IFDEF FPC}
   TObjectList<T: TObject> = class(TFPGObjectList<T>);
   TList<T> = class(TFPGList<T>);
+
+  TBitmap = Graphics.TBitmap;
+  {$ELSE}
+    {$IFDEF FMX}
+    TColor = TAlphaColor;
+    TBitmap = FMX.Graphics.TBitmap;
+    TPicture = FMX.Graphics.TBitmap;
+    {$ELSE}
+    TBitmap = Vcl.Graphics.TBitmap;
+    {$ENDIF}
   {$ENDIF}
 
   TDzHTMLText = class;
@@ -94,6 +119,9 @@ type
   private
     Text: string;
     Font: TFont;
+    {$IFDEF FMX}
+    FontColor: TColor;
+    {$ENDIF}
     YPos: Integer;
   public
     constructor Create;
@@ -157,7 +185,7 @@ type
   TDHModifiedFlag = (mfBuild, mfPaint);
   TDHModifiedFlags = set of TDHModifiedFlag;
 
-  TDzHTMLText = class(TGraphicControl)
+  TDzHTMLText = class({$IFDEF FMX}TPresentedTextControl{$ELSE}TGraphicControl{$ENDIF})
   private
     FAbout: string;
 
@@ -177,6 +205,11 @@ type
     FTextHeight: Integer; //read-only
 
     FStyleLinkNormal, FStyleLinkHover: TDHStyleLinkProp;
+
+    {$IFDEF FMX}
+    FColor: TColor;
+    FFontColor: TColor;
+    {$ENDIF}
 
     FImages: TCustomImageList;
 
@@ -203,7 +236,7 @@ type
     procedure OnLinesChange(Sender: TObject);
     procedure SetLines(const Value: TStrings);
     function GetText: string;
-    procedure SetText(const Value: string);
+    procedure SetText(const Value: string); {$IFDEF FMX}reintroduce;{$ENDIF}
 
     procedure SetAutoHeight(const Value: Boolean);
     procedure SetAutoWidth(const Value: Boolean);
@@ -212,7 +245,7 @@ type
     function GetStoredStyleLink(const Index: Integer): Boolean;
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
 
-    procedure DoPaint;
+    procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure BuildAndPaint; //rebuild and repaint
     procedure Modified(Flags: TDHModifiedFlags);
 
@@ -224,6 +257,16 @@ type
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
     procedure SetLineSpacing(const Value: Integer);
     procedure SetListLevelPadding(const Value: Integer);
+
+    function GetIntHeight: Integer; inline;
+    function GetIntWidth: Integer; inline;
+
+    {$IFDEF FMX}
+    procedure SetFontColor(const Value: TColor);
+    procedure SetColor(const Value: TColor);
+
+    procedure OnFontChanged(Sender: TObject);
+    {$ENDIF}
     //procedure SetTransparent(const Value: Boolean);
   protected
     procedure Loaded; override;
@@ -231,17 +274,26 @@ type
     procedure Click; override;
     procedure Resize; override;
 
-    procedure CMColorchanged(var Message: TMessage); message CM_COLORCHANGED;
-    procedure CMFontchanged(var Message: TMessage); message CM_FONTCHANGED;
+    {$IFDEF FMX}
+    procedure MouseMove(Shift: TShiftState; X: Single; Y: Single); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Single;
+      Y: Single); override;
+
+    procedure DoMouseLeave; override;
+    {$ELSE}
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
-    procedure CMMouseleave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer;
       Y: Integer); override;
+
+    procedure CMColorchanged(var Message: TMessage); message CM_COLORCHANGED;
+    procedure CMFontchanged(var Message: TMessage); message CM_FONTCHANGED;
+    procedure CMMouseleave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure CMCursorchanged(var Message: TMessage); message CM_CURSORCHANGED;
+    {$ENDIF}
 
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
-  public  
+  public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
@@ -253,8 +305,8 @@ type
 
     procedure Rebuild; //rebuild words
 
-    procedure BeginUpdate;
-    procedure EndUpdate(ForceRepaint: Boolean = True);
+    procedure BeginUpdate; {$IFDEF FMX}reintroduce;{$ENDIF}
+    procedure EndUpdate(ForceRepaint: Boolean = True); {$IFDEF FMX}reintroduce;{$ENDIF}
 
     property Text: string read GetText write SetText;
 
@@ -263,10 +315,7 @@ type
   published
     property Align;
     property Anchors;
-    property Color;
     property Font;
-    property ParentColor;
-    property ParentFont;
     property ParentShowHint;
     property PopupMenu;
     property ShowHint;
@@ -276,21 +325,64 @@ type
     property OnDblClick;
     property OnDragDrop;
     property OnDragOver;
-    property OnEndDock;
-    property OnEndDrag;
 
-    {$IFDEF DCC}
-    property OnGesture;
-    property OnMouseActivate;
-    {$ENDIF}
     property OnMouseDown;
     property OnMouseEnter;
     property OnMouseLeave;
     property OnMouseMove;
     property OnMouseUp;
     property OnResize;
+
+    {$IFDEF DCC}
+    property OnGesture;
+    {$ENDIF}
+
+    {$IFDEF FMX}
+    property Action;
+    property AutoTranslate default True;
+    property ClipChildren;
+    property ClipParent;
+    property ControlType;
+    property Cursor;
+    property DragMode;
+    property Enabled;
+    property EnableDragHighlight;
+    property HelpContext;
+    property HelpKeyword;
+    property HelpType;
+    property Hint;
+    property HitTest;
+    property Locked;
+    property Margins;
+    property Opacity;
+    property Padding;
+    property RotationAngle;
+    property RotationCenter;
+    property Scale;
+    property StyledSettings;
+    property StyleLookup;
+    property TabOrder;
+    property TabStop;
+    property TouchTargetExpansion;
+
+    property Width;
+    property Height;
+    property Size;
+    property Position;
+
+    property Color: TColor read FColor write SetColor default clNone;
+    property FontColor: TColor read FFontColor write SetFontColor default TAlphaColors.Black;
+    {$ELSE}
+    property Color;
+    property ParentColor;
+    property ParentFont;
     property OnStartDock;
     property OnStartDrag;
+    property OnEndDock;
+    property OnEndDrag;
+      {$IFDEF DCC}property OnMouseActivate;{$ENDIF}
+    {$ENDIF}
+
 
     property Lines: TStrings read FLines write SetLines;
     //property Transparent: Boolean read FTransparent write SetTransparent default False;
@@ -334,8 +426,12 @@ uses
 {$IFDEF FPC}
   {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, Math, LResources
 {$ELSE}
-  System.SysUtils, System.Math, System.UITypes,
-  Winapi.Windows, Winapi.ShellAPI
+  System.SysUtils, System.Math,
+  {$IFDEF FMX}
+  FMX.Types, System.UIConsts
+  {$ELSE}
+  System.UITypes, Winapi.Windows, Winapi.ShellAPI
+  {$ENDIF}
 {$ENDIF};
 
 const STR_VERSION = '2.11';
@@ -358,6 +454,10 @@ begin
   inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
 end;
 
+function ToInt(V: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF}): Integer; inline;
+begin
+  Result := {$IFDEF FMX}Trunc(V){$ELSE}V{$ENDIF};
+end;
 
 { TDHBaseLink }
 
@@ -424,10 +524,16 @@ begin
 end;
 
 procedure TDHVisualItem_ImageResource.Load(Lb: TDzHTMLText; const ResourceName: string);
+{$IFDEF VCL}
 type TPNG={$IFDEF FPC}TPortableNetworkGraphic{$ELSE}TPngImage{$ENDIF};
+{$ENDIF}
 var
   Handled: Boolean;
+{$IFDEF FMX}
+  Res: TResourceStream;
+{$ELSE}
   PNG: TPNG;
+{$ENDIF}
 begin
   if csDesigning in Lb.ComponentState then Exit;
 
@@ -437,6 +543,18 @@ begin
 
   if not Handled then
   begin
+    {$IFDEF FMX}
+    try
+      Res := TResourceStream.Create(HInstance, ResourceName, RT_RCDATA);
+      try
+        Picture.LoadFromStream(Res);
+      finally
+        Res.Free;
+      end;
+    except
+      //resource not found or invalid
+    end;
+    {$ELSE}
     PNG := TPNG.Create;
     try
       try
@@ -448,6 +566,7 @@ begin
     finally
       PNG.Free;
     end;
+    {$ENDIF}
   end;
 end;
 
@@ -478,8 +597,10 @@ end;
 constructor TDzHTMLText.Create(AOwner: TComponent);
 begin
   inherited;
+  {$IFDEF VCL}
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
+  {$ENDIF}
 
   FAbout := 'Digao Dalpiaz / Version '+STR_VERSION;
 
@@ -495,6 +616,13 @@ begin
 
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
+
+  {$IFDEF FMX}
+  FColor := clNone;
+  FFontColor := TAlphaColors.Black;
+
+  Font.OnChanged := OnFontChanged;
+  {$ENDIF}
 
   DefaultCursor := Cursor;
 
@@ -553,7 +681,8 @@ begin
   if UpdatingSemaphore>0 then Exit;
 
   if mfBuild in Flags then Rebuild;
-  if mfPaint in Flags then Invalidate;
+  if mfPaint in Flags then
+    {$IFDEF FMX}InvalidateRect(LocalRect){$ELSE}Invalidate{$ENDIF};
 end;
 
 procedure TDzHTMLText.BuildAndPaint;
@@ -590,6 +719,15 @@ begin
 
     Modified([mfBuild]);
   end;
+end;
+
+function TDzHTMLText.GetIntWidth: Integer;
+begin
+  Result := ToInt(Width);
+end;
+function TDzHTMLText.GetIntHeight: Integer;
+begin
+  Result := ToInt(Height);
 end;
 
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
@@ -689,6 +827,7 @@ begin
   end;
 end;}
 
+{$IFDEF VCL}
 procedure TDzHTMLText.CMColorchanged(var Message: TMessage);
 begin
   {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
@@ -700,6 +839,34 @@ begin
   {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
   BuildAndPaint;
 end;
+{$ENDIF}
+
+{$IFDEF FMX}
+procedure TDzHTMLText.SetColor(const Value: TColor);
+begin
+  if Value<>FColor then
+  begin
+    FColor := Value;
+
+    Modified([mfPaint]);
+  end;
+end;
+
+procedure TDzHTMLText.SetFontColor(const Value: TColor);
+begin
+  if Value<>FFontColor then
+  begin
+    FFontColor := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.OnFontChanged(Sender: TObject);
+begin
+  BuildAndPaint;
+end;
+{$ENDIF}
 
 procedure TDzHTMLText.Resize;
 begin
@@ -720,88 +887,132 @@ begin
 end;
 
 procedure TDzHTMLText.DoPaint;
-var W: TDHVisualItem;
-    B: {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap;
-    R: TRect;
+var
+  W: TDHVisualItem;
+  B: TBitmap;
+  R: TRect;
 begin
   //Using internal bitmap as a buffer to reduce flickering
-  B := {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap.Create;
+  B := TBitmap.Create;
   try
-    B.SetSize(Width, Height);
-
-    //if not FTransparent then
-    //begin
-      {$IFDEF FPC}
-      if (Color=clDefault) and (ParentColor) then B.Canvas.Brush.Color := GetColorresolvingParent else
-      {$ENDIF}
-      B.Canvas.Brush.Color := Color;
-      B.Canvas.FillRect(ClientRect);
-    //end;
-
-    if csDesigning in ComponentState then
-    begin
-      B.Canvas.Pen.Style := psDot;
-      B.Canvas.Pen.Color := clBtnShadow;
-      B.Canvas.Brush.Style := bsClear;
-      B.Canvas.Rectangle(ClientRect);
-    end;
-
-    for W in LVisualItem do
-    begin
-      if W is TDHVisualItem_Word then
-        B.Canvas.Font.Assign(TDHVisualItem_Word(W).Font);
-
-      if W.BColor<>clNone then
-        B.Canvas.Brush.Color := W.BColor
-      else
-        B.Canvas.Brush.Style := bsClear;
-
-      if Assigned(W.Link) then
+    B.SetSize(ToInt(Width), ToInt(Height));
+    {$IFDEF FMX}
+    if B.Canvas.BeginScene then
+    try
+    {$ENDIF}
+      if Color<>clNone then
       begin
-        if W.Hover then //selected
-          FStyleLinkHover.SetPropsToCanvas(B.Canvas)
-        else
-          FStyleLinkNormal.SetPropsToCanvas(B.Canvas);
+        {$IFDEF FPC}
+        if (Color=clDefault) and (ParentColor) then B.Canvas.Brush.Color := GetColorresolvingParent else
+        {$ENDIF}
+
+        //draw background color
+        {$IFDEF FMX}
+        B.Canvas.Fill.Color := FColor;
+        B.Canvas.FillRect(LocalRect, 0, 0, [], 1);
+        {$ELSE}
+        B.Canvas.Brush.Color := Color;
+        B.Canvas.FillRect(ClientRect);
+        {$ENDIF}
       end;
 
-      B.Canvas.FillRect(W.Rect);
+      if csDesigning in ComponentState then
+      begin
+        {$IFDEF FMX}
+        B.Canvas.Stroke.Color := TAlphaColors.Gray;
+        B.Canvas.DrawRect(LocalRect, 0, 0, [], 1);
+        {$ELSE}
+        B.Canvas.Pen.Style := psDot;
+        B.Canvas.Pen.Color := clBtnShadow;
+        B.Canvas.Brush.Style := bsClear;
+        B.Canvas.Rectangle(ClientRect);
+        {$ENDIF}
+      end;
 
-      if W is TDHVisualItem_Word then
-        with TDHVisualItem_Word(W) do
-        begin
-          R := W.Rect;
-          R.Top := R.Top + YPos;
+      for W in LVisualItem do
+      begin
+        if W is TDHVisualItem_Word then
+          B.Canvas.Font.Assign(TDHVisualItem_Word(W).Font);
 
-          DrawTextW(B.Canvas.Handle,
-           PWideChar({$IFDEF FPC}UnicodeString(Text){$ELSE}Text{$ENDIF}),
-           -1, R, DT_NOCLIP or DT_NOPREFIX);
-          {Using DrawText, because TextOut has no clip option, which causes
-          bad overload of text when painting using background, oversizing the
-          text area wildly.}
-        end
-      else
-      if W is TDHVisualItem_Image then
-        with TDHVisualItem_Image(W) do
+        B.Canvas.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := W.BColor;
+        {$IFDEF FMX}B.Canvas.Stroke.Color := clNone;{$ENDIF}
+
+        if Assigned(W.Link) then
         begin
-          if Assigned(FImages) then
-            FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
-        end
-      else
-      if W is TDHVisualItem_ImageResource then
-        with TDHVisualItem_ImageResource(W) do
-        begin
-          B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
-        end
-      else
-        raise EInternalExcept.Create('Invalid visual item object');
+          if W.Hover then //selected
+            FStyleLinkHover.SetPropsToCanvas(B.Canvas)
+          else
+            FStyleLinkNormal.SetPropsToCanvas(B.Canvas);
+        end;
+
+        if B.Canvas.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then
+          B.Canvas.FillRect(
+            {$IFDEF FMX}
+            TRectF.Create(W.Rect), 0, 0, [], 1
+            {$ELSE}
+            W.Rect
+            {$ENDIF});
+
+        if W is TDHVisualItem_Word then
+          with TDHVisualItem_Word(W) do
+          begin
+            R := W.Rect;
+            R.Top := R.Top + YPos;
+
+            {$IFDEF FMX}
+            if B.Canvas.Stroke.Color<>clNone then
+              B.Canvas.Fill.Color := B.Canvas.Stroke.Color
+            else
+              B.Canvas.Fill.Color := TDHVisualItem_Word(W).FontColor;
+
+            B.Canvas.FillText(TRectF.Create(R), Text, False, 1, [], TTextAlign.Leading);
+            {$ELSE}
+            B.Canvas.Brush.Style := bsClear;
+            DrawTextW(B.Canvas.Handle,
+              PWideChar({$IFDEF FPC}UnicodeString(Text){$ELSE}Text{$ENDIF}),
+              -1, R, DT_NOCLIP or DT_NOPREFIX);
+            {Using DrawText, because TextOut has no clip option, which causes
+            bad overload of text when painting using background, oversizing the
+            text area wildly.}
+            {$ENDIF}
+          end
+        else
+        if W is TDHVisualItem_Image then
+          with TDHVisualItem_Image(W) do
+          begin
+            //if Assigned(FImages) then
+            //  FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
+          end
+        else
+        if W is TDHVisualItem_ImageResource then
+          with TDHVisualItem_ImageResource(W) do
+          begin
+            {$IFDEF FMX}
+            B.Canvas.DrawBitmap(Picture, Picture.BoundsF,
+              TRectF.Create(W.Rect.Left, W.Rect.Top,
+                W.Rect.Left+Picture.Width, W.Rect.Top+Picture.Height), 1);
+            {$ELSE}
+            B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
+            {$ENDIF}
+          end
+        else
+          raise EInternalExcept.Create('Invalid visual item object');
+      end;
+
+    {$IFDEF FMX}
+    finally
+      B.Canvas.EndScene;
     end;
-
-    Canvas.Draw(0, 0, B); //to reduce flickering
+    Canvas.DrawBitmap(B, B.BoundsF, B.BoundsF, 1);
+    {$ELSE}
+    Canvas.Draw(0, 0, B);
+    {$ENDIF}
   finally
     B.Free;
   end;
 end;
 
+{$IFDEF VCL}
 procedure TDzHTMLText.CMCursorchanged(var Message: TMessage);
 begin
   {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
@@ -810,6 +1021,7 @@ begin
 
   DefaultCursor := Cursor; //save default cursor to when link not selected
 end;
+{$ENDIF}
 
 procedure TDzHTMLText.SetCursorWithoutChange(C: TCursor);
 begin
@@ -872,7 +1084,11 @@ begin
         FOnLinkLeave(Self, Link);
     end;
 
+    {$IFDEF FMX}
+    InvalidateRect(LocalRect);
+    {$ELSE}
     Invalidate;
+    {$ENDIF}
   end;
 end;
 
@@ -894,7 +1110,7 @@ begin
         begin
           aTarget := TDHLinkRef(FSelectedLink).FTarget;
           {$IFDEF MSWINDOWS}
-          ShellExecute(0, '', PChar(aTarget), '', '', 0);
+          //ShellExecute(0, '', PChar(aTarget), '', '', 0);
           {$ELSE}
           if aTarget.StartsWith('http://', True)
             or aTarget.StartsWith('https://', True)
@@ -920,11 +1136,11 @@ begin
   inherited;
 end;
 
-procedure TDzHTMLText.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
-  Y: Integer);
+procedure TDzHTMLText.MouseUp(Button: TMouseButton; Shift: TShiftState;
+  X, Y: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF});
 var Handled: Boolean;
 begin
-  if Button = mbRight then
+  if Button = TMouseButton.mbRight then
     if IsLinkHover then
       if Assigned(FOnLinkRightClick) then
       begin
@@ -935,14 +1151,19 @@ begin
   inherited;
 end;
 
-procedure TDzHTMLText.MouseMove(Shift: TShiftState; X, Y: Integer);
+procedure TDzHTMLText.MouseMove(Shift: TShiftState;
+  X, Y: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF});
 begin
-  CheckMouse(X, Y);
+  CheckMouse(ToInt(X), ToInt(Y));
 
   inherited;
 end;
 
+{$IFDEF FMX}
+procedure TDzHTMLText.DoMouseLeave;
+{$ELSE}
 procedure TDzHTMLText.CMMouseleave(var Message: TMessage);
+{$ENDIF}
 begin
   //Mouse leaves the component
   CheckMouse(-1, -1);
@@ -967,11 +1188,13 @@ type
     ttLineSpace,
     ttSuperscript, ttSubscript);
 
+  TTokenValue = Int64;
+
   TToken = class
     Kind: TTokenKind;
     TagClose: Boolean;
     Text: string;
-    Value: Integer;
+    Value: TTokenValue;
   end;
 
   TListToken = class(TObjectList<TToken>)
@@ -985,7 +1208,7 @@ type
     CalcWidth, CalcHeight: Integer; //width and height to set at component when using auto
 
     function ProcessTag(const Tag: string): Boolean;
-    procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: Integer = 0);
+    procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: TTokenValue = 0);
 
     procedure ReadTokens; //create list of tokens
     procedure ProcessTokens; //create list of visual itens
@@ -1040,19 +1263,23 @@ end;
 
 function ParamToColor(A: string): TColor;
 begin
-  if A.StartsWith('$') then Insert('00', A, 2);
-  {At HTML, is used Hexadecimal color code with 6 digits, the same used at
-  this component. However the Delphi works with 8 digits, but the first two
-  digits are always "00"}
+  if not (A.Length in [7, 9]) then Exit(clNone);
+
+  if A.StartsWith('#') then A[1] := '$';
+
+  if A.StartsWith('$') then
+    if A.Length=7 then Insert({$IFDEF FMX}'FF'{$ELSE}'00'{$ENDIF}, A, 2);
+  //Allow 6-digit (HTML) or 8-digit (Delphi) color notation
+  //The firsts two digits in 8-digit format represents the alpha channel in FMX
 
   try
-    Result := StringToColor(A);
+    Result := {$IFDEF FMX}StringToAlphaColor(A){$ELSE}StringToColor(A){$ENDIF};
   except
     Result := clNone;
   end;
 end;
 
-procedure TBuilder.AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: Integer = 0);
+procedure TBuilder.AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: TTokenValue = 0);
 var T: TToken;
 begin
   T := TToken.Create;
@@ -1063,19 +1290,19 @@ begin
   LToken.Add(T);
 end;
 
-function Tag_IntZeroBased_ProcValue(const Value: string; var Valid: Boolean): Integer;
+function Tag_IntZeroBased_ProcValue(const Value: string; out Valid: Boolean): TTokenValue;
 begin
   Result := StrToIntDef(Value, -1);
   Valid := (Result>-1);
 end;
 
-function Tag_IntOneBased_ProcValue(const Value: string; var Valid: Boolean): Integer;
+function Tag_IntOneBased_ProcValue(const Value: string; out Valid: Boolean): TTokenValue;
 begin
   Result := StrToIntDef(Value, 0);
   Valid := (Result>0);
 end;
 
-function Tag_Color_ProcValue(const Value: string; var Valid: Boolean): Integer;
+function Tag_Color_ProcValue(const Value: string; out Valid: Boolean): TTokenValue;
 begin
   Result := ParamToColor(Value);
   Valid := (Result<>clNone);
@@ -1086,7 +1313,7 @@ type TDefToken = record
   Kind: TTokenKind;
   Single: Boolean; //without close tag
   AllowPar, OptionalPar: Boolean;
-  ProcValue: function(const Value: string; var Valid: Boolean): Integer;
+  ProcValue: function(const Value: string; out Valid: Boolean): TTokenValue;
 end;
 const DEF_TOKENS: array[0..25] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
@@ -1119,7 +1346,7 @@ const DEF_TOKENS: array[0..25] of TDefToken = (
 
 function TBuilder.ProcessTag(const Tag: string): Boolean;
 var TOff, TOn, HasPar, ValidPar: Boolean;
-    Value: Integer;
+    Value: TTokenValue;
     A, Par: string;
     I: Integer;
     Def: TDefToken;
@@ -1442,7 +1669,7 @@ type
     LUnderline: TListStack<Boolean>;
     LStrike: TListStack<Boolean>;
     LFontName: TListStack<string>;
-    LFontSize: TListStack<Integer>;
+    LFontSize: TListStack<{$IFDEF FMX}Single{$ELSE}Integer{$ENDIF}>;
     LFontColor: TListStack<TColor>;
     LBackColor: TListStack<TColor>;
     LAlign: TListStack<TDHHorzAlign>;
@@ -1503,6 +1730,9 @@ begin
   Lb := Builder.Lb;
   C := Lb.Canvas;
   C.Font.Assign(Lb.Font);
+  {$IFDEF FMX}
+  C.Stroke.Color := Lb.FFontColor;
+  {$ENDIF}
 
   CurrentProps.BackColor := clNone;
   CurrentProps.Align := haLeft;
@@ -1517,7 +1747,7 @@ begin
   LUnderline := TListStack<Boolean>.Create;
   LStrike := TListStack<Boolean>.Create;
   LFontName := TListStack<string>.Create;
-  LFontSize := TListStack<Integer>.Create;
+  LFontSize := TListStack<{$IFDEF FMX}Single{$ELSE}Integer{$ENDIF}>.Create;
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TDHHorzAlign>.Create;
@@ -1527,13 +1757,13 @@ begin
   LSupAndSubScript := TObjectListStack<THTMLSupSubTag>.Create;
   LSpoilerDet := THTMLSpoilerDetList.Create;
 
-  vBool := fsBold in C.Font.Style; LBold.Add(vBool);
-  vBool := fsItalic in C.Font.Style; LItalic.Add(vBool);
-  vBool := fsUnderline in C.Font.Style; LUnderline.Add(vBool);
-  vBool := fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
-  LFontName.Add(C.Font.Name);
+  vBool := TFontStyle.fsBold in C.Font.Style; LBold.Add(vBool);
+  vBool := TFontStyle.fsItalic in C.Font.Style; LItalic.Add(vBool);
+  vBool := TFontStyle.fsUnderline in C.Font.Style; LUnderline.Add(vBool);
+  vBool := TFontStyle.fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
+  LFontName.Add(C.Font.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF});
   LFontSize.Add(C.Font.Size);
-  LFontColor.Add(C.Font.Color);
+  LFontColor.Add(C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color);
   LBackColor.Add(CurrentProps.BackColor);
   LAlign.Add(CurrentProps.Align);
   LLineSpace.Add(CurrentProps.LineSpace);
@@ -1612,17 +1842,17 @@ begin
   end;
 
   FS := [];
-  if LBold.Last then Include(FS, fsBold);
-  if LItalic.Last then Include(FS, fsItalic);
-  if LUnderline.Last then Include(FS, fsUnderline);
-  if LStrike.Last then Include(FS, fsStrikeOut);
+  if LBold.Last then Include(FS, TFontStyle.fsBold);
+  if LItalic.Last then Include(FS, TFontStyle.fsItalic);
+  if LUnderline.Last then Include(FS, TFontStyle.fsUnderline);
+  if LStrike.Last then Include(FS, TFontStyle.fsStrikeOut);
   C.Font.Style := FS;
 end;
 
 procedure TTokensProcess.DoFontName(T: TToken);
 begin
   LFontName.AddOrDel(T, T.Text);
-  C.Font.Name := LFontName.Last;
+  C.Font.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF} := LFontName.Last;
 end;
 
 procedure TTokensProcess.DoFontSize(T: TToken);
@@ -1634,7 +1864,7 @@ end;
 procedure TTokensProcess.DoFontColor(T: TToken);
 begin
   LFontColor.AddOrDel(T, T.Value);
-  C.Font.Color := LFontColor.Last;
+  C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := LFontColor.Last;
 end;
 
 procedure TTokensProcess.DoBackColor(T: TToken);
@@ -1670,7 +1900,7 @@ var
   FixedPos: TFixedPosition;
 begin
   Ex := TSize.Create(0, 0);
-  FillMemory(@FixedPos, SizeOf(FixedPos), 0);
+  FillChar(FixedPos, SizeOf(FixedPos), 0);
 
   case T.Kind of
     //ttSpace: T.Text := ' ';
@@ -1703,8 +1933,12 @@ begin
 
       if Assigned(Lb.FImages) then
       begin
+        {$IFDEF FMX}
+        //###################################################################
+        {$ELSE}
         Ex.Width := Lb.FImages.Width;
         Ex.Height := Lb.FImages.Height;
+        {$ENDIF}
       end;
     end;
 
@@ -1727,8 +1961,11 @@ begin
       begin
         Text := T.Text;
         Font.Assign(C.Font);
+        {$IFDEF FMX}
+        FontColor := C.Stroke.Color;
+        {$ENDIF}
 
-        Ex := C.TextExtent(Text);
+        Ex := TSize.Create(ToInt(C.TextWidth(Text)), ToInt(C.TextHeight(Text)));
 
         CheckSupSubScript(TDHVisualItem_Word(W), Ex);
       end;
@@ -1752,7 +1989,7 @@ end;
 
 procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
 var
-  OriginalFontSize: Integer;
+  OriginalFontSize: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF};
   I: Integer;
   Tag: THTMLSupSubTag;
   H, Y, TextH, OuterY: Integer;
@@ -1768,8 +2005,8 @@ begin
   begin
     Tag := LSupAndSubScript[I];
 
-    C.Font.Size := Round(OriginalFontSize * Power(0.75, I+1));
-    TextH := C.TextHeight(' ');
+    C.Font.Size := {$IFDEF VCL}Round{$ENDIF}(OriginalFontSize * Power(0.75, I+1));
+    TextH := ToInt(C.TextHeight(' '));
 
     if Tag is THTMLSupTag then Y := 0 else
     if Tag is THTMLSubTag then Y := H - TextH else
@@ -1780,7 +2017,7 @@ begin
   end;
 
   //keep height but adjust new text width
-  Size.Width := C.TextWidth(W.Text);
+  Size.Width := ToInt(C.TextWidth(W.Text));
   W.Font.Size := C.Font.Size;
   W.YPos := OuterY;
 
@@ -1897,7 +2134,7 @@ procedure TTokensProcess.DoBreak;
 var Z: TPreObj_Break;
 begin
   Z := TPreObj_Break.Create;
-  Z.Height := C.TextHeight(' ');
+  Z.Height := ToInt(C.TextHeight(' '));
   Items.Add(Z);
 end;
 
@@ -2011,7 +2248,7 @@ begin
   LastTabF := False;
   InFloat := False;
 
-  FillMemory(@Max, SizeOf(Max), 0);
+  FillChar(Max, SizeOf(Max), 0);
   OldMax := Max;
 
   for I := 0 to Items.Count-1 do
@@ -2116,7 +2353,7 @@ type
       if Lb.FAutoWidth or (Lb.FOverallHorzAlign in [haCenter, haRight]) then
         GrpLim := Builder.CalcWidth
       else
-        GrpLim := Lb.Width;
+        GrpLim := Lb.GetIntWidth;
     end
       else GrpLim := B.Limit;
 
@@ -2132,13 +2369,13 @@ type
 
   function funcOverallAlignHorz: TFuncAlignResult;
   begin
-    Result.Outside := Lb.Width;
+    Result.Outside := Lb.GetIntWidth;
     Result.Inside := Builder.CalcWidth;
   end;
 
   function funcOverallAlignVert: TFuncAlignResult;
   begin
-    Result.Outside := Lb.Height;
+    Result.Outside := Lb.GetIntHeight;
     Result.Inside := Builder.CalcHeight;
   end;
 
@@ -2217,8 +2454,8 @@ function TDHStyleLinkProp.GetDefaultFontColor: TColor;
 begin
   Result := clNone;
   case Kind of
-    tslpNormal: Result := clBlue;
-    tslpHover: Result := clRed;
+    tslpNormal: Result := {$IFDEF FMX}TAlphaColors.Blue{$ELSE}clBlue{$ENDIF};
+    tslpHover: Result := {$IFDEF FMX}TAlphaColors.Red{$ELSE}clRed{$ENDIF};
   end;
 end;
 
@@ -2259,9 +2496,9 @@ end;
 
 procedure TDHStyleLinkProp.SetPropsToCanvas(C: TCanvas);
 begin
-  if FFontColor<>clNone then C.Font.Color := FFontColor;
-  if FBackColor<>clNone then C.Brush.Color := FBackColor;
-  if FUnderline then C.Font.Style := C.Font.Style + [fsUnderline];
+  if FFontColor<>clNone then C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := FFontColor;
+  if FBackColor<>clNone then C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := FBackColor;
+  if FUnderline then C.Font.Style := C.Font.Style + [TFontStyle.fsUnderline];
 end;
 
 procedure TDHStyleLinkProp.Assign(Source: TPersistent);
