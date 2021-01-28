@@ -620,6 +620,8 @@ begin
   FFontColor := TAlphaColors.Black;
 
   Font.OnChanged := OnFontChanged;
+
+  AutoTranslate := True;
   {$ENDIF}
 
   DefaultCursor := Cursor;
