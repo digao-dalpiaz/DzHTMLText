@@ -10,8 +10,15 @@ Please, read the documentation at GitHub link.
 
 unit {$IFDEF FMX}FMX.{$ENDIF}DzHTMLText;
 
-{$IFNDEF FMX}
+{$IFDEF FMX}
+  {$IF CompilerVersion >= 29} //XE8
+    {$DEFINE USE_NEW_ENV}
+    {$DEFINE USE_IMGLST}
+  {$ENDIF}
+{$ELSE}
   {$DEFINE VCL}
+  {$DEFINE USE_NEW_ENV}
+  {$DEFINE USE_IMGLST}
 {$ENDIF}
 
 {$IFDEF FPC}
@@ -29,8 +36,8 @@ uses
 {$ELSE}
   System.Generics.Collections, System.Types, System.Classes,
   {$IFDEF FMX}
-  FMX.Controls, FMX.StdCtrls, FMX.Graphics, FMX.MultiResBitmap, FMX.ImgList,
-  System.UITypes
+  FMX.Controls, FMX.Types, System.UITypes
+    {$IFDEF USE_NEW_ENV}, FMX.StdCtrls, FMX.Graphics, FMX.MultiResBitmap, FMX.ImgList{$ENDIF}
   {$ELSE}
   Vcl.Controls, Vcl.Graphics, Vcl.ImgList, Vcl.Imaging.pngimage,
   Winapi.Messages
@@ -54,8 +61,8 @@ type
   {$ELSE}
     {$IFDEF FMX}
     TColor = TAlphaColor;
-    TBitmap = FMX.Graphics.TBitmap;
-    TPicture = FMX.Graphics.TBitmap;
+    TBitmap = FMX.{$IFDEF USE_NEW_ENV}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
+    TPicture = FMX.{$IFDEF USE_NEW_ENV}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
     {$ELSE}
     TBitmap = Vcl.Graphics.TBitmap;
     {$ENDIF}
@@ -183,7 +190,12 @@ type
   TDHModifiedFlag = (mfBuild, mfPaint);
   TDHModifiedFlags = set of TDHModifiedFlag;
 
-  TDzHTMLText = class({$IFDEF FMX}TPresentedTextControl{$ELSE}TGraphicControl{$ENDIF})
+  TDzHTMLText = class(
+    {$IFDEF FMX}
+      {$IFDEF USE_NEW_ENV}TPresentedTextControl{$ELSE}TTextControl{$ENDIF}
+    {$ELSE}
+      TGraphicControl
+    {$ENDIF})
   private
     FAbout: string;
 
@@ -208,7 +220,9 @@ type
     FFontColor: TColor;
     {$ENDIF}
 
+    {$IFDEF USE_IMGLST}
     FImages: TCustomImageList;
+    {$ENDIF}
 
     FOnRetrieveImgRes: TDHEvRetrieveImgRes;
 
@@ -247,12 +261,15 @@ type
 
     procedure CheckMouse(X, Y: Integer); //check links by mouse position
     procedure SetCursor(const Value: TCursor); reintroduce;
-    procedure SetImages(const Value: TCustomImageList);
     procedure SetLineVertAlign(const Value: TDHVertAlign);
     procedure SetOverallVertAlign(const Value: TDHVertAlign);
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
     procedure SetLineSpacing(const Value: Integer);
     procedure SetListLevelPadding(const Value: Integer);
+
+    {$IFDEF USE_IMGLST}
+    procedure SetImages(const Value: TCustomImageList);
+    {$ENDIF}
 
     {$IFDEF FMX}
     procedure SetFontColor(const Value: TColor);
@@ -310,7 +327,6 @@ type
     property Align;
     property Anchors;
     property Font;
-    property ParentShowHint;
     property PopupMenu;
     property ShowHint;
     property Visible;
@@ -331,12 +347,15 @@ type
     property OnGesture;
     {$ENDIF}
 
+    {$IFDEF USE_NEW_ENV}
+    property ParentShowHint;
+    {$ENDIF}
+
     {$IFDEF FMX}
     property Action;
     property AutoTranslate default True;
     property ClipChildren;
     property ClipParent;
-    property ControlType;
     property DragMode;
     property Enabled;
     property EnableDragHighlight;
@@ -355,13 +374,17 @@ type
     property StyledSettings;
     property StyleLookup;
     property TabOrder;
-    property TabStop;
     property TouchTargetExpansion;
 
     property Width;
     property Height;
-    property Size;
     property Position;
+
+      {$IFDEF USE_NEW_ENV}
+      property ControlType;
+      property TabStop;
+      property Size;
+      {$ENDIF}
 
     property Color: TColor read FColor write SetColor default clNone;
     property FontColor: TColor read FFontColor write SetFontColor default TAlphaColors.Black;
@@ -387,7 +410,9 @@ type
     property StyleLinkNormal: TDHStyleLinkProp index 1 read FStyleLinkNormal write SetStyleLink stored GetStoredStyleLink;
     property StyleLinkHover: TDHStyleLinkProp index 2 read FStyleLinkHover write SetStyleLink stored GetStoredStyleLink;
 
+    {$IFDEF USE_IMGLST}
     property Images: TCustomImageList read FImages write SetImages;
+    {$ENDIF}
 
     property LineCount: Integer read FLineCount;
     property TextWidth: Integer read FTextWidth;
@@ -421,7 +446,7 @@ uses
 {$ELSE}
   System.SysUtils, System.Math,
   {$IFDEF FMX}
-  FMX.Types, System.UIConsts
+  System.UIConsts
   {$ELSE}
   System.UITypes, Winapi.Windows, Winapi.ShellAPI
   {$ENDIF}
@@ -451,6 +476,14 @@ function ToInt(V: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF}): Integer; inline;
 begin
   Result := {$IFDEF FMX}Trunc(V){$ELSE}V{$ENDIF};
 end;
+
+{$IFDEF FMX}
+function GetBmpBounds(B: TBitmap): TRectF;
+begin
+  Result := TRectF.Create(0, 0, B.Width, B.Height);
+  //Older Delphi versions don't have the TBitmap.BoundsF method
+end;
+{$ENDIF}
 
 { TDHBaseLink }
 
@@ -507,7 +540,7 @@ end;
 constructor TDHVisualItem_ImageResource.Create;
 begin
   inherited;
-  Picture := TPicture.Create;
+  Picture := TPicture.Create{$IFNDEF USE_NEW_ENV}(0, 0){$ENDIF};
 end;
 
 destructor TDHVisualItem_ImageResource.Destroy;
@@ -645,11 +678,13 @@ begin
   inherited Notification(AComponent, Operation);
   if Operation = opRemove then
   begin
-    if AComponent = FImages then
-      FImages := nil;
+    {$IFDEF USE_IMGLST}
+    if AComponent = FImages then FImages := nil;
+    {$ENDIF}
   end;
 end;
 
+{$IFDEF USE_IMGLST}
 procedure TDzHTMLText.SetImages(const Value: TCustomImageList);
 begin
   if Value <> FImages then
@@ -661,6 +696,7 @@ begin
     BuildAndPaint;
   end;
 end;
+{$ENDIF}
 
 procedure TDzHTMLText.Loaded;
 begin
@@ -878,7 +914,7 @@ var
   R: TRect;
 begin
   //Using internal bitmap as a buffer to reduce flickering
-  B := TBitmap.Create;
+  B := TBitmap.Create{$IFNDEF USE_NEW_ENV}(0, 0){$ENDIF};
   try
     B.SetSize(ToInt(Width), ToInt(Height));
     {$IFDEF FMX}
@@ -950,7 +986,8 @@ begin
             else
               B.Canvas.Fill.Color := TDHVisualItem_Word(W).FontColor;
 
-            B.Canvas.FillText(TRectF.Create(R), Text, False, 1, [], TTextAlign.Leading);
+            B.Canvas.FillText(TRectF.Create(R), Text, False, 1, [],
+              TTextAlign.{$IFDEF USE_NEW_ENV}Leading{$ELSE}taLeading{$ENDIF});
             {$ELSE}
             B.Canvas.Brush.Style := bsClear;
             DrawTextW(B.Canvas.Handle,
@@ -965,19 +1002,21 @@ begin
         if W is TDHVisualItem_Image then
           with TDHVisualItem_Image(W) do
           begin
+            {$IFDEF USE_IMGLST}
             if Assigned(FImages) then
               {$IFDEF FMX}
               FImages.Draw(B.Canvas, TRectF.Create(W.Rect), ImageIndex, 1);
               {$ELSE}
               FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
               {$ENDIF}
+            {$ENDIF}
           end
         else
         if W is TDHVisualItem_ImageResource then
           with TDHVisualItem_ImageResource(W) do
           begin
             {$IFDEF FMX}
-            B.Canvas.DrawBitmap(Picture, Picture.BoundsF, TRectF.Create(W.Rect), 1);
+            B.Canvas.DrawBitmap(Picture, GetBmpBounds(Picture), TRectF.Create(W.Rect), 1);
             {$ELSE}
             B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
             {$ENDIF}
@@ -990,7 +1029,7 @@ begin
     finally
       B.Canvas.EndScene;
     end;
-    Canvas.DrawBitmap(B, B.BoundsF, B.BoundsF, 1);
+    Canvas.DrawBitmap(B, GetBmpBounds(B), GetBmpBounds(B), 1);
     {$ELSE}
     Canvas.Draw(0, 0, B);
     {$ENDIF}
@@ -1907,6 +1946,7 @@ begin
         ImageIndex := T.Value;
       end;
 
+      {$IFDEF USE_IMGLST}
       if Assigned(Lb.FImages) then
       begin
         {$IFDEF FMX}
@@ -1916,6 +1956,7 @@ begin
         Ex.Height := Lb.FImages.Height;
         {$ENDIF}
       end;
+      {$ENDIF}
     end;
 
     ttImageResource:
