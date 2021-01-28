@@ -195,7 +195,6 @@ type
     FAutoWidth: Boolean;
     FAutoHeight: Boolean;
     FMaxWidth: Integer; //max width when using AutoWidth
-    //FTransparent: Boolean; //not used because of flickering
     FAutoOpenLink: Boolean; //link auto-open with ShellExecute
 
     FLineCount: Integer; //read-only
@@ -225,8 +224,7 @@ type
     FIsLinkHover: Boolean; //if has a selected link
     FSelectedLink: TDHBaseLink; //selected link
 
-    NoCursorChange: Boolean; //lock CursorChange event
-    DefaultCursor: TCursor; //default cursor when not over a link
+    FCursor: TCursor;
 
     UpdatingSemaphore: Integer;
     InternalResizing: Boolean;
@@ -248,7 +246,7 @@ type
     procedure Modified(Flags: TDHModifiedFlags);
 
     procedure CheckMouse(X, Y: Integer); //check links by mouse position
-    procedure SetCursorWithoutChange(C: TCursor);
+    procedure SetCursor(const Value: TCursor); reintroduce;
     procedure SetImages(const Value: TCustomImageList);
     procedure SetLineVertAlign(const Value: TDHVertAlign);
     procedure SetOverallVertAlign(const Value: TDHVertAlign);
@@ -256,16 +254,15 @@ type
     procedure SetLineSpacing(const Value: Integer);
     procedure SetListLevelPadding(const Value: Integer);
 
-    function GetIntHeight: Integer; inline;
-    function GetIntWidth: Integer; inline;
-
     {$IFDEF FMX}
     procedure SetFontColor(const Value: TColor);
     procedure SetColor(const Value: TColor);
 
     procedure OnFontChanged(Sender: TObject);
     {$ENDIF}
-    //procedure SetTransparent(const Value: Boolean);
+
+    function GetIntHeight: Integer; inline;
+    function GetIntWidth: Integer; inline;
   protected
     procedure Loaded; override;
     procedure Paint; override;
@@ -286,7 +283,6 @@ type
     procedure CMColorchanged(var Message: TMessage); message CM_COLORCHANGED;
     procedure CMFontchanged(var Message: TMessage); message CM_FONTCHANGED;
     procedure CMMouseleave(var Message: TMessage); message CM_MOUSELEAVE;
-    procedure CMCursorchanged(var Message: TMessage); message CM_CURSORCHANGED;
     {$ENDIF}
 
     procedure Notification(AComponent: TComponent; Operation: TOperation);
@@ -341,7 +337,6 @@ type
     property ClipChildren;
     property ClipParent;
     property ControlType;
-    property Cursor;
     property DragMode;
     property Enabled;
     property EnableDragHighlight;
@@ -381,9 +376,9 @@ type
       {$IFDEF DCC}property OnMouseActivate;{$ENDIF}
     {$ENDIF}
 
-
     property Lines: TStrings read FLines write SetLines;
-    //property Transparent: Boolean read FTransparent write SetTransparent default False;
+
+    property Cursor: TCursor read FCursor write SetCursor default crDefault;
 
     property AutoWidth: Boolean read FAutoWidth write SetAutoWidth default False;
     property AutoHeight: Boolean read FAutoHeight write SetAutoHeight default False;
@@ -615,6 +610,8 @@ begin
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
 
+  FCursor := crDefault;
+
   {$IFDEF FMX}
   FColor := clNone;
   FFontColor := TAlphaColors.Black;
@@ -623,8 +620,6 @@ begin
 
   AutoTranslate := True;
   {$ENDIF}
-
-  DefaultCursor := Cursor;
 
   {$IFDEF FPC}
   //Lazarus object starts too small
@@ -817,16 +812,6 @@ begin
     BuildAndPaint;
 end;
 
-{procedure TDzHTMLText.SetTransparent(const Value: Boolean);
-begin
-  if Value<>FTransparent then
-  begin
-    FTransparent := Value;
-
-    Modified([mfPaint]);
-  end;
-end;}
-
 {$IFDEF VCL}
 procedure TDzHTMLText.CMColorchanged(var Message: TMessage);
 begin
@@ -1014,25 +999,12 @@ begin
   end;
 end;
 
-{$IFDEF VCL}
-procedure TDzHTMLText.CMCursorchanged(var Message: TMessage);
+procedure TDzHTMLText.SetCursor(const Value: TCursor);
 begin
-  {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
-
-  if NoCursorChange then Exit;
-
-  DefaultCursor := Cursor; //save default cursor to when link not selected
-end;
-{$ENDIF}
-
-procedure TDzHTMLText.SetCursorWithoutChange(C: TCursor);
-begin
-  //Set cursor, but without fire cursor change event
-  NoCursorChange := True;
-  try
-    Cursor := C;
-  finally
-    NoCursorChange := False;
+  if Value<>FCursor then
+  begin
+    FCursor := Value;
+    inherited Cursor := Value;
   end;
 end;
 
@@ -1071,14 +1043,14 @@ begin
   begin
     if FoundHover then //enter the link
     begin
-      SetCursorWithoutChange(crHandPoint); //set HandPoint cursor
+      inherited Cursor := crHandPoint;
       FIsLinkHover := True;
       FSelectedLink := Link;
       if Assigned(FOnLinkEnter) then
         FOnLinkEnter(Self, Link);
     end else
     begin //leave the link
-      SetCursorWithoutChange(DefaultCursor); //back to default cursor
+      inherited Cursor := FCursor;
       FIsLinkHover := False;
       Link := FSelectedLink; //save to use on OnLinkLeave event
       FSelectedLink := nil;
@@ -1265,7 +1237,7 @@ end;
 
 function ParamToColor(A: string): TColor;
 begin
-  if not (A.Length in [7, 9]) then Exit(clNone);
+  if not ((A.Length=7) or (A.Length=9)) then Exit(clNone); //using "in" causes byte hint on Lazarus
 
   if A.StartsWith('#') then A[1] := '$';
 
@@ -1902,7 +1874,7 @@ var
   FixedPos: TFixedPosition;
 begin
   Ex := TSize.Create(0, 0);
-  FillChar(FixedPos, SizeOf(FixedPos), 0);
+  FixedPos := Default(TFixedPosition);
 
   case T.Kind of
     //ttSpace: T.Text := ' ';
@@ -2250,8 +2222,8 @@ begin
   LastTabF := False;
   InFloat := False;
 
-  FillChar(Max, SizeOf(Max), 0);
-  OldMax := Max;
+  Max := Default(TSizes);
+  OldMax := Default(TSizes);
 
   for I := 0 to Items.Count-1 do
   begin
