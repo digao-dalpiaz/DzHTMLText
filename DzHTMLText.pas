@@ -1237,14 +1237,16 @@ end;
 
 function ParamToColor(A: string): TColor;
 begin
-  if not ((A.Length=7) or (A.Length=9)) then Exit(clNone); //using "in" causes byte hint on Lazarus
-
   if A.StartsWith('#') then A[1] := '$';
 
   if A.StartsWith('$') then
+  begin
     if A.Length=7 then Insert({$IFDEF FMX}'FF'{$ELSE}'00'{$ENDIF}, A, 2);
-  //Allow 6-digit (HTML) or 8-digit (Delphi) color notation
-  //The firsts two digits in 8-digit format represents the alpha channel in FMX
+    //Allow 6-digit (HTML) or 8-digit (Delphi) color notation
+    //The firsts two digits in 8-digit format represents the alpha channel in FMX
+
+    if A.Length<>9 then Exit(clNone);
+  end;
 
   try
     Result := {$IFDEF FMX}StringToAlphaColor(A){$ELSE}StringToColor(A){$ENDIF};
