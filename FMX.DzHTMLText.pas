@@ -981,17 +981,19 @@ begin
         if W is TDHVisualItem_Image then
           with TDHVisualItem_Image(W) do
           begin
-            //if Assigned(FImages) then
-            //  FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
+            if Assigned(FImages) then
+              {$IFDEF FMX}
+              FImages.Draw(B.Canvas, TRectF.Create(W.Rect), ImageIndex, 1);
+              {$ELSE}
+              FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
+              {$ENDIF}
           end
         else
         if W is TDHVisualItem_ImageResource then
           with TDHVisualItem_ImageResource(W) do
           begin
             {$IFDEF FMX}
-            B.Canvas.DrawBitmap(Picture, Picture.BoundsF,
-              TRectF.Create(W.Rect.Left, W.Rect.Top,
-                W.Rect.Left+Picture.Width, W.Rect.Top+Picture.Height), 1);
+            B.Canvas.DrawBitmap(Picture, Picture.BoundsF, TRectF.Create(W.Rect), 1);
             {$ELSE}
             B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
             {$ENDIF}
