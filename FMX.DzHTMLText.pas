@@ -1958,10 +1958,10 @@ begin
       if Assigned(Lb.FImages) then
       begin
         {$IFDEF FMX}
-        //###################################################################
+        with Lb.FImages.Destination[T.Value].Layers[0].SourceRect do
+          Ex := TSize.Create(ToInt(Width), ToInt(Height));
         {$ELSE}
-        Ex.Width := Lb.FImages.Width;
-        Ex.Height := Lb.FImages.Height;
+        Ex := TSize.Create(Lb.FImages.Width, Lb.FImages.Height);
         {$ENDIF}
       end;
       {$ENDIF}
@@ -1974,8 +1974,7 @@ begin
       begin
         Load(Lb, T.Text);
 
-        Ex.Width := Picture.Width;
-        Ex.Height := Picture.Height;
+        Ex := TSize.Create(Picture.Width, Picture.Height);
       end;
     end;
 
