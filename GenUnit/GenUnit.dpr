@@ -16,7 +16,7 @@ begin
 end;
 
 const
-  FILE_VCL = 'DzHTMLText.pas';
+  FILE_VCL = 'Vcl.DzHTMLText.pas';
   FILE_FMX = 'FMX.DzHTMLText.pas';
 
   DEFINE_FMX = '{$DEFINE FMX}';
@@ -24,7 +24,7 @@ const
 var
   S: TStringList;
   TimeVcl, TimeFmx: TDateTime;
-  FileFrom, FileTo, Ret: string;
+  FileFrom, FileTo, aNewest, aRet: string;
 begin
   try
     Writeln('DzHTMLText Source Synchronizer');
@@ -43,19 +43,20 @@ begin
       FileFrom := FILE_VCL;
       FileTo := FILE_FMX;
 
-      Writeln('NEWEST: VCL');
+      aNewest := 'VCL';
     end else
     begin
       FileFrom := FILE_FMX;
       FileTo := FILE_VCL;
 
-      Writeln('NEWEST: FMX');
+      aNewest := 'FMX';
     end;
 
+    Writeln('Newest: '+aNewest);
     Writeln('');
     Writeln('Confirm update from '+FileFrom+' to '+FileTo+'? (y/n)');
-    Readln(Ret);
-    if Ret<>'y' then Exit;
+    Readln(aRet);
+    if aRet<>'y' then Exit;
 
     Writeln('');
     Writeln('Writing file...');

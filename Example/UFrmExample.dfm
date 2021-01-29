@@ -21,12 +21,12 @@ object Form1: TForm1
     Top = 8
     Width = 337
     Height = 273
-    Color = clWhite
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
     Font.Name = 'Segoe UI'
     Font.Style = []
+    Color = clWhite
     ParentColor = False
     ParentFont = False
     Lines.Strings = (
@@ -54,12 +54,12 @@ object Form1: TForm1
     Top = 8
     Width = 337
     Height = 273
-    Color = clWhite
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
     Font.Name = 'Segoe UI'
     Font.Style = []
+    Color = clWhite
     ParentColor = False
     ParentFont = False
     Lines.Strings = (

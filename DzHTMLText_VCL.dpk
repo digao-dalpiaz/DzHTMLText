@@ -35,6 +35,6 @@ requires
   vcl;
 
 contains
-  DzHTMLText in 'DzHTMLText.pas';
+  Vcl.DzHTMLText in 'Vcl.DzHTMLText.pas';
 
 end.
