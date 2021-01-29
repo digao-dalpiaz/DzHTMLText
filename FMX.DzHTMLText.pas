@@ -45,7 +45,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 701; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 702; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
