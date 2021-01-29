@@ -226,8 +226,8 @@ Here are all possible tags you can use in text:
 <S></S> - Strike out
 <FN:abc></FN> - Font Name
 <FS:123></FS> - Font Size
-<FC:clColor|$123456|$12345678|#123456|#12345678></FC> - Font Color
-<BC:clColor|$123456|$12345678|#123456|#12345678></BC> - Background Color
+<FC:clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678></FC> - Font Color
+<BC:clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678></BC> - Background Color
 <BR> - Line Break
 <NBR> - Prevent line break after #13#10 sequence
 <L></L> - Align Left
