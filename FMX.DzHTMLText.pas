@@ -445,11 +445,14 @@ uses
 {$IFDEF FPC}
   {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, Math, LResources
 {$ELSE}
-  System.SysUtils, System.Math,
+  System.SysUtils, System.Math
   {$IFDEF FMX}
-  System.UIConsts
+  , System.UIConsts
   {$ELSE}
-  System.UITypes, Winapi.Windows, Winapi.ShellAPI
+  , System.UITypes
+  {$ENDIF}
+  {$IFDEF MSWINDOWS}
+  , Winapi.Windows, Winapi.ShellAPI
   {$ENDIF}
 {$ENDIF};
 
@@ -1124,15 +1127,19 @@ begin
         begin
           aTarget := TDHLinkRef(FSelectedLink).FTarget;
           {$IFDEF MSWINDOWS}
-          //ShellExecute(0, '', PChar(aTarget), '', '', 0);
+          ShellExecute(0, 'open', PChar(aTarget), '', '', SW_SHOWNORMAL);
           {$ELSE}
-          if aTarget.StartsWith('http://', True)
-            or aTarget.StartsWith('https://', True)
-            or aTarget.StartsWith('www.', True)
-          then
-            OpenURL(aTarget)
-          else
-            OpenDocument(aTarget);
+            {$IFDEF FPC}
+            if aTarget.StartsWith('http://', True)
+              or aTarget.StartsWith('https://', True)
+              or aTarget.StartsWith('www.', True)
+            then
+              OpenURL(aTarget)
+            else
+              OpenDocument(aTarget);
+            {$ELSE}
+            raise Exception.Create('Unsupported platform');
+            {$ENDIF}
           {$ENDIF}
         end;
       end else
