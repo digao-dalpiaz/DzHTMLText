@@ -472,7 +472,7 @@ You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter 
 
 You can use the tags:
 
-- `<IMG:index>` to show an image of a TImageList component. Just assign the Images property to the ImageList. Then use the `index` parameter to indicate the index of the image in the ImageList component.
+- `<IMG:index>` to show an image of a TImageList component. Just assign the Images property to the ImageList. Then use the `index` parameter to indicate the index of the image in the ImageList component. *In FMX environment, this is only available using Delphi XE8 or higher.*
 
 - `<IMGRES:name>` to show an image of a resource. Include an image into application resources and then use the `name` parameter to indicate the name of the resource. In VCL environment, the image must be in PNG format. In FMX environment, all Delphi supported images are allowed. **Important: the image will be displayed only at runtime.**
 
