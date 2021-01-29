@@ -11,6 +11,9 @@ Please, read the documentation at GitHub link.
 unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
 
 {$IFDEF FMX}
+  {$IF CompilerVersion >= 26} //XE5
+    {$DEFINE USE_NEW_UNITS}
+  {$ENDIF}
   {$IF CompilerVersion >= 29} //XE8
     {$DEFINE USE_NEW_ENV}
     {$DEFINE USE_IMGLST}
@@ -37,7 +40,8 @@ uses
   System.Generics.Collections, System.Types, System.Classes,
   {$IFDEF FMX}
   FMX.Controls, FMX.Types, System.UITypes
-    {$IFDEF USE_NEW_ENV}, FMX.StdCtrls, FMX.Graphics, FMX.MultiResBitmap, FMX.ImgList{$ENDIF}
+    {$IFDEF USE_NEW_UNITS}, FMX.StdCtrls, FMX.Graphics, FMX.MultiResBitmap{$ENDIF}
+    {$IFDEF USE_IMGLST}, FMX.ImgList{$ENDIF}
   {$ELSE}
   Vcl.Controls, Vcl.Graphics, Vcl.ImgList, Vcl.Imaging.pngimage,
   Winapi.Messages
@@ -61,8 +65,8 @@ type
   {$ELSE}
     {$IFDEF FMX}
     TColor = TAlphaColor;
-    TBitmap = FMX.{$IFDEF USE_NEW_ENV}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
-    TPicture = FMX.{$IFDEF USE_NEW_ENV}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
+    TBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
+    TPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
     {$ELSE}
     TBitmap = Vcl.Graphics.TBitmap;
     {$ENDIF}
