@@ -9,7 +9,7 @@ https://github.com/digao-dalpiaz/DzHTMLText
 Please, read the documentation at GitHub link.
 ------------------------------------------------------------------------------}
 
-unit {$IFDEF FMX}FMX.{$ENDIF}DzHTMLText;
+unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
 
 {$IFDEF FMX}
   {$IF CompilerVersion >= 29} //XE8
@@ -456,7 +456,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '2.11';
+const STR_VERSION = '3.0';
 
 procedure Register;
 begin
