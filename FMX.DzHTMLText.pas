@@ -490,14 +490,6 @@ begin
   Result := {$IFDEF FMX}Trunc(V){$ELSE}V{$ENDIF};
 end;
 
-{$IFDEF FMX}
-function GetBmpBounds(B: TBitmap): TRectF;
-begin
-  Result := TRectF.Create(0, 0, B.Width, B.Height);
-  //Older Delphi versions don't have the TBitmap.BoundsF method
-end;
-{$ENDIF}
-
 { TDHBaseLink }
 
 function TDHBaseLink.GetKind: TDHLinkKind;
@@ -923,132 +915,130 @@ end;
 procedure TDzHTMLText.DoPaint;
 var
   W: TDHVisualItem;
-  B: TBitmap;
+  C: TCanvas;
   R: TRect;
+  {$IFDEF VCL}B: TBitmap;{$ENDIF}
 begin
+  {$IFDEF VCL}
   //Using internal bitmap as a buffer to reduce flickering
-  B := TBitmap.Create{$IFNDEF USE_NEW_ENV}(0, 0){$ENDIF};
+  B := TBitmap.Create;
   try
-    B.SetSize(ToInt(Width), ToInt(Height));
-    {$IFDEF FMX}
-    if B.Canvas.BeginScene then
-    try
-    {$ENDIF}
-      if Color<>clNone then
-      begin
-        {$IFDEF FPC}
-        if (Color=clDefault) and (ParentColor) then B.Canvas.Brush.Color := GetColorresolvingParent else
-        {$ENDIF}
+    B.SetSize(Width, Height);
+  {$ELSE}
+  C := Canvas;
+  {$ENDIF}
 
-        //draw background color
-        {$IFDEF FMX}
-        B.Canvas.Fill.Color := FColor;
-        B.Canvas.FillRect(LocalRect, 0, 0, [], 1);
-        {$ELSE}
-        B.Canvas.Brush.Color := Color;
-        B.Canvas.FillRect(ClientRect);
-        {$ENDIF}
-      end;
+    if Color<>clNone then
+    begin
+      {$IFDEF FPC}
+      if (Color=clDefault) and (ParentColor) then C.Brush.Color := GetColorresolvingParent else
+      {$ENDIF}
 
-      if csDesigning in ComponentState then
-      begin
-        {$IFDEF FMX}
-        B.Canvas.Stroke.Color := TAlphaColors.Gray;
-        B.Canvas.DrawRect(LocalRect, 0, 0, [], 1);
-        {$ELSE}
-        B.Canvas.Pen.Style := psDot;
-        B.Canvas.Pen.Color := clBtnShadow;
-        B.Canvas.Brush.Style := bsClear;
-        B.Canvas.Rectangle(ClientRect);
-        {$ENDIF}
-      end;
-
-      for W in LVisualItem do
-      begin
-        if W is TDHVisualItem_Word then
-          B.Canvas.Font.Assign(TDHVisualItem_Word(W).Font);
-
-        B.Canvas.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := W.BColor;
-        {$IFDEF FMX}B.Canvas.Stroke.Color := clNone;{$ENDIF}
-
-        if Assigned(W.Link) then
-        begin
-          if W.Hover then //selected
-            FStyleLinkHover.SetPropsToCanvas(B.Canvas)
-          else
-            FStyleLinkNormal.SetPropsToCanvas(B.Canvas);
-        end;
-
-        if B.Canvas.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then
-          B.Canvas.FillRect(
-            {$IFDEF FMX}
-            TRectF.Create(W.Rect), 0, 0, [], 1
-            {$ELSE}
-            W.Rect
-            {$ENDIF});
-
-        if W is TDHVisualItem_Word then
-          with TDHVisualItem_Word(W) do
-          begin
-            R := W.Rect;
-            R.Top := R.Top + YPos;
-
-            {$IFDEF FMX}
-            if B.Canvas.Stroke.Color<>clNone then
-              B.Canvas.Fill.Color := B.Canvas.Stroke.Color
-            else
-              B.Canvas.Fill.Color := TDHVisualItem_Word(W).FontColor;
-
-            B.Canvas.FillText(TRectF.Create(R), Text, False, 1, [],
-              TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$ENDIF});
-            {$ELSE}
-            B.Canvas.Brush.Style := bsClear;
-            DrawTextW(B.Canvas.Handle,
-              PWideChar({$IFDEF FPC}UnicodeString(Text){$ELSE}Text{$ENDIF}),
-              -1, R, DT_NOCLIP or DT_NOPREFIX);
-            {Using DrawText, because TextOut has no clip option, which causes
-            bad overload of text when painting using background, oversizing the
-            text area wildly.}
-            {$ENDIF}
-          end
-        else
-        if W is TDHVisualItem_Image then
-          with TDHVisualItem_Image(W) do
-          begin
-            {$IFDEF USE_IMGLST}
-            if Assigned(FImages) then
-              {$IFDEF FMX}
-              FImages.Draw(B.Canvas, TRectF.Create(W.Rect), ImageIndex, 1);
-              {$ELSE}
-              FImages.Draw(B.Canvas, W.Rect.Left, W.Rect.Top, ImageIndex);
-              {$ENDIF}
-            {$ENDIF}
-          end
-        else
-        if W is TDHVisualItem_ImageResource then
-          with TDHVisualItem_ImageResource(W) do
-          begin
-            {$IFDEF FMX}
-            B.Canvas.DrawBitmap(Picture, GetBmpBounds(Picture), TRectF.Create(W.Rect), 1);
-            {$ELSE}
-            B.Canvas.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
-            {$ENDIF}
-          end
-        else
-          raise EInternalExcept.Create('Invalid visual item object');
-      end;
-
-    {$IFDEF FMX}
-    finally
-      B.Canvas.EndScene;
+      //draw background color
+      {$IFDEF FMX}
+      C.Fill.Color := FColor;
+      C.FillRect(LocalRect, 0, 0, [], 1);
+      {$ELSE}
+      C.Brush.Color := Color;
+      C.FillRect(ClientRect);
+      {$ENDIF}
     end;
-    Canvas.DrawBitmap(B, GetBmpBounds(B), GetBmpBounds(B), 1);
-    {$ELSE}
+
+    if csDesigning in ComponentState then
+    begin
+      {$IFDEF FMX}
+      C.Stroke.Color := TAlphaColors.Gray;
+      C.DrawRect(LocalRect, 0, 0, [], 1);
+      {$ELSE}
+      C.Pen.Style := psDot;
+      C.Pen.Color := clBtnShadow;
+      C.Brush.Style := bsClear;
+      C.Rectangle(ClientRect);
+      {$ENDIF}
+    end;
+
+    for W in LVisualItem do
+    begin
+      if W is TDHVisualItem_Word then
+        C.Font.Assign(TDHVisualItem_Word(W).Font);
+
+      C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := W.BColor;
+      {$IFDEF FMX}C.Stroke.Color := clNone;{$ENDIF}
+
+      if Assigned(W.Link) then
+      begin
+        if W.Hover then //selected
+          FStyleLinkHover.SetPropsToCanvas(C)
+        else
+          FStyleLinkNormal.SetPropsToCanvas(C);
+      end;
+
+      if C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then
+        C.FillRect(
+          {$IFDEF FMX}
+          TRectF.Create(W.Rect), 0, 0, [], 1
+          {$ELSE}
+          W.Rect
+          {$ENDIF});
+
+      if W is TDHVisualItem_Word then
+        with TDHVisualItem_Word(W) do
+        begin
+          R := W.Rect;
+          R.Top := R.Top + YPos;
+
+          {$IFDEF FMX}
+          if C.Stroke.Color<>clNone then
+            C.Fill.Color := C.Stroke.Color
+          else
+            C.Fill.Color := TDHVisualItem_Word(W).FontColor;
+
+          C.FillText(TRectF.Create(R), Text, False, 1, [],
+            TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$ENDIF});
+          {$ELSE}
+          C.Brush.Style := bsClear;
+          DrawTextW(C.Handle,
+            PWideChar({$IFDEF FPC}UnicodeString(Text){$ELSE}Text{$ENDIF}),
+            -1, R, DT_NOCLIP or DT_NOPREFIX);
+          {Using DrawText, because TextOut has no clip option, which causes
+          bad overload of text when painting using background, oversizing the
+          text area wildly.}
+          {$ENDIF}
+        end
+      else
+      if W is TDHVisualItem_Image then
+        with TDHVisualItem_Image(W) do
+        begin
+          {$IFDEF USE_IMGLST}
+          if Assigned(FImages) then
+            {$IFDEF FMX}
+            FImages.Draw(C, TRectF.Create(W.Rect), ImageIndex, 1);
+            {$ELSE}
+            FImages.Draw(C, W.Rect.Left, W.Rect.Top, ImageIndex);
+            {$ENDIF}
+          {$ENDIF}
+        end
+      else
+      if W is TDHVisualItem_ImageResource then
+        with TDHVisualItem_ImageResource(W) do
+        begin
+          {$IFDEF FMX}
+          C.DrawBitmap(Picture, TRectF.Create(0, 0, Picture.Width, Picture.Height),
+            TRectF.Create(W.Rect), 1);
+          {$ELSE}
+          C.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
+          {$ENDIF}
+        end
+      else
+        raise EInternalExcept.Create('Invalid visual item object');
+    end;
+
+  {$IFDEF VCL}
     Canvas.Draw(0, 0, B);
-    {$ENDIF}
   finally
     B.Free;
   end;
+  {$ENDIF}
 end;
 
 procedure TDzHTMLText.SetCursor(const Value: TCursor);
