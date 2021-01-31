@@ -999,7 +999,7 @@ begin
               B.Canvas.Fill.Color := TDHVisualItem_Word(W).FontColor;
 
             B.Canvas.FillText(TRectF.Create(R), Text, False, 1, [],
-              TTextAlign.{$IFDEF USE_NEW_ENV}Leading{$ELSE}taLeading{$ENDIF});
+              TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$ENDIF});
             {$ELSE}
             B.Canvas.Brush.Style := bsClear;
             DrawTextW(B.Canvas.Handle,
