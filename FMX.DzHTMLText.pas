@@ -352,8 +352,13 @@ type
     property OnGesture;
     {$ENDIF}
 
-    {$IFDEF USE_NEW_ENV}
+    {$IFDEF VCL}
     property ParentShowHint;
+    {$ENDIF}
+    {$IFDEF FMX}
+      {$IF CompilerVersion >= 30} //D10 Seattle
+      property ParentShowHint;
+      {$ENDIF}
     {$ENDIF}
 
     {$IFDEF FMX}
