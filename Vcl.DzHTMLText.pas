@@ -924,6 +924,8 @@ begin
   try
     B.SetSize(Width, Height);
   {$ELSE}
+  //In FMX, Paint method calls BeginScene/EndScene automatically,
+  //so there is no need for Bitmap and there is no concern about flickering.
   C := Canvas;
   {$ENDIF}
 
