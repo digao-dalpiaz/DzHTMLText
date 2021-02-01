@@ -3,7 +3,7 @@ unit UFrmExample;
 interface
 
 uses Vcl.Forms, Vcl.ImgList, Vcl.Controls, System.Classes, Vcl.DzHTMLText,
-  {$IF CompilerVersion >= 29}System.ImageList,{$ENDIF}
+  {$IF CompilerVersion >= 29}System.ImageList,{$IFEND}
   //
   Vcl.Graphics;
 
