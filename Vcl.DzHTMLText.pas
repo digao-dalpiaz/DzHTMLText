@@ -461,7 +461,7 @@ implementation
 
 uses
 {$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, Math, LResources
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources
 {$ELSE}
   System.SysUtils, System.StrUtils, System.Math
   {$IFDEF FMX}
