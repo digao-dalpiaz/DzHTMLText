@@ -40,6 +40,7 @@
       - Images property (ImageList) only available for Delphi XE8 or higher (using always first Layer in ImageList).
       - AutoOpenLink property only works in Windows and Linux environment (not available in Android, iOS and MacOS).
    - **Warning: VCL unit changed from DzHTMLText to Vcl.DzHTMLText. If you are not using "Vcl" in Unit Scope Names property in Delphi Compiler options, please review your "uses" clauses.**
+   - Fixed Delphi XE2 compilation.
 
 - 12/18/2020 (Version 2.11)
 
