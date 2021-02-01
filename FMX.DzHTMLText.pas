@@ -14,11 +14,11 @@ unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
 {$IFDEF FMX}
   {$IF CompilerVersion >= 26} //XE5
     {$DEFINE USE_NEW_UNITS}
-  {$IFEND}
+  {$ENDIF}
   {$IF CompilerVersion >= 29} //XE8
     {$DEFINE USE_NEW_ENV}
     {$DEFINE USE_IMGLST}
-  {$IFEND}
+  {$ENDIF}
 {$ELSE}
   {$DEFINE VCL}
   {$DEFINE USE_NEW_ENV}
@@ -349,14 +349,7 @@ type
     property OnResize;
 
     {$IFDEF DCC}
-      {$IFDEF VCL}
-      property OnGesture;
-      {$ENDIF}
-      {$IFDEF FMX}
-        {$IF CompilerVersion >= 24} //XE3
-        property OnGesture;
-        {$IFEND}
-      {$ENDIF}
+    property OnGesture;
     {$ENDIF}
 
     {$IFDEF VCL}
@@ -365,7 +358,7 @@ type
     {$IFDEF FMX}
       {$IF CompilerVersion >= 30} //D10 Seattle
       property ParentShowHint;
-      {$IFEND}
+      {$ENDIF}
     {$ENDIF}
 
     {$IFDEF FMX}
@@ -388,8 +381,10 @@ type
     property RotationAngle;
     property RotationCenter;
     property Scale;
+    property StyledSettings;
     property StyleLookup;
     property TabOrder;
+    property TouchTargetExpansion;
 
     property Width;
     property Height;
@@ -400,11 +395,6 @@ type
       property TabStop;
       property Size;
       {$ENDIF}
-
-      {$IF CompilerVersion >= 24} //XE3
-      property StyledSettings;
-      property TouchTargetExpansion;
-      {$IFEND}
 
     property Color: TColor read FColor write SetColor default clNone;
     property FontColor: TColor read FFontColor write SetFontColor default TAlphaColors.Black;
@@ -462,9 +452,9 @@ implementation
 
 uses
 {$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, Math, LResources
 {$ELSE}
-  System.SysUtils, System.StrUtils, System.Math
+  System.SysUtils, System.Math
   {$IFDEF FMX}
   , System.UIConsts
   {$ELSE}
@@ -790,7 +780,7 @@ end;
 function TDzHTMLText.GetText: string;
 begin
   Result := FLines.Text;
-  Result := Copy(Result, 1, Length(Result)-Length(FLines.LineBreak)); //remove last line break
+  Result := Result.Substring(0, Result.Length-FLines.LineBreak.Length); //remove last line break
 end;
 
 procedure TDzHTMLText.SetText(const Value: string);
@@ -1007,7 +997,7 @@ begin
             C.Fill.Color := TDHVisualItem_Word(W).FontColor;
 
           C.FillText(TRectF.Create(R), Text, False, 1, [],
-            TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$IFEND});
+            TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$ENDIF});
           {$ELSE}
           C.Brush.Style := bsClear;
           DrawTextW(C.Handle,
@@ -1296,15 +1286,15 @@ end;
 
 function ParamToColor(A: string): TColor;
 begin
-  if StartsStr('#', A) then A[1] := '$';
+  if A.StartsWith('#') then A[1] := '$';
 
-  if StartsStr('$', A) then
+  if A.StartsWith('$') then
   begin
-    if Length(A)=7 then Insert({$IFDEF FMX}'FF'{$ELSE}'00'{$ENDIF}, A, 2);
+    if A.Length=7 then Insert({$IFDEF FMX}'FF'{$ELSE}'00'{$ENDIF}, A, 2);
     //Allow 6-digit (HTML) or 8-digit (Delphi) color notation
     //The firsts two digits in 8-digit format represents the alpha channel in FMX
 
-    if Length(A)<>9 then Exit(clNone);
+    if A.Length<>9 then Exit(clNone);
   end;
 
   try
@@ -1391,7 +1381,7 @@ begin
   A := Tag;
 
   TOff := False;
-  if StartsStr('/', A) then //closing tag
+  if A.StartsWith('/') then //closing tag
   begin
     TOff := True;
     Delete(A, 1, 1);
@@ -1404,7 +1394,7 @@ begin
   if I>0 then //has parameter
   begin
     HasPar := True;
-    Par := Copy(A, I+1, Length(A)-I); //zero-based
+    Par := A.Substring(I); //zero-based
     A := Copy(A, 1, I-1);
   end;
 
@@ -1459,7 +1449,7 @@ var
 begin
   Result := 0;
 
-  for I := 1 to Length(A) do
+  for I := 1 to A.Length do
   begin
     C := A[I];
 
@@ -1513,7 +1503,7 @@ begin
   Text := StringReplace(Text, #13#10, '<BR>', [rfReplaceAll]);
   //if not Text.IsEmpty then Text := Text + '<BR>'; //internal final break
 
-  while Text<>EmptyStr do
+  while not Text.IsEmpty do
   begin
     A := Text;
     CharIni := A[1];
@@ -2109,12 +2099,12 @@ end;
 
 procedure TTokensProcess.DoFloat(T: TToken);
 var Z: TPreObj_Float;
-  Ar: TStringDynArray;
+  Ar: TArray<string>;
 begin
   Z := TPreObj_Float.Create;
   if not T.TagClose then
   begin
-    Ar := SplitString(T.Text, ',');
+    Ar := T.Text.Split([',']);
     if Length(Ar)>=2 then
     begin
       Z.Rect.Left := StrToIntDef(Ar[0], 0);
