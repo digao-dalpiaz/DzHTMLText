@@ -964,11 +964,15 @@ begin
 
     for W in LVisualItem do
     begin
-      if W is TDHVisualItem_Word then
-        C.Font.Assign(TDHVisualItem_Word(W).Font);
-
       C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := W.BColor;
-      {$IFDEF FMX}C.Stroke.Color := clNone;{$ENDIF}
+
+      if W is TDHVisualItem_Word then
+      begin
+        C.Font.Assign(TDHVisualItem_Word(W).Font);
+        {$IFDEF FMX}
+        C.Stroke.Color := TDHVisualItem_Word(W).FontColor;
+        {$ENDIF}
+      end;
 
       if Assigned(W.Link) then
       begin
@@ -993,11 +997,7 @@ begin
           R.Top := R.Top + YPos;
 
           {$IFDEF FMX}
-          if C.Stroke.Color<>clNone then
-            C.Fill.Color := C.Stroke.Color
-          else
-            C.Fill.Color := TDHVisualItem_Word(W).FontColor;
-
+          C.Fill.Color := C.Stroke.Color;
           C.FillText(TRectF.Create(R), Text, False, 1, [],
             TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$ENDIF});
           {$ELSE}
