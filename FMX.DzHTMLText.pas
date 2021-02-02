@@ -950,7 +950,10 @@ begin
     if csDesigning in ComponentState then
     begin
       {$IFDEF FMX}
-      C.Stroke.Color := TAlphaColors.Gray;
+      C.Stroke.Thickness := 0.5;
+      C.Stroke.Kind := TBrushKind.Solid;
+      C.Stroke.Dash := TStrokeDash.Dash;
+      C.Stroke.Color := TAlphaColors.Black;
       C.DrawRect(LocalRect, 0, 0, [], 1);
       {$ELSE}
       C.Pen.Style := psDot;
