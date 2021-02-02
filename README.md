@@ -41,6 +41,8 @@
       - AutoOpenLink property only works in Windows and Linux environment (not available in Android, iOS and MacOS).
    - **Warning: VCL unit changed from DzHTMLText to Vcl.DzHTMLText. If you are not using "Vcl" in Unit Scope Names property in Delphi Compiler options, please review your "uses" clauses.**
    - Removed Delphi XE2 from the list of environments as it was never possible to compile in this version.
+   - Fixed Linux compatibility (Paint method, platform specific LineBreak, Link Text capture causing error).
+   - Fixed AutoOpenLink to do nothing when there is no target on link.
 
 - 12/18/2020 (Version 2.11)
 
