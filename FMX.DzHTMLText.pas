@@ -1003,12 +1003,17 @@ begin
             TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$ENDIF});
           {$ELSE}
           C.Brush.Style := bsClear;
-          DrawTextW(C.Handle,
-            PWideChar({$IFDEF FPC}UnicodeString(Text){$ELSE}Text{$ENDIF}),
-            -1, R, DT_NOCLIP or DT_NOPREFIX);
-          {Using DrawText, because TextOut has no clip option, which causes
-          bad overload of text when painting using background, oversizing the
-          text area wildly.}
+            {$IFDEF MSWINDOWS}
+            DrawTextW(C.Handle,
+              PWideChar({$IFDEF FPC}UnicodeString(Text){$ELSE}Text{$ENDIF}),
+              -1, R, DT_NOCLIP or DT_NOPREFIX);
+            {Using DrawText, because TextOut has no clip option, which causes
+            bad overload of text when painting using background, oversizing the
+            text area wildly.}
+            {$ELSE}
+            //FPC Linux
+            C.TextOut(R.Left, R.Top, Text);
+            {$ENDIF}
           {$ENDIF}
         end
       else
@@ -1131,21 +1136,24 @@ begin
         if FAutoOpenLink then
         begin
           aTarget := TDHLinkRef(FSelectedLink).FTarget;
-          {$IFDEF MSWINDOWS}
-          ShellExecute(0, 'open', PChar(aTarget), '', '', SW_SHOWNORMAL);
-          {$ELSE}
-            {$IFDEF FPC}
-            if aTarget.StartsWith('http://', True)
-              or aTarget.StartsWith('https://', True)
-              or aTarget.StartsWith('www.', True)
-            then
-              OpenURL(aTarget)
-            else
-              OpenDocument(aTarget);
+          if not aTarget.IsEmpty then
+          begin
+            {$IFDEF MSWINDOWS}
+            ShellExecute(0, 'open', PChar(aTarget), '', '', SW_SHOWNORMAL);
             {$ELSE}
-            raise Exception.Create('Unsupported platform');
+              {$IFDEF FPC}
+              if aTarget.StartsWith('http://', True)
+                or aTarget.StartsWith('https://', True)
+                or aTarget.StartsWith('www.', True)
+              then
+                OpenURL(aTarget)
+              else
+                OpenDocument(aTarget);
+              {$ELSE}
+              raise Exception.Create('Unsupported platform');
+              {$ENDIF}
             {$ENDIF}
-          {$ENDIF}
+          end;
         end;
       end else
       if FSelectedLink is TDHSpoiler then
@@ -1204,7 +1212,7 @@ type
     ttInvalid,
     ttBold, ttItalic, ttUnderline, ttStrike,
     ttFontName, ttFontSize, ttFontColor, ttBackColor,
-    ttTab, ttTabF, ttSpace,
+    ttTab, ttTabF,
     ttBreak, ttText, ttLink,
     ttAlignLeft, ttAlignCenter, ttAlignRight,
     ttImage, ttImageResource,
@@ -1223,9 +1231,7 @@ type
     Value: TTokenValue;
   end;
 
-  TListToken = class(TObjectList<TToken>)
-    function GetLinkText(IEnd: Integer): string;
-  end;
+  TListToken = class(TObjectList<TToken>);
 
   TBuilder = class
     Lb: TDzHTMLText;
@@ -1437,7 +1443,9 @@ begin
   end;
 end;
 
-const INT_BREAKABLE_CHAR = -1;
+const
+  STR_SPACE = ' ';
+  INT_BREAKABLE_CHAR = -1;
 
 type
   TCharUtils = class
@@ -1456,8 +1464,8 @@ begin
   begin
     C := A[I];
 
-    if CharInSet(C, [' ','<','>','/','\']) or IsCJKChar(C) then
-    begin // !!! should never find space or tags at first char
+    if CharInSet(C, [STR_SPACE,'<','>','/','\']) or IsCJKChar(C) then
+    begin // !!! should never find tags at first char
       Result := I;
       Break;
     end;
@@ -1502,9 +1510,8 @@ var
 begin
   Text := Lb.FLines.Text; //when is not empty, always comes with a final line break
 
-  Text := StringReplace(Text, #13#10'<NBR>', EmptyStr, [rfReplaceAll, rfIgnoreCase]); //ignore next break
-  Text := StringReplace(Text, #13#10, '<BR>', [rfReplaceAll]);
-  //if not Text.IsEmpty then Text := Text + '<BR>'; //internal final break
+  Text := StringReplace(Text, sLineBreak+'<NBR>', EmptyStr, [rfReplaceAll, rfIgnoreCase]); //ignore next break
+  Text := StringReplace(Text, sLineBreak, '<BR>', [rfReplaceAll]);
 
   while not Text.IsEmpty do
   begin
@@ -1531,11 +1538,6 @@ begin
     begin
       //losted tag closing
       AddToken(ttInvalid);
-      Jump := 1;
-    end else
-    if CharIni = ' ' then //space
-    begin
-      AddToken(ttSpace, False, ' ');
       Jump := 1;
     end else
     begin //all the rest is text
@@ -1721,7 +1723,7 @@ type
     procedure DoAlignment(T: TToken);
     procedure DoLineSpace(T: TToken);
     procedure DoTextAndRelated(T: TToken);
-    procedure DoLink(T: TToken; I: Integer);
+    procedure DoLink(T: TToken);
     procedure DoLists(T: TToken);
     procedure DoFloat(T: TToken);
     procedure DoSpoilerTitle(T: TToken);
@@ -1822,13 +1824,10 @@ end;
 
 procedure TTokensProcess.Execute;
 var
-  I: Integer;
   T: TToken;
 begin
-  for I := 0 to Builder.LToken.Count-1 do
+  for T in Builder.LToken do
   begin
-    T := Builder.LToken[I];
-
     if not (T.Kind in [ttSpoilerTitle, ttSpoilerDetail]) then
     begin
       //Bypass when inside a closed spoiler detail tag
@@ -1845,8 +1844,8 @@ begin
       ttSuperscript, ttSubscript: DoSupOrSubScript(T);
       ttAlignLeft, ttAlignCenter, ttAlignRight: DoAlignment(T);
       ttLineSpace: DoLineSpace(T);
-      ttText, ttSpace, ttInvalid, ttImage, ttImageResource, ttListItem: DoTextAndRelated(T);
-      ttLink: DoLink(T, I);
+      ttText, ttInvalid, ttImage, ttImageResource, ttListItem: DoTextAndRelated(T);
+      ttLink: DoLink(T);
       ttBulletList, ttNumberList: DoLists(T);
       ttFloat: DoFloat(T);
       ttSpoilerTitle: DoSpoilerTitle(T);
@@ -1931,7 +1930,6 @@ begin
   FixedPos := Default(TFixedPosition);
 
   case T.Kind of
-    //ttSpace: T.Text := ' ';
     ttInvalid: T.Text := '<?>';
     ttListItem:
     begin
@@ -2001,6 +1999,9 @@ begin
     end;
   end;
 
+  if Assigned(CurrentLink) and (CurrentLink is TDHLinkRef) and (T.Kind=ttText) then
+    with TDHLinkRef(CurrentLink) do FText := FText + T.Text; //set link display text on the link data object
+
   W.BColor := CurrentProps.BackColor;
   W.Link := CurrentLink;
 
@@ -2008,7 +2009,7 @@ begin
   Z.Size := Ex;
   Z.Align := CurrentProps.Align;
   Z.LineSpace := CurrentProps.LineSpace;
-  Z.Space := (T.Kind=ttSpace);
+  Z.Space := (T.Kind=ttText) and (T.Text=STR_SPACE);
   Z.BreakableChar := (T.Kind=ttText) and (T.Value=INT_BREAKABLE_CHAR);
   Z.FixedPos := FixedPos;
   Z.Visual := W;
@@ -2035,7 +2036,7 @@ begin
     Tag := LSupAndSubScript[I];
 
     C.Font.Size := {$IFDEF VCL}Round{$ENDIF}(OriginalFontSize * Power(0.75, I+1));
-    TextH := ToInt(C.TextHeight(' '));
+    TextH := ToInt(C.TextHeight(STR_SPACE));
 
     if Tag is THTMLSupTag then Y := 0 else
     if Tag is THTMLSubTag then Y := H - TextH else
@@ -2054,17 +2055,13 @@ begin
   C.Font.Size := OriginalFontSize;
 end;
 
-procedure TTokensProcess.DoLink(T: TToken; I: Integer);
+procedure TTokensProcess.DoLink(T: TToken);
 var
   LinkRef: TDHLinkRef;
 begin
   if T.TagClose then
-  begin
-    if Assigned(CurrentLink) and (CurrentLink is TDHLinkRef) then
-      TDHLinkRef(CurrentLink).FText := Builder.LToken.GetLinkText(I); //set link display text on the link data object
-
-    CurrentLink := nil;
-  end else
+    CurrentLink := nil
+  else
   begin
     LinkRef := TDHLinkRef.Create;
     LinkRef.FTarget := T.Text;
@@ -2163,7 +2160,7 @@ procedure TTokensProcess.DoBreak;
 var Z: TPreObj_Break;
 begin
   Z := TPreObj_Break.Create;
-  Z.Height := ToInt(C.TextHeight(' '));
+  Z.Height := ToInt(C.TextHeight(STR_SPACE));
   Items.Add(Z);
 end;
 
@@ -2208,7 +2205,7 @@ var
     begin
       if not (Items[J] is TPreObj_Visual) then Break;
       PV := TPreObj_Visual(Items[J]);
-      if PV.Space or PV.BreakableChar then Break;
+      if PV.Space or PV.BreakableChar then Break; //Space always BreakableChar now?
       Inc(EndPos, PV.Size.Width);
       PV.BreakCheckDone := True;
     end;
@@ -2566,33 +2563,5 @@ begin
   end;
 end;
 {$ENDREGION}
-
-{ TListToken }
-
-function TListToken.GetLinkText(IEnd: Integer): string;
-var
-  SB: TStringBuilder;
-  I: Integer;
-  T: TToken;
-begin
-  //returns the link display text where IEnd is Link Close tag Token on the list
-  //so, it will start from the end until find the Link Open tag.
-
-  SB := TStringBuilder.Create;
-  try
-    for I := IEnd-1 downto 0 do
-    begin
-      T := Items[I];
-      if T.Kind = ttLink then Break; //should be open tag
-
-      if T.Kind in [ttText, ttSpace] then
-        SB.Insert(0, T.Text);
-    end;
-
-    Result := SB.ToString;
-  finally
-    SB.Free;
-  end;
-end;
 
 end.
