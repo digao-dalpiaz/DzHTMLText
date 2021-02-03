@@ -38,7 +38,7 @@
    - Multiple image format when using Resources in FMX environment.
    - *FMX Remarks:*
       - Images property (ImageList) only available for Delphi XE8 or higher (using always first Layer in ImageList).
-      - AutoOpenLink property only works in Windows and Linux environment (not available in Android, iOS and MacOS).
+      - AutoOpenLink property only works in Windows, Linux and Android environments (not available in iOS and MacOS).
    - **Warning: VCL unit changed from DzHTMLText to Vcl.DzHTMLText. If you are not using "Vcl" in Unit Scope Names property in Delphi Compiler options, please review your "uses" clauses.**
    - Removed Delphi XE2 from the list of environments as it was never possible to compile in this version.
    - Fixed Linux compatibility (Paint method, platform specific LineBreak, Link Text capture causing error).
@@ -280,7 +280,7 @@ Supports Delphi XE3..Delphi 10.4
 `AutoWidth: Boolean` = Auto set width of control when Text property changed.
 If you are using AutoWidth, the text never wraps to a new line unless a line break is specified at text or there is a value specified in MaxWidth property.
 
-`AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick. This only works in Windows and Linux platforms. For others platforms like Android, iOS and MacOS, you can use OnLinkClick event.
+`AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick. This only works in Windows, Linux and Android platforms. For others platforms like iOS and MacOS, you can use OnLinkClick event.
 
 `Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background. In VCL environment, transparency is not available.
 
