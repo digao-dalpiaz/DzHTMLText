@@ -32,6 +32,8 @@ unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
 {$WARN 3177 off : Some fields coming after "$1" were not initialized}
 {$ENDIF}
 
+{$ZEROBASEDSTRINGS OFF}
+
 interface
 
 uses
@@ -212,7 +214,7 @@ type
     FAutoWidth: Boolean;
     FAutoHeight: Boolean;
     FMaxWidth: Integer; //max width when using AutoWidth
-    FAutoOpenLink: Boolean; //link auto-open with ShellExecute
+    FAutoOpenLink: Boolean;
 
     FLineCount: Integer; //read-only
     FTextWidth: Integer; //read-only
@@ -457,6 +459,10 @@ uses
   System.SysUtils, System.Math
   {$IFDEF FMX}
   , System.UIConsts
+    {$IFDEF ANDROID}
+    , Androidapi.JNI.GraphicsContentViewText
+    , Androidapi.Helpers
+    {$ENDIF}
   {$ELSE}
   , System.UITypes
   {$ENDIF}
@@ -1138,20 +1144,24 @@ begin
           aTarget := TDHLinkRef(FSelectedLink).FTarget;
           if not aTarget.IsEmpty then
           begin
-            {$IFDEF MSWINDOWS}
+            {$IF Defined(MSWINDOWS)}
             ShellExecute(0, 'open', PChar(aTarget), '', '', SW_SHOWNORMAL);
+            {$ELSEIF Defined(FPC)}
+            if aTarget.StartsWith('http://', True)
+              or aTarget.StartsWith('https://', True)
+              or aTarget.StartsWith('www.', True)
+            then
+              OpenURL(aTarget)
+            else
+              OpenDocument(aTarget);
+            {$ELSEIF Defined(ANDROID)}
+            TAndroidHelper.Activity.startActivity(
+              TJIntent.Create
+                .setAction(TJIntent.JavaClass.ACTION_VIEW)
+                .setData(StrToJURI(aTarget))
+            );
             {$ELSE}
-              {$IFDEF FPC}
-              if aTarget.StartsWith('http://', True)
-                or aTarget.StartsWith('https://', True)
-                or aTarget.StartsWith('www.', True)
-              then
-                OpenURL(aTarget)
-              else
-                OpenDocument(aTarget);
-              {$ELSE}
-              raise Exception.Create('Unsupported platform');
-              {$ENDIF}
+            raise Exception.Create('Unsupported platform');
             {$ENDIF}
           end;
         end;
