@@ -1164,11 +1164,16 @@ begin
             else
               OpenDocument(aTarget);
             {$ELSEIF Defined(ANDROID)}
-            TAndroidHelper.Activity.startActivity(
-              TJIntent.Create
-                .setAction(TJIntent.JavaClass.ACTION_VIEW)
-                .setData(StrToJURI(aTarget))
-            );
+            try
+              TAndroidHelper.Activity.startActivity(
+                TJIntent.Create
+                  .setAction(TJIntent.JavaClass.ACTION_VIEW)
+                  .setData(StrToJURI(aTarget))
+              );
+            except
+              on E: EJNIException do
+                if not E.ExceptionClassName.Contains('ActivityNotFoundException') then raise;
+            end;
             {$ELSE}
             raise Exception.Create('Unsupported platform');
             {$ENDIF}
