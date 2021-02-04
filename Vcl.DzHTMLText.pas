@@ -283,6 +283,8 @@ type
     procedure OnFontChanged(Sender: TObject);
     {$ENDIF}
 
+    procedure SetTextSize(W, H: Integer);
+
     function GetIntHeight: Integer; inline;
     function GetIntWidth: Integer; inline;
   protected
@@ -899,6 +901,20 @@ begin
 end;
 {$ENDIF}
 
+procedure TDzHTMLText.SetTextSize(W, H: Integer);
+begin
+  FTextWidth := W;
+  FTextHeight := H;
+
+  InternalResizing := True;
+  try
+    if FAutoWidth then Width := W;
+    if FAutoHeight then Height := H;
+  finally
+    InternalResizing := False;
+  end;
+end;
+
 procedure TDzHTMLText.Resize;
 begin
   if InternalResizing then Exit;
@@ -1239,8 +1255,6 @@ type
     Lb: TDzHTMLText;
     LToken: TListToken;
 
-    CalcWidth, CalcHeight: Integer; //width and height to set at component when using auto
-
     function ProcessTag(const Tag: string): Boolean;
     procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: TTokenValue = 0);
 
@@ -1277,17 +1291,6 @@ begin
 
     B.ReadTokens;
     B.ProcessTokens;
-
-    FTextWidth := B.CalcWidth;
-    FTextHeight := B.CalcHeight;
-
-    InternalResizing := True;
-    try
-      if FAutoWidth then Width := B.CalcWidth;
-      if FAutoHeight then Height := B.CalcHeight;
-    finally
-      InternalResizing := False;
-    end;
   finally
     B.Free;
   end;
@@ -2217,7 +2220,7 @@ var
     Result :=
       ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>Lb.FMaxWidth) )
       or
-      ( (not Lb.FAutoWidth) and (EndPos>Lb.Width) );
+      ( (not Lb.FAutoWidth) and (EndPos>Lb.GetIntWidth) );
   end;
 
   procedure CheckPriorSpace;
@@ -2358,9 +2361,7 @@ begin
     X := V.Visual.Rect.Right;
   end;
 
-  Builder.CalcWidth := Max.OverallWidth;
-  Builder.CalcHeight := Max.OverallHeight;
-
+  Lb.SetTextSize(Max.OverallWidth, Max.OverallHeight);
   Lb.FLineCount := LineCount;
 end;
 
@@ -2378,8 +2379,8 @@ type
     B := LGroupBound[V.Group];
     if B.Limit = -1 then
     begin //group has no limit
-      if Lb.FAutoWidth or (Lb.FOverallHorzAlign in [haCenter, haRight]) then
-        GrpLim := Builder.CalcWidth
+      if Lb.FOverallHorzAlign in [haCenter, haRight] then
+        GrpLim := Lb.FTextWidth
       else
         GrpLim := Lb.GetIntWidth;
     end
@@ -2398,13 +2399,13 @@ type
   function funcOverallAlignHorz: TFuncAlignResult;
   begin
     Result.Outside := Lb.GetIntWidth;
-    Result.Inside := Builder.CalcWidth;
+    Result.Inside := Lb.FTextWidth;
   end;
 
   function funcOverallAlignVert: TFuncAlignResult;
   begin
     Result.Outside := Lb.GetIntHeight;
-    Result.Inside := Builder.CalcHeight;
+    Result.Inside := Lb.FTextHeight;
   end;
 
   procedure Check(fnIndex: Byte; horz: Boolean; prop: Variant);
