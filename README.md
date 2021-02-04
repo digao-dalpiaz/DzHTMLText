@@ -43,6 +43,7 @@
    - Removed Delphi XE2 from the list of environments as it was never possible to compile in this version.
    - Fixed Linux compatibility (Paint method, platform specific LineBreak, Link Text capture causing error).
    - Fixed AutoOpenLink to do nothing when there is no target on link.
+   - Fixed AutoWidth and AutoHeight to repaint correctly according to calculated text positions.
 
 - 12/18/2020 (Version 2.11)
 
