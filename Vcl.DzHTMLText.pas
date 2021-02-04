@@ -123,7 +123,6 @@ type
     and works to know the link target, stored on a TStringList, because if
     the link was saved here at a work, it will be repeat if has multiple words
     per link, spending a lot of unnecessary memory.}
-    Hover: Boolean; //the mouse is over the link
   end;
 
   TDHVisualItem_Word = class(TDHVisualItem)
@@ -241,7 +240,6 @@ type
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
 
-    FIsLinkHover: Boolean; //if has a selected link
     FSelectedLink: TDHBaseLink; //selected link
 
     FCursor: TCursor;
@@ -265,6 +263,7 @@ type
     procedure BuildAndPaint; //rebuild and repaint
     procedure Modified(Flags: TDHModifiedFlags);
 
+    function GetIsLinkHover: Boolean;
     procedure CheckMouse(X, Y: Integer); //check links by mouse position
     procedure SetCursor(const Value: TCursor); reintroduce;
     procedure SetLineVertAlign(const Value: TDHVertAlign);
@@ -314,7 +313,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    property IsLinkHover: Boolean read FIsLinkHover;
+    property IsLinkHover: Boolean read GetIsLinkHover;
     property SelectedLink: TDHBaseLink read FSelectedLink;
 
     property LinkRefs: TDHLinkRefList read LLinkRef;
@@ -766,6 +765,7 @@ function TDzHTMLText.GetIntWidth: Integer;
 begin
   Result := ToInt(Width);
 end;
+
 function TDzHTMLText.GetIntHeight: Integer;
 begin
   Result := ToInt(Height);
@@ -982,7 +982,7 @@ begin
 
       if Assigned(W.Link) then
       begin
-        if W.Hover then //selected
+        if FSelectedLink = W.Link then //selected
           FStyleLinkHover.SetPropsToCanvas(C)
         else
           FStyleLinkNormal.SetPropsToCanvas(C);
@@ -1066,50 +1066,43 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.CheckMouse(X, Y: Integer);
-var FoundHover, HasChange, Old: Boolean;
-    Link: TDHBaseLink;
-    W: TDHVisualItem;
+function TDzHTMLText.GetIsLinkHover: Boolean;
 begin
-  FoundHover := False;
-  HasChange := False;
+  Result := Assigned(FSelectedLink);
+end;
+
+procedure TDzHTMLText.CheckMouse(X, Y: Integer);
+var
+  Link: TDHBaseLink;
+  W: TDHVisualItem;
+  P: TPoint;
+begin
   Link := nil;
+
+  P := TPoint.Create(X, Y);
 
   //find the first word, if there is any
   for W in LVisualItem do
     if Assigned(W.Link) then
     begin
-      if W.Rect.Contains(TPoint.Create(X, Y)) then //selected
+      if W.Rect.Contains(P) then //selected
       begin
-        FoundHover := True; //found word of a link selected
         Link := W.Link;
-
         Break;
       end;
     end;
 
-  //set as selected all the words of same link, and unselect another links
-  for W in LVisualItem do
-    if Assigned(W.Link) then
-    begin
-      Old := W.Hover;
-      W.Hover := (W.Link = Link);
-      if Old<>W.Hover then HasChange := True; //changed
-    end;
-
-  if HasChange then //there is any change
+  if Link <> FSelectedLink then //changed
   begin
-    if FoundHover then //enter the link
+    if Assigned(Link) then //enter the link
     begin
       inherited Cursor := crHandPoint;
-      FIsLinkHover := True;
       FSelectedLink := Link;
       if Assigned(FOnLinkEnter) then
         FOnLinkEnter(Self, Link);
     end else
     begin //leave the link
       inherited Cursor := FCursor;
-      FIsLinkHover := False;
       Link := FSelectedLink; //save to use on OnLinkLeave event
       FSelectedLink := nil;
       if Assigned(FOnLinkLeave) then
@@ -1128,7 +1121,7 @@ procedure TDzHTMLText.Click;
 var Handled: Boolean;
   aTarget: string;
 begin
-  if FIsLinkHover then
+  if Assigned(FSelectedLink) then
   begin
     Handled := False;
     if Assigned(FOnLinkClick) then
