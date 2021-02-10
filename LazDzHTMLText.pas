@@ -8,13 +8,13 @@ unit LazDzHTMLText;
 interface
 
 uses
-  DzHTMLText, LazarusPackageIntf;
+  Vcl.DzHTMLText, LazarusPackageIntf;
 
 implementation
 
 procedure Register;
 begin
-  RegisterUnit('DzHTMLText', @DzHTMLText.Register);
+  RegisterUnit('Vcl.DzHTMLText', @Vcl.DzHTMLText.Register);
 end;
 
 initialization

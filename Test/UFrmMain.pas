@@ -2,9 +2,7 @@ unit UFrmMain;
 
 interface
 
-uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, DzHTMLText, Vcl.ExtCtrls;
+uses Vcl.Forms, System.Classes, Vcl.Controls, Vcl.DzHTMLText;
 
 type
   TFrmMain = class(TForm)
@@ -16,10 +14,6 @@ type
     DzHTMLText6: TDzHTMLText;
     DzHTMLText7: TDzHTMLText;
     DzHTMLText8: TDzHTMLText;
-  private
-    { Private declarations }
-  public
-    { Public declarations }
   end;
 
 var

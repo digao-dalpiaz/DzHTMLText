@@ -18,9 +18,9 @@
     </CompilerOptions>
     <Files Count="1">
       <Item1>
-        <Filename Value="DzHTMLText.pas"/>
+        <Filename Value="Vcl.DzHTMLText.pas"/>
         <HasRegisterProc Value="True"/>
-        <UnitName Value="DzHTMLText"/>
+        <UnitName Value="Vcl.DzHTMLText"/>
       </Item1>
     </Files>
     <RequiredPkgs Count="2">

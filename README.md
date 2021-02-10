@@ -3,10 +3,10 @@
 # DzHTMLText
 ## Delphi and Lazarus HTML Label component
 
-![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE2..10.4-blue.svg)
+![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE3..10.4-blue.svg)
 ![Platforms](https://img.shields.io/badge/Platforms-Win32%20and%20Win64-red.svg)
 ![Auto Install](https://img.shields.io/badge/-Auto%20Install%20App-orange.svg)
-![VCL](https://img.shields.io/badge/-VCL-lightgrey.svg)
+![VCL and FMX](https://img.shields.io/badge/-VCL%20and%20FMX-lightgrey.svg)
 ![Lazarus support](https://img.shields.io/badge/-Lazarus%20support-green.svg)
 ![CJK line break](https://img.shields.io/badge/-Chinese+Japanese+Korean%20line%20break%20support-yellowgreen.svg)
 
@@ -24,11 +24,26 @@
 - [Float Tag](#float-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
-- [Transparency (why not?)](#transparency-why-not)
+- [Transparency (why not in VCL?)](#transparency-why-not-in-vcl)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 - [Donate](#donate)
 
 ## What's New
+
+- 02/10/2021 (Version 3.0)
+
+   - **FMX support!**
+   - Color notation now supports 6-digit (HTML) and 8-digit (Delphi) format, prefixed `#` or `$`.
+   - Transparent support for FMX environment (Use Color = Null).
+   - Multiple image format when using Resources in FMX environment.
+   - *FMX Remarks:*
+      - Images property (ImageList) only available for Delphi XE8 or higher (using always first Layer in ImageList).
+      - AutoOpenLink property only works in Windows, Linux and Android environments (not available in iOS and MacOS).
+   - **Warning: VCL unit changed from DzHTMLText to Vcl.DzHTMLText. If you are not using "Vcl" in Unit Scope Names property in Delphi Compiler options, please review your "uses" clauses.**
+   - Removed Delphi XE2 from the list of environments as it was never possible to compile in this version.
+   - Fixed Linux compatibility (Paint method, platform specific LineBreak, Link Text capture causing error).
+   - Fixed AutoOpenLink to do nothing when there is no target on link.
+   - Fixed AutoWidth and AutoHeight to repaint correctly according to calculated text positions.
 
 - 12/18/2020 (Version 2.11)
 
@@ -215,8 +230,8 @@ Here are all possible tags you can use in text:
 <S></S> - Strike out
 <FN:abc></FN> - Font Name
 <FS:123></FS> - Font Size
-<FC:clColor|$999999></FC> - Font Color
-<BC:clColor|$999999></BC> - Background Color
+<FC:clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678></FC> - Font Color
+<BC:clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678></BC> - Background Color
 <BR> - Line Break
 <NBR> - Prevent line break after #13#10 sequence
 <L></L> - Align Left
@@ -239,9 +254,6 @@ Here are all possible tags you can use in text:
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
 
-> **Note about color notation:**
-> When you use `FC` or `BC` tags, the color in hexadecimal value is specified by 6 digits, like in HTML notation. If you are getting color from Delphi, please remove the first two zeros of the beginning of color code.
-
 ![Runtime example](images/runtime_print.png)
 
 ## Installing
@@ -254,13 +266,13 @@ Close Delphi IDE and run **CompInstall.exe** app to auto install component into 
 
 ### Manual install
 
-1. Open **DzHTMLText** package in Delphi.
-2. Ensure **Win32** Platform and **Release** config are selected.
-3. Then **Build** and **Install**.
+1. Open **DzHTMLText.groupproj** project in Delphi.
+2. Ensure **Win32** Platform and **Release** config are selected in VCL and FMX packages.
+3. Then **Build** and **Install** all packages.
 4. If you want to use Win64 platform, select this platform and Build again.
 5. Add sub-path Win32\Release to the Library paths at Tools\Options using 32-bit option, and if you have compiled to 64 bit platform, add sub-path Win64\Release using 64-bit option.
 
-Supports Delphi XE2..Delphi 10.4
+Supports Delphi XE3..Delphi 10.4
 
 ## Component Properties
 
@@ -269,14 +281,13 @@ Supports Delphi XE2..Delphi 10.4
 `AutoWidth: Boolean` = Auto set width of control when Text property changed.
 If you are using AutoWidth, the text never wraps to a new line unless a line break is specified at text or there is a value specified in MaxWidth property.
 
-`AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick.
-This property calls ShellExecute method.
+`AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick. This only works in Windows, Linux and Android platforms. For others platforms like iOS and MacOS, you can use OnLinkClick event.
 
-`Color: TColor` = Background color of control
+`Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background. In VCL environment, transparency is not available.
 
 `Font: TFont` = Determines the base font. When no tag is specified on text, this base font is used.
 
-`Images: TCustomImageList` = When using `<img>` tag, you should set this property to specify the ImageList where the images are stored.
+`Images: TCustomImageList` = When using `<img>` tag, you should set this property to specify the ImageList where the images are stored. In FMX environment, this property is only available using Delphi XE8 or higher.
 
 `LineCount: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
 
@@ -332,7 +343,7 @@ This event is fired when a link is right-clicked by the mouse. You can use Handl
 procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: String; Picture: TPicture; var Handled: Boolean);
 ```
 If you are using `<imgres>` tag, this event will fire on every image tag, allowing you to manually load a image from anywhere, in any image format, assigning it to Picture object. Be sure to set `Handled := True` when you manually load an image.
-*Not using this event causes the component to automatically load the image from application resources by name, and must be in PNG format.*
+*Not using this event causes the component to automatically load the image from application resources by name, and must be in PNG format when using VCL environment. In FMX environment you can use any image format supported by Delphi.*
 
 Example:
 
@@ -465,9 +476,9 @@ You can retrieve this object using OnLinkClick / OnLinkRightClick / OnLinkEnter 
 
 You can use the tags:
 
-- `<IMG:index>` to show an image of a TImageList component. Just assign the Images property to the ImageList. Then use the `index` parameter to indicate the index of the image in the ImageList component.
+- `<IMG:index>` to show an image of a TImageList component. Just assign the Images property to the ImageList. Then use the `index` parameter to indicate the index of the image in the ImageList component. *In FMX environment, this is only available using Delphi XE8 or higher.*
 
-- `<IMGRES:name>` to show an image of a PNG resource. Include PNG image into application resources and then use the `name` parameter to indicate the name of the resource. **Important: the image will be displayed only at runtime.**
+- `<IMGRES:name>` to show an image of a resource. Include an image into application resources and then use the `name` parameter to indicate the name of the resource. In VCL environment, the image must be in PNG format. In FMX environment, all Delphi supported images are allowed. **Important: the image will be displayed only at runtime.**
 
 Example:
 
@@ -517,9 +528,9 @@ These chars are: ` ` (space), `\` and `/`. The bars are considered as word break
 
 When you type Chinese, Japanese or Korean characters, this behavior is quite different. In this case, the component will break lines considering any char as a complete word.
 
-## Transparency (why not?)
+## Transparency (why not in VCL?)
 
-The transparency option is not available for this component, because the text painted on canvas is not static. This means the canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
+The transparency option is not available for this component when using VCL, because the text painted on canvas is not static. This means the canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
 
 ## Formatted Message Dialog Component
 

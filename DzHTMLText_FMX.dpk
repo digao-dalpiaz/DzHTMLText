@@ -1,4 +1,4 @@
-package DzHTMLText;
+package DzHTMLText_FMX;
 
 {$R *.res}
 {$R 'DzHTMLText.dcr'}
@@ -26,15 +26,13 @@ package DzHTMLText;
 {$IMAGEBASE $400000}
 {$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText component'}
+{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText component (FMX)'}
 {$IMPLICITBUILD ON}
 
 requires
-  rtl,
-  vcl,
-  vclimg;
+  fmx;
 
 contains
-  DzHTMLText in 'DzHTMLText.pas';
+  FMX.DzHTMLText in 'FMX.DzHTMLText.pas';
 
 end.

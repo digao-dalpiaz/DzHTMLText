@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{7B7BCD1A-B004-4D21-80FB-86256C40BA70}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="DzHTMLText_VCL.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="DzHTMLText_FMX.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DzHTMLText_VCL">
+        <MSBuild Projects="DzHTMLText_VCL.dproj"/>
+    </Target>
+    <Target Name="DzHTMLText_VCL:Clean">
+        <MSBuild Projects="DzHTMLText_VCL.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DzHTMLText_VCL:Make">
+        <MSBuild Projects="DzHTMLText_VCL.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DzHTMLText_FMX">
+        <MSBuild Projects="DzHTMLText_FMX.dproj"/>
+    </Target>
+    <Target Name="DzHTMLText_FMX:Clean">
+        <MSBuild Projects="DzHTMLText_FMX.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DzHTMLText_FMX:Make">
+        <MSBuild Projects="DzHTMLText_FMX.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DzHTMLText_VCL;DzHTMLText_FMX"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DzHTMLText_VCL:Clean;DzHTMLText_FMX:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DzHTMLText_VCL:Make;DzHTMLText_FMX:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
