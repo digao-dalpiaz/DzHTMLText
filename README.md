@@ -30,7 +30,7 @@
 
 ## What's New
 
-- nn/nn/2021 (Version 3.0)
+- 02/10/2021 (Version 3.0)
 
    - **FMX support!**
    - Color notation now supports 6-digit (HTML) and 8-digit (Delphi) format, prefixed `#` or `$`.
