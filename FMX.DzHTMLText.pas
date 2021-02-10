@@ -581,30 +581,26 @@ begin
 
   if not Handled then
   begin
-    {$IFDEF FMX}
     try
+      {$IFDEF FMX}
       Res := TResourceStream.Create(HInstance, ResourceName, RT_RCDATA);
       try
         Picture.LoadFromStream(Res);
       finally
         Res.Free;
       end;
+      {$ELSE}
+      PNG := TPNG.Create;
+      try
+        PNG.LoadFromResourceName(HInstance, ResourceName);
+        Picture.Assign(PNG);
+      finally
+        PNG.Free;
+      end;
+      {$ENDIF}
     except
       //resource not found or invalid
     end;
-    {$ELSE}
-    PNG := TPNG.Create;
-    try
-      try
-        PNG.LoadFromResourceName(HInstance, ResourceName);
-      except
-        //resource not found or invalid
-      end;
-      Picture.Assign(PNG);
-    finally
-      PNG.Free;
-    end;
-    {$ENDIF}
   end;
 end;
 
@@ -1335,19 +1331,19 @@ begin
   LToken.Add(T);
 end;
 
-function Tag_IntZeroBased_ProcValue(const Value: string; out Valid: Boolean): TTokenValue;
+function Tag_IntZeroBased_ProcValue(const Value: string; var Valid: Boolean): TTokenValue;
 begin
   Result := StrToIntDef(Value, -1);
   Valid := (Result>-1);
 end;
 
-function Tag_IntOneBased_ProcValue(const Value: string; out Valid: Boolean): TTokenValue;
+function Tag_IntOneBased_ProcValue(const Value: string; var Valid: Boolean): TTokenValue;
 begin
   Result := StrToIntDef(Value, 0);
   Valid := (Result>0);
 end;
 
-function Tag_Color_ProcValue(const Value: string; out Valid: Boolean): TTokenValue;
+function Tag_Color_ProcValue(const Value: string; var Valid: Boolean): TTokenValue;
 begin
   Result := ParamToColor(Value);
   Valid := (Result<>clNone);
@@ -1358,7 +1354,7 @@ type TDefToken = record
   Kind: TTokenKind;
   Single: Boolean; //without close tag
   AllowPar, OptionalPar: Boolean;
-  ProcValue: function(const Value: string; out Valid: Boolean): TTokenValue;
+  ProcValue: function(const Value: string; var Valid: Boolean): TTokenValue;
 end;
 const DEF_TOKENS: array[0..25] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
