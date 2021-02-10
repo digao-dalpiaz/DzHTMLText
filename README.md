@@ -10,6 +10,8 @@
 ![Lazarus support](https://img.shields.io/badge/-Lazarus%20support-green.svg)
 ![CJK line break](https://img.shields.io/badge/-Chinese+Japanese+Korean%20line%20break%20support-yellowgreen.svg)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C53LVFN)
+
 - [What's New](#whats-new)
 - [Component Description](#component-description)
 - [Installing](#installing)
