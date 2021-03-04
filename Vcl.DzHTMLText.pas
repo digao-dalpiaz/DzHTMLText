@@ -1132,20 +1132,22 @@ end;
 procedure TDzHTMLText.Click;
 var Handled: Boolean;
   aTarget: string;
+  Link: TDHBaseLink;
 begin
-  if Assigned(FSelectedLink) then
+  Link := FSelectedLink;
+  if Assigned(Link) then
   begin
     Handled := False;
     if Assigned(FOnLinkClick) then
-      FOnLinkClick(Self, FSelectedLink, Handled);
+      FOnLinkClick(Self, Link, Handled);
 
     if not Handled then
     begin
-      if FSelectedLink is TDHLinkRef then
+      if Link is TDHLinkRef then
       begin
         if FAutoOpenLink then
         begin
-          aTarget := TDHLinkRef(FSelectedLink).FTarget;
+          aTarget := TDHLinkRef(Link).FTarget;
           if not aTarget.IsEmpty then
           begin
             {$IF Defined(MSWINDOWS)}
@@ -1175,10 +1177,10 @@ begin
           end;
         end;
       end else
-      if FSelectedLink is TDHSpoiler then
+      if Link is TDHSpoiler then
       begin
-        TDHSpoiler(FSelectedLink).FExpanded :=
-          not TDHSpoiler(FSelectedLink).FExpanded;
+        TDHSpoiler(Link).FExpanded :=
+          not TDHSpoiler(Link).FExpanded;
 
         BuildAndPaint;
       end else
