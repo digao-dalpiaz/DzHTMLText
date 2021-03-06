@@ -32,6 +32,10 @@
 
 ## What's New
 
+- 03/05/2021 (Version 3.1)
+
+   - Fixed OnLinkClick event error when returning from event handler, if link is no longer selected.
+
 - 02/10/2021 (Version 3.0)
 
    - **FMX support!**
