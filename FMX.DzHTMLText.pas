@@ -472,7 +472,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '3.0';
+const STR_VERSION = '3.1';
 
 procedure Register;
 begin
