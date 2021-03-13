@@ -32,6 +32,10 @@
 
 ## What's New
 
+- 03/13/2021 (Version 3.2)
+
+   - Removed CompInstall.exe from component sources due to AV false positive warning (now you can get it directly from CompInstall repository).
+
 - 03/05/2021 (Version 3.1)
 
    - Fixed OnLinkClick event error when returning from event handler, if link is no longer selected.
@@ -268,7 +272,9 @@ Here are all possible tags you can use in text:
 
 ### Autoinstall
 
-Close Delphi IDE and run **CompInstall.exe** app to auto install component into Delphi.
+1. Download Component Installer from: https://github.com/digao-dalpiaz/CompInstall/releases/latest
+2. Put **CompInstall.exe** into the component repository sources folder.
+3. Close Delphi IDE and run **CompInstall.exe** app.
 
 ### Manual install
 
