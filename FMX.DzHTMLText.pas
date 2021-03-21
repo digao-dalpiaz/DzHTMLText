@@ -482,7 +482,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '3.2';
+const STR_VERSION = '3.3';
 
 procedure Register;
 begin
