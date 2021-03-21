@@ -229,6 +229,7 @@
    - Add Win64 support (library folders changed!) :warning:
 
 </details>
+
 ## Component Description
 
 This visual component allows you to specify a formatted text in a label, using almost the same syntax used in HTML code.
