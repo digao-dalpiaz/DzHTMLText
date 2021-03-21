@@ -31,6 +31,7 @@
 - [Donate](#donate)
 
 ## What's New
+
 <details>
   <summary>Click to expand!</summary>
   
