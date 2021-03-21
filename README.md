@@ -33,7 +33,7 @@
 ## What's New
 
 <details>
-  <summary>Click to expand!</summary>
+  <summary>Click here to view the entire changelog</summary>
   
 - 03/13/2021 (Version 3.2)
 
