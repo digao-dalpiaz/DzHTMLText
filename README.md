@@ -35,6 +35,7 @@
 - 03/21/2021 (Version 3.3)
 
    - VCL custom themes supporting.
+   - Fixed FMX measuring type (now uses `Single` instead `Integer` type, avoiding incorrect canvas bounds drawing).
 
 <details>
   <summary>Click here to view the entire changelog</summary>
