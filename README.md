@@ -32,6 +32,10 @@
 
 ## What's New
 
+- 03/21/2021 (Version 3.3)
+
+   - VCL custom themes supporting.
+
 <details>
   <summary>Click here to view the entire changelog</summary>
   
