@@ -67,6 +67,10 @@ type
   TBitmap = Graphics.TBitmap;
   {$ELSE}
     {$IFDEF FMX}
+    TRect = TRectF;
+    TPoint = TPointF;
+    TSize = TSizeF;
+
     TColor = TAlphaColor;
     TBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
     TPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
@@ -74,6 +78,9 @@ type
     TBitmap = Vcl.Graphics.TBitmap;
     {$ENDIF}
   {$ENDIF}
+
+  TPixels = {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF};
+  TFontPt = {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF};
 
   TDzHTMLText = class;
 
@@ -133,7 +140,7 @@ type
     {$IFDEF FMX}
     FontColor: TColor;
     {$ENDIF}
-    YPos: Integer;
+    YPos: TPixels;
   public
     constructor Create;
     destructor Destroy; override;
@@ -212,12 +219,12 @@ type
     FLines: TStrings;
     FAutoWidth: Boolean;
     FAutoHeight: Boolean;
-    FMaxWidth: Integer; //max width when using AutoWidth
+    FMaxWidth: TPixels; //max width when using AutoWidth
     FAutoOpenLink: Boolean;
 
     FLineCount: Integer; //read-only
-    FTextWidth: Integer; //read-only
-    FTextHeight: Integer; //read-only
+    FTextWidth: TPixels; //read-only
+    FTextHeight: TPixels; //read-only
 
     FStyleLinkNormal, FStyleLinkHover: TDHStyleLinkProp;
 
@@ -235,8 +242,8 @@ type
     FLineVertAlign: TDHVertAlign;
     FOverallVertAlign: TDHVertAlign;
     FOverallHorzAlign: TDHHorzAlign;
-    FLineSpacing: Integer;
-    FListLevelPadding: Integer;
+    FLineSpacing: TPixels;
+    FListLevelPadding: TPixels;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
@@ -255,7 +262,11 @@ type
 
     procedure SetAutoHeight(const Value: Boolean);
     procedure SetAutoWidth(const Value: Boolean);
-    procedure SetMaxWidth(const Value: Integer);
+    procedure SetMaxWidth(const Value: TPixels);
+
+    function GetStoredMaxWidth: Boolean;
+    function GetStoredLineSpacing: Boolean;
+    function GetStoredListLevelPadding: Boolean;
 
     function GetStoredStyleLink(const Index: Integer): Boolean;
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
@@ -265,13 +276,13 @@ type
     procedure Modified(Flags: TDHModifiedFlags);
 
     function GetIsLinkHover: Boolean;
-    procedure CheckMouse(X, Y: Integer); //check links by mouse position
+    procedure CheckMouse(X, Y: TPixels); //check links by mouse position
     procedure SetCursor(const Value: TCursor); reintroduce;
     procedure SetLineVertAlign(const Value: TDHVertAlign);
     procedure SetOverallVertAlign(const Value: TDHVertAlign);
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
-    procedure SetLineSpacing(const Value: Integer);
-    procedure SetListLevelPadding(const Value: Integer);
+    procedure SetLineSpacing(const Value: TPixels);
+    procedure SetListLevelPadding(const Value: TPixels);
 
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
@@ -284,10 +295,10 @@ type
     procedure OnFontChanged(Sender: TObject);
     {$ENDIF}
 
-    procedure SetTextSize(W, H: Integer);
+    procedure SetTextSize(W, H: TPixels);
 
-    function GetIntHeight: Integer; inline;
-    function GetIntWidth: Integer; inline;
+    function GetAreaHeight: TPixels; inline;
+    function GetAreaWidth: TPixels; inline;
   protected
     procedure Loaded; override;
     procedure Paint; override;
@@ -418,7 +429,7 @@ type
 
     property AutoWidth: Boolean read FAutoWidth write SetAutoWidth default False;
     property AutoHeight: Boolean read FAutoHeight write SetAutoHeight default False;
-    property MaxWidth: Integer read FMaxWidth write SetMaxWidth default 0;
+    property MaxWidth: TPixels read FMaxWidth write SetMaxWidth stored GetStoredMaxWidth;
 
     property StyleLinkNormal: TDHStyleLinkProp index 1 read FStyleLinkNormal write SetStyleLink stored GetStoredStyleLink;
     property StyleLinkHover: TDHStyleLinkProp index 2 read FStyleLinkHover write SetStyleLink stored GetStoredStyleLink;
@@ -428,8 +439,8 @@ type
     {$ENDIF}
 
     property LineCount: Integer read FLineCount;
-    property TextWidth: Integer read FTextWidth;
-    property TextHeight: Integer read FTextHeight;
+    property TextWidth: TPixels read FTextWidth;
+    property TextHeight: TPixels read FTextHeight;
 
     property OnLinkEnter: TDHEvLink read FOnLinkEnter write FOnLinkEnter;
     property OnLinkLeave: TDHEvLink read FOnLinkLeave write FOnLinkLeave;
@@ -443,8 +454,8 @@ type
     property LineVertAlign: TDHVertAlign read FLineVertAlign write SetLineVertAlign default vaTop;
     property OverallVertAlign: TDHVertAlign read FOverallVertAlign write SetOverallVertAlign default vaTop;
     property OverallHorzAlign: TDHHorzAlign read FOverallHorzAlign write SetOverallHorzAlign default haLeft;
-    property LineSpacing: Integer read FLineSpacing write SetLineSpacing default 0;
-    property ListLevelPadding: Integer read FListLevelPadding write SetListLevelPadding default _DEF_LISTLEVELPADDING;
+    property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
+    property ListLevelPadding: TPixels read FListLevelPadding write SetListLevelPadding stored GetStoredListLevelPadding;
 
     property About: string read FAbout;
   end;
@@ -490,11 +501,6 @@ type
 constructor EInternalExcept.Create(const Msg: string);
 begin
   inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
-end;
-
-function ToInt(V: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF}): Integer; inline;
-begin
-  Result := {$IFDEF FMX}Trunc(V){$ELSE}V{$ENDIF};
 end;
 
 { TDHBaseLink }
@@ -750,7 +756,7 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.SetMaxWidth(const Value: Integer);
+procedure TDzHTMLText.SetMaxWidth(const Value: TPixels);
 begin
   if Value<>FMaxWidth then
   begin
@@ -760,14 +766,14 @@ begin
   end;
 end;
 
-function TDzHTMLText.GetIntWidth: Integer;
+function TDzHTMLText.GetAreaWidth: TPixels;
 begin
-  Result := ToInt(Width);
+  Result := Width;
 end;
 
-function TDzHTMLText.GetIntHeight: Integer;
+function TDzHTMLText.GetAreaHeight: TPixels;
 begin
-  Result := ToInt(Height);
+  Result := Height;
 end;
 
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
@@ -822,7 +828,7 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.SetLineSpacing(const Value: Integer);
+procedure TDzHTMLText.SetLineSpacing(const Value: TPixels);
 begin
   if Value<>FLineSpacing then
   begin
@@ -832,7 +838,7 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.SetListLevelPadding(const Value: Integer);
+procedure TDzHTMLText.SetListLevelPadding(const Value: TPixels);
 begin
   if Value<>FListLevelPadding then
   begin
@@ -898,7 +904,7 @@ begin
 end;
 {$ENDIF}
 
-procedure TDzHTMLText.SetTextSize(W, H: Integer);
+procedure TDzHTMLText.SetTextSize(W, H: TPixels);
 begin
   FTextWidth := W;
   FTextHeight := H;
@@ -1004,7 +1010,7 @@ begin
       if C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then
         C.FillRect(
           {$IFDEF FMX}
-          TRectF.Create(W.Rect), 0, 0, [], 1
+          W.Rect, 0, 0, [], 1
           {$ELSE}
           W.Rect
           {$ENDIF});
@@ -1017,7 +1023,7 @@ begin
 
           {$IFDEF FMX}
           C.Fill.Color := C.Stroke.Color;
-          C.FillText(TRectF.Create(R), Text, False, 1, [],
+          C.FillText(R, Text, False, 1, [],
             TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$ENDIF});
           {$ELSE}
           C.Brush.Style := bsClear;
@@ -1041,7 +1047,7 @@ begin
           {$IFDEF USE_IMGLST}
           if Assigned(FImages) then
             {$IFDEF FMX}
-            FImages.Draw(C, TRectF.Create(W.Rect), ImageIndex, 1);
+            FImages.Draw(C, W.Rect, ImageIndex, 1);
             {$ELSE}
             FImages.Draw(C, W.Rect.Left, W.Rect.Top, ImageIndex);
             {$ENDIF}
@@ -1052,8 +1058,8 @@ begin
         with TDHVisualItem_ImageResource(W) do
         begin
           {$IFDEF FMX}
-          C.DrawBitmap(Picture, TRectF.Create(0, 0, Picture.Width, Picture.Height),
-            TRectF.Create(W.Rect), 1);
+          C.DrawBitmap(Picture, TRect{F}.Create(0, 0, Picture.Width, Picture.Height),
+            W.Rect, 1);
           {$ELSE}
           C.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
           {$ENDIF}
@@ -1084,7 +1090,7 @@ begin
   Result := Assigned(FSelectedLink);
 end;
 
-procedure TDzHTMLText.CheckMouse(X, Y: Integer);
+procedure TDzHTMLText.CheckMouse(X, Y: TPixels);
 var
   Link: TDHBaseLink;
   W: TDHVisualItem;
@@ -1210,7 +1216,7 @@ end;
 procedure TDzHTMLText.MouseMove(Shift: TShiftState;
   X, Y: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF});
 begin
-  CheckMouse(ToInt(X), ToInt(Y));
+  CheckMouse(X, Y);
 
   inherited;
 end;
@@ -1591,7 +1597,7 @@ type
   THTMLList = class(TObjectListStackItem);
   THTMLList_Bullet = class(THTMLList);
   THTMLList_Number = class(THTMLList)
-    Position: Integer;
+    Sequence: Integer;
   end;
 
   THTMLSpoilerDet = class(TObjectListStackItem)
@@ -1633,20 +1639,20 @@ end;
 
 type
   TLineInfo = class
-    Height, Space: Integer;
+    Height, Space: TPixels;
   end;
   TGroupBound = class
-    Right, Limit: Integer;
+    Right, Limit: TPixels;
   end;
 
   TPreObj = class(TObject);
 
   TPreObj_Break = class(TPreObj)
-    Height: Integer;
+    Height: TPixels;
   end;
 
   TPreObj_Tab = class(TPreObj)
-    Position: Integer;
+    Position: TPixels;
     Fixed: Boolean;
   end;
 
@@ -1658,7 +1664,7 @@ type
   TFixedPosition = record
   private
     Active: Boolean;
-    Left: Integer;
+    Left: TPixels;
   end;
 
   TPreObj_Visual = class(TPreObj)
@@ -1668,7 +1674,7 @@ type
     {The group is isolated at each line or tabulation to delimit text horizontal align area}
     FixedPos: TFixedPosition;
     Align: TDHHorzAlign;
-    LineSpace: Integer;
+    LineSpace: TPixels;
     Space: Boolean;
     Print: Boolean;
     BreakableChar: Boolean; //text with only one letter using breakable char
@@ -1700,7 +1706,7 @@ type
     CurrentProps: record
       BackColor: TColor;
       Align: TDHHorzAlign;
-      LineSpace: Integer;
+      LineSpace: TPixels;
     end;
 
     LBold: TListStack<Boolean>;
@@ -1708,11 +1714,11 @@ type
     LUnderline: TListStack<Boolean>;
     LStrike: TListStack<Boolean>;
     LFontName: TListStack<string>;
-    LFontSize: TListStack<{$IFDEF FMX}Single{$ELSE}Integer{$ENDIF}>;
+    LFontSize: TListStack<TFontPt>;
     LFontColor: TListStack<TColor>;
     LBackColor: TListStack<TColor>;
     LAlign: TListStack<TDHHorzAlign>;
-    LLineSpace: TListStack<Integer>;
+    LLineSpace: TListStack<TPixels>;
     LHTMLList: TObjectListStack<THTMLList>;
     LSupAndSubScript: TObjectListStack<THTMLSupSubTag>;
     LSpoilerDet: THTMLSpoilerDetList;
@@ -1786,11 +1792,11 @@ begin
   LUnderline := TListStack<Boolean>.Create;
   LStrike := TListStack<Boolean>.Create;
   LFontName := TListStack<string>.Create;
-  LFontSize := TListStack<{$IFDEF FMX}Single{$ELSE}Integer{$ENDIF}>.Create;
+  LFontSize := TListStack<TFontPt>.Create;
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TDHHorzAlign>.Create;
-  LLineSpace := TListStack<Integer>.Create;
+  LLineSpace := TListStack<TPixels>.Create;
 
   LHTMLList := TObjectListStack<THTMLList>.Create;
   LSupAndSubScript := TObjectListStack<THTMLSupSubTag>.Create;
@@ -1946,10 +1952,10 @@ begin
       if LHTMLList.Count=0 then Exit;
 
       if LHTMLList.Last is THTMLList_Number then
-        Inc(THTMLList_Number(LHTMLList.Last).Position);
+        Inc(THTMLList_Number(LHTMLList.Last).Sequence);
 
       if LHTMLList.Last is THTMLList_Bullet then T.Text := '• ' else
-      if LHTMLList.Last is THTMLList_Number then T.Text := IntToStr(THTMLList_Number(LHTMLList.Last).Position)+'. ' else
+      if LHTMLList.Last is THTMLList_Number then T.Text := IntToStr(THTMLList_Number(LHTMLList.Last).Sequence)+'. ' else
         raise EInternalExcept.Create('Invalid HTML List object');
 
       FixedPos.Active := True;
@@ -1971,7 +1977,7 @@ begin
       begin
         {$IFDEF FMX}
         with Lb.FImages.Destination[T.Value].Layers[0].SourceRect do
-          Ex := TSize.Create(ToInt(Width), ToInt(Height));
+          Ex := TSize.Create(Width, Height);
         {$ELSE}
         Ex := TSize.Create(Lb.FImages.Width, Lb.FImages.Height);
         {$ENDIF}
@@ -2001,7 +2007,7 @@ begin
         FontColor := C.Stroke.Color;
         {$ENDIF}
 
-        Ex := TSize.Create(ToInt(C.TextWidth(Text)), ToInt(C.TextHeight(Text)));
+        Ex := TSize.Create(C.TextWidth(Text), C.TextHeight(Text));
 
         CheckSupSubScript(TDHVisualItem_Word(W), Ex);
       end;
@@ -2028,10 +2034,10 @@ end;
 
 procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
 var
-  OriginalFontSize: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF};
+  OriginalFontSize: TFontPt;
   I: Integer;
   Tag: THTMLSupSubTag;
-  H, Y, TextH, OuterY: Integer;
+  H, Y, TextH, OuterY: TPixels;
 begin
   if LSupAndSubScript.Count=0 then Exit;
 
@@ -2045,18 +2051,18 @@ begin
     Tag := LSupAndSubScript[I];
 
     C.Font.Size := {$IFDEF VCL}Round{$ENDIF}(OriginalFontSize * Power(0.75, I+1));
-    TextH := ToInt(C.TextHeight(STR_SPACE));
+    TextH := C.TextHeight(STR_SPACE);
 
     if Tag is THTMLSupTag then Y := 0 else
     if Tag is THTMLSubTag then Y := H - TextH else
       raise EInternalExcept.Create('Invalid sup/sub object');
 
     H := TextH;
-    Inc(OuterY, Y);
+    OuterY := OuterY + Y;
   end;
 
   //keep height but adjust new text width
-  Size.Width := ToInt(C.TextWidth(W.Text));
+  Size.Width := C.TextWidth(W.Text);
   W.Font.Size := C.Font.Size;
   W.YPos := OuterY;
 
@@ -2169,7 +2175,7 @@ procedure TTokensProcess.DoBreak;
 var Z: TPreObj_Break;
 begin
   Z := TPreObj_Break.Create;
-  Z.Height := ToInt(C.TextHeight(STR_SPACE));
+  Z.Height := C.TextHeight(STR_SPACE);
   Items.Add(Z);
 end;
 
@@ -2177,18 +2183,19 @@ end;
 
 procedure TTokensProcess.DefineVisualRect;
 type TSizes = record
-  LineHeight, LineSpace, OverallWidth, OverallHeight: Integer;
+  LineHeight, LineSpace, OverallWidth, OverallHeight: TPixels;
 end;
 var
   Z: TPreObj;
   V: TPreObj_Visual;
-  I, X, Y: Integer;
+  I: Integer;
+  X, Y: TPixels;
   Max, OldMax: TSizes;
-  LastTabX: Integer; LastTabF: Boolean;
+  LastTabX: TPixels; LastTabF: Boolean;
   PrevPos: TPoint; PrevLine, CurLine, LineCount: Integer;
   FloatRect: TRect; InFloat: Boolean;
 
-  procedure IncPreviousGroup(Right, Limit: Integer);
+  procedure IncPreviousGroup(Right, Limit: TPixels);
   var B: TGroupBound;
   begin
     B := TGroupBound.Create;
@@ -2197,13 +2204,14 @@ var
     LGroupBound.Add(B);
   end;
 
-  function GetXbnd: Integer;
+  function GetXbnd: TPixels;
   begin
     Result := FloatRect.Left + LastTabX;
   end;
 
   function IsToWrapText: Boolean;
-  var EndPos, J: Integer;
+  var J: Integer;
+    EndPos: TPixels;
     PV: TPreObj_Visual;
   begin
     if TPreObj_Visual(Z).BreakCheckDone then Exit(False); //avoid re-break continuous text
@@ -2215,7 +2223,7 @@ var
       if not (Items[J] is TPreObj_Visual) then Break;
       PV := TPreObj_Visual(Items[J]);
       if PV.Space or PV.BreakableChar then Break; //Space always BreakableChar now?
-      Inc(EndPos, PV.Size.Width);
+      EndPos := EndPos + PV.Size.Width;
       PV.BreakCheckDone := True;
     end;
 
@@ -2224,7 +2232,7 @@ var
     Result :=
       ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>Lb.FMaxWidth) )
       or
-      ( (not Lb.FAutoWidth) and (EndPos>Lb.GetIntWidth) );
+      ( (not Lb.FAutoWidth) and (EndPos>Lb.GetAreaWidth) );
   end;
 
   procedure CheckPriorSpace;
@@ -2243,7 +2251,7 @@ var
   end;
 
   procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TPoint);
-  var GrpLim: Integer;
+  var GrpLim: TPixels;
     LI: TLineInfo;
   begin
     GrpLim := -1;
@@ -2372,13 +2380,13 @@ end;
 procedure TTokensProcess.CheckAlign(V: TPreObj_Visual);
 type
   TFuncAlignResult = record
-    Outside, Inside: Integer;
+    Outside, Inside: TPixels;
   end;
 
   function funcAlignHorz: TFuncAlignResult;
   var
     B: TGroupBound;
-    GrpLim: Integer;
+    GrpLim: TPixels;
   begin
     B := LGroupBound[V.Group];
     if B.Limit = -1 then
@@ -2386,7 +2394,7 @@ type
       if Lb.FOverallHorzAlign in [haCenter, haRight] then
         GrpLim := Lb.FTextWidth
       else
-        GrpLim := Lb.GetIntWidth;
+        GrpLim := Lb.GetAreaWidth;
     end
       else GrpLim := B.Limit;
 
@@ -2402,13 +2410,13 @@ type
 
   function funcOverallAlignHorz: TFuncAlignResult;
   begin
-    Result.Outside := Lb.GetIntWidth;
+    Result.Outside := Lb.GetAreaWidth;
     Result.Inside := Lb.FTextWidth;
   end;
 
   function funcOverallAlignVert: TFuncAlignResult;
   begin
-    Result.Outside := Lb.GetIntHeight;
+    Result.Outside := Lb.GetAreaHeight;
     Result.Inside := Lb.FTextHeight;
   end;
 
@@ -2416,7 +2424,7 @@ type
   var
     R: TFuncAlignResult;
     P: TPoint;
-    Offset: Integer;
+    Offset: TPixels;
   begin
     if prop>0 then //center or right
     begin
@@ -2428,7 +2436,7 @@ type
       end;
 
       Offset := R.Outside - R.Inside;
-      if prop=1 then Offset := Offset div 2; //center
+      if prop=1 then Offset := {$IFDEF VCL}Round{$ENDIF}(Offset / 2); //center
 
       P := TPoint.Create(0, 0);
       if horz then
@@ -2570,5 +2578,20 @@ begin
   end;
 end;
 {$ENDREGION}
+
+function TDzHTMLText.GetStoredMaxWidth: Boolean;
+begin
+  Result := FMaxWidth <> 0;
+end;
+
+function TDzHTMLText.GetStoredLineSpacing: Boolean;
+begin
+  Result := FLineSpacing <> 0;
+end;
+
+function TDzHTMLText.GetStoredListLevelPadding: Boolean;
+begin
+  Result := FListLevelPadding <> _DEF_LISTLEVELPADDING;
+end;
 
 end.
