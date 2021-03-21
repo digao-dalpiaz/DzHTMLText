@@ -31,7 +31,9 @@
 - [Donate](#donate)
 
 ## What's New
-
+<details>
+  <summary>Click to expand!</summary>
+  
 - 03/13/2021 (Version 3.2)
 
    - Removed CompInstall.exe from component sources due to AV false positive warning (now you can get it directly from CompInstall repository).
@@ -226,6 +228,7 @@
 
    - Add Win64 support (library folders changed!) :warning:
 
+</details>
 ## Component Description
 
 This visual component allows you to specify a formatted text in a label, using almost the same syntax used in HTML code.
