@@ -361,17 +361,8 @@ type
     property OnMouseUp;
     property OnResize;
 
-    {$IFDEF DCC}
+    {$IFDEF DCC}//Only in Delphi
     property OnGesture;
-    {$ENDIF}
-
-    {$IFDEF VCL}
-    property ParentShowHint;
-    {$ENDIF}
-    {$IFDEF FMX}
-      {$IF CompilerVersion >= 30} //D10 Seattle
-      property ParentShowHint;
-      {$ENDIF}
     {$ENDIF}
 
     {$IFDEF FMX}
@@ -403,6 +394,10 @@ type
     property Height;
     property Position;
 
+      {$IF CompilerVersion >= 30} //D10 Seattle
+      property ParentShowHint;
+      {$ENDIF}
+
       {$IFDEF USE_NEW_ENV}
       property ControlType;
       property TabStop;
@@ -411,15 +406,19 @@ type
 
     property Color: TColor read FColor write SetColor default clNone;
     property FontColor: TColor read FFontColor write SetFontColor default TAlphaColors.Black;
-    {$ELSE}
+    {$ELSE}//VCL
     property Color;
     property ParentColor;
     property ParentFont;
+    property ParentShowHint;
     property OnStartDock;
     property OnStartDrag;
     property OnEndDock;
     property OnEndDrag;
-      {$IFDEF DCC}property OnMouseActivate;{$ENDIF}
+      {$IFDEF DCC}//Only in Delphi
+      property OnMouseActivate;
+      property StyleElements;
+      {$ENDIF}
     {$ENDIF}
 
     property Lines: TStrings read FLines write SetLines;
@@ -475,7 +474,7 @@ uses
     , Androidapi.Helpers
     {$ENDIF}
   {$ELSE}
-  , System.UITypes
+  , System.UITypes, Vcl.Themes
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   , Winapi.Windows, Winapi.ShellAPI
@@ -954,21 +953,26 @@ begin
   C := Canvas;
   {$ENDIF}
 
+    //draw background color
+    {$IFDEF FMX}
     if Color<>clNone then
     begin
-      {$IFDEF FPC}
-      if (Color=clDefault) and (ParentColor) then C.Brush.Color := GetColorresolvingParent else
-      {$ENDIF}
-
-      //draw background color
-      {$IFDEF FMX}
       C.Fill.Color := FColor;
       C.FillRect(LocalRect, 0, 0, [], 1);
-      {$ELSE}
-      C.Brush.Color := Color;
-      C.FillRect(ClientRect);
-      {$ENDIF}
     end;
+    {$ELSE}
+      {$IFDEF FPC}
+      if (Color=clDefault) and (ParentColor) then
+        C.Brush.Color := GetColorresolvingParent
+      else
+      {$ELSE}
+      if TStyleManager.IsCustomStyleActive and (seClient in StyleElements) then
+        C.Brush.Color := TStyleManager.ActiveStyle.GetStyleColor(TStyleColor.scWindow)
+      else
+      {$ENDIF}
+    C.Brush.Color := Color;
+    C.FillRect(ClientRect);
+    {$ENDIF}
 
     if csDesigning in ComponentState then
     begin
@@ -1776,6 +1780,11 @@ begin
   C.Font.Assign(Lb.Font);
   {$IFDEF FMX}
   C.Stroke.Color := Lb.FFontColor;
+  {$ELSE}
+    {$IFDEF DCC}
+    if TStyleManager.IsCustomStyleActive and (seFont in Lb.StyleElements) then
+      C.Font.Color := TStyleManager.ActiveStyle.GetStyleFontColor(TStyleFont.sfWindowTextNormal);
+    {$ENDIF}
   {$ENDIF}
 
   CurrentProps.BackColor := clNone;
