@@ -966,7 +966,7 @@ begin
         C.Brush.Color := GetColorresolvingParent
       else
       {$ELSE}
-      if TStyleManager.IsCustomStyleActive and (seClient in StyleElements) then
+      if TStyleManager.IsCustomStyleActive and (seClient in StyleElements) and not (csDesigning in ComponentState) then
         C.Brush.Color := TStyleManager.ActiveStyle.GetStyleColor(TStyleColor.scWindow)
       else
       {$ENDIF}
@@ -1782,7 +1782,7 @@ begin
   C.Stroke.Color := Lb.FFontColor;
   {$ELSE}
     {$IFDEF DCC}
-    if TStyleManager.IsCustomStyleActive and (seFont in Lb.StyleElements) then
+    if TStyleManager.IsCustomStyleActive and (seFont in Lb.StyleElements) and not (csDesigning in Lb.ComponentState) then
       C.Font.Color := TStyleManager.ActiveStyle.GetStyleFontColor(TStyleFont.sfWindowTextNormal);
     {$ENDIF}
   {$ENDIF}
