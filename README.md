@@ -32,6 +32,14 @@
 
 ## What's New
 
+- 03/21/2021 (Version 3.3)
+
+   - VCL custom themes supporting.
+   - Fixed FMX measuring type (now uses `Single` instead `Integer` type, avoiding incorrect canvas bounds drawing).
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+  
 - 03/13/2021 (Version 3.2)
 
    - Removed CompInstall.exe from component sources due to AV false positive warning (now you can get it directly from CompInstall repository).
@@ -226,6 +234,8 @@
 
    - Add Win64 support (library folders changed!) :warning:
 
+</details>
+
 ## Component Description
 
 This visual component allows you to specify a formatted text in a label, using almost the same syntax used in HTML code.
@@ -288,6 +298,8 @@ Supports Delphi XE3..Delphi 10.4
 
 ## Component Properties
 
+> **TPixels** represents `Integer` in **VCL**, or `Single` in **FMX**.
+
 `AutoHeight: Boolean` = Auto set height of control when Text property changed
 
 `AutoWidth: Boolean` = Auto set width of control when Text property changed.
@@ -307,13 +319,13 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 > The component automatically converts #13#10 sequence into a line break. Because of this behavior, all typed line breaks will appear as a real line break. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after #13#10 characters. This will tell the component to not consider the sequence as a line break (Please check this tag at Example project).
 
-`LineSpacing: Integer` = Specify the default line spacing in overall text. You can use `<LS>` tag to determine line spacing at specific lines.
+`LineSpacing: TPixels` = Specify the default line spacing in overall text. You can use `<LS>` tag to determine line spacing at specific lines.
 
 `LineVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights at same line. Default is `vaTop`.
 
-`ListLevelPadding: Integer` = Determines the width of each list level in pixels, when using HTML list tags.
+`ListLevelPadding: TPixels` = Determines the width of each list level in pixels, when using HTML list tags.
 
-`MaxWidth: Integer` = Specify the maximum width of text, when using AutoWidth property.
+`MaxWidth: TPixels` = Specify the maximum width of text, when using AutoWidth property.
 
 `OverallHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Determines overall text horizontal alignment. This property only take effects if `AutoWidth` is false.
 
@@ -325,9 +337,9 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `Text: String` (public) = This property is a shortcut to `Lines` property. At run-time, you can read and write this property directly, but the component will store the text at `Lines` property.
 
-`TextHeight: Integer` = Returns the total text height. This property is read-only.
+`TextHeight: TPixels` = Returns the total text height. This property is read-only.
 
-`TextWidth: Integer` = Returns the total text width. This property is read-only.
+`TextWidth: TPixels` = Returns the total text width. This property is read-only.
 
 ## Events
 
