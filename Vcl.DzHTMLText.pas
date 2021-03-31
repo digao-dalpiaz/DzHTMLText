@@ -200,8 +200,8 @@ type
     procedure SetTop(const Value: TPixels);
     procedure SetRight(const Value: TPixels);
     procedure SetBottom(const Value: TPixels);
-    function GetHorizontalPadding: Integer;
-    function GetVerticalPadding: Integer;
+    function GetHorizontalPadding: TPixels;
+    function GetVerticalPadding: TPixels;
     function GetRealRect(R: TRect): TRect; inline;
   protected
     function GetOwner: TPersistent; override;
@@ -483,7 +483,7 @@ type
     property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
     property ListLevelPadding: TPixels read FListLevelPadding write SetListLevelPadding stored GetStoredListLevelPadding;
 
-    property Padding: TDHPadding read FPadding write SetPadding stored GetStoredPadding;
+    property Borders: TDHPadding read FPadding write SetPadding stored GetStoredPadding;
 
     property About: string read FAbout;
   end;
@@ -2700,12 +2700,12 @@ begin
   end;
 end;
 
-function TDHPadding.GetHorizontalPadding: Integer;
+function TDHPadding.GetHorizontalPadding: TPixels;
 begin
   Result := FLeft + FRight;
 end;
 
-function TDHPadding.GetVerticalPadding: Integer;
+function TDHPadding.GetVerticalPadding: TPixels;
 begin
   Result := FTop + FBottom;
 end;
