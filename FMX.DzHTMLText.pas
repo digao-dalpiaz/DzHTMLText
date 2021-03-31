@@ -192,7 +192,7 @@ type
     property Underline: Boolean read FUnderline write SetUnderline default False;
   end;
 
-  TDHPadding = class(TPersistent)
+  TDHBorders = class(TPersistent)
   private
     Lb: TDzHTMLText;
 
@@ -201,8 +201,8 @@ type
     procedure SetTop(const Value: TPixels);
     procedure SetRight(const Value: TPixels);
     procedure SetBottom(const Value: TPixels);
-    function GetHorizontalPadding: TPixels;
-    function GetVerticalPadding: TPixels;
+    function GetHorizontal: TPixels;
+    function GetVertical: TPixels;
     function GetRealRect(R: TRect): TRect; inline;
   protected
     function GetOwner: TPersistent; override;
@@ -269,7 +269,7 @@ type
     FLineSpacing: TPixels;
     FListLevelPadding: TPixels;
 
-    FPadding: TDHPadding;
+    FBorders: TDHBorders;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
@@ -293,7 +293,7 @@ type
     function GetStoredMaxWidth: Boolean;
     function GetStoredLineSpacing: Boolean;
     function GetStoredListLevelPadding: Boolean;
-    function GetStoredPadding: Boolean;
+    function GetStoredBorders: Boolean;
 
     function GetStoredStyleLink(const Index: Integer): Boolean;
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
@@ -310,7 +310,7 @@ type
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
     procedure SetLineSpacing(const Value: TPixels);
     procedure SetListLevelPadding(const Value: TPixels);
-    procedure SetPadding(const Value: TDHPadding);
+    procedure SetBorders(const Value: TDHBorders);
 
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
@@ -484,7 +484,7 @@ type
     property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
     property ListLevelPadding: TPixels read FListLevelPadding write SetListLevelPadding stored GetStoredListLevelPadding;
 
-    property Borders: TDHPadding read FPadding write SetPadding stored GetStoredPadding;
+    property Borders: TDHBorders read FBorders write SetBorders stored GetStoredBorders;
 
     property About: string read FAbout;
   end;
@@ -686,7 +686,7 @@ begin
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
 
-  FPadding := TDHPadding.Create(Self);
+  FBorders := TDHBorders.Create(Self);
 
   FCursor := crDefault;
 
@@ -711,7 +711,7 @@ begin
   FLines.Free;
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
-  FPadding.Free;
+  FBorders.Free;
   LVisualItem.Free;
   LLinkRef.Free;
   LSpoiler.Free;
@@ -800,12 +800,12 @@ end;
 
 function TDzHTMLText.GetAreaWidth: TPixels;
 begin
-  Result := Width - FPadding.GetHorizontalPadding;
+  Result := Width - FBorders.GetHorizontal;
 end;
 
 function TDzHTMLText.GetAreaHeight: TPixels;
 begin
-  Result := Height - FPadding.GetVerticalPadding;
+  Result := Height - FBorders.GetVertical;
 end;
 
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
@@ -943,8 +943,8 @@ begin
 
   InternalResizing := True;
   try
-    if FAutoWidth then Width := W + FPadding.GetHorizontalPadding;
-    if FAutoHeight then Height := H + FPadding.GetVerticalPadding;
+    if FAutoWidth then Width := W + FBorders.GetHorizontal;
+    if FAutoHeight then Height := H + FBorders.GetVertical;
   finally
     InternalResizing := False;
   end;
@@ -1026,7 +1026,7 @@ begin
 
     for W in LVisualItem do
     begin
-      R := FPadding.GetRealRect(W.Rect);
+      R := FBorders.GetRealRect(W.Rect);
 
       C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := W.BColor;
 
@@ -1141,7 +1141,7 @@ begin
   for W in LVisualItem do
     if Assigned(W.Link) then
     begin
-      if FPadding.GetRealRect(W.Rect).Contains(P) then //selected
+      if FBorders.GetRealRect(W.Rect).Contains(P) then //selected
       begin
         Link := W.Link;
         Break;
@@ -2622,38 +2622,38 @@ begin
 end;
 {$ENDREGION}
 
-{$REGION 'Padding'}
-procedure TDzHTMLText.SetPadding(const Value: TDHPadding);
+{$REGION 'Borders'}
+procedure TDzHTMLText.SetBorders(const Value: TDHBorders);
 begin
-  FPadding.Assign(Value);
+  FBorders.Assign(Value);
 end;
 
-function TDzHTMLText.GetStoredPadding: Boolean;
+function TDzHTMLText.GetStoredBorders: Boolean;
 begin
-  with FPadding do
+  with FBorders do
     Result := not (
       (FLeft = 0) and (FTop = 0) and (FRight = 0) and (FBottom = 0)
     );
 end;
 
-constructor TDHPadding.Create(Lb: TDzHTMLText);
+constructor TDHBorders.Create(Lb: TDzHTMLText);
 begin
   Self.Lb := Lb;
 end;
 
-function TDHPadding.GetOwner: TPersistent;
+function TDHBorders.GetOwner: TPersistent;
 begin
   Result := Lb;
 end;
 
-procedure TDHPadding.Assign(Source: TPersistent);
+procedure TDHBorders.Assign(Source: TPersistent);
 var
-  P: TDHPadding;
+  P: TDHBorders;
 begin
-  if not (Source is TDHPadding) then
+  if not (Source is TDHBorders) then
     raise Exception.CreateFmt('Could not assign %s class', [Source.ClassName]);
 
-  P := TDHPadding(Source);
+  P := TDHBorders(Source);
 
   FLeft := P.FLeft;
   FTop := P.FTop;
@@ -2661,7 +2661,7 @@ begin
   FBottom := P.FBottom;
 end;
 
-procedure TDHPadding.SetLeft(const Value: TPixels);
+procedure TDHBorders.SetLeft(const Value: TPixels);
 begin
   if Value <> FLeft then
   begin
@@ -2671,7 +2671,7 @@ begin
   end;
 end;
 
-procedure TDHPadding.SetTop(const Value: TPixels);
+procedure TDHBorders.SetTop(const Value: TPixels);
 begin
   if Value <> FTop then
   begin
@@ -2681,7 +2681,7 @@ begin
   end;
 end;
 
-procedure TDHPadding.SetRight(const Value: TPixels);
+procedure TDHBorders.SetRight(const Value: TPixels);
 begin
   if Value <> FRight then
   begin
@@ -2691,7 +2691,7 @@ begin
   end;
 end;
 
-procedure TDHPadding.SetBottom(const Value: TPixels);
+procedure TDHBorders.SetBottom(const Value: TPixels);
 begin
   if Value <> FBottom then
   begin
@@ -2701,17 +2701,17 @@ begin
   end;
 end;
 
-function TDHPadding.GetHorizontalPadding: TPixels;
+function TDHBorders.GetHorizontal: TPixels;
 begin
   Result := FLeft + FRight;
 end;
 
-function TDHPadding.GetVerticalPadding: TPixels;
+function TDHBorders.GetVertical: TPixels;
 begin
   Result := FTop + FBottom;
 end;
 
-function TDHPadding.GetRealRect(R: TRect): TRect;
+function TDHBorders.GetRealRect(R: TRect): TRect;
 begin
   Result := R;
   Result.Offset(FLeft, FTop);
