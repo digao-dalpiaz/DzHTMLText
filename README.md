@@ -34,7 +34,7 @@
 
 - 03/31/2021 (Version 3.4)
 
-   - New Padding property, allowing to define the text area margins.
+   - New Borders property, allowing to define the text area margins.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
@@ -311,6 +311,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick. This only works in Windows, Linux and Android platforms. For others platforms like iOS and MacOS, you can use OnLinkClick event.
 
+`Borders: TDHPadding` = Defines `Left`, `Top`, `Right` and `Bottom` sub-properties, specifying the text area margins.
+
 `Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background. In VCL environment, transparency is not available.
 
 `Font: TFont` = Determines the base font. When no tag is specified on text, this base font is used.
@@ -334,8 +336,6 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 `OverallHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Determines overall text horizontal alignment. This property only take effects if `AutoWidth` is false.
 
 `OverallVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Determines overall text vertical alignment. This property only take effects if `AutoHeight` is false.
-
-`Padding: TDHPadding` = Defines `Left`, `Top`, `Right` and `Bottom` sub-properties, specifying the text area margins.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 
