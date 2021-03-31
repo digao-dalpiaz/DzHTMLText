@@ -197,6 +197,11 @@ type
     Lb: TDzHTMLText;
 
     FLeft, FTop, FRight, FBottom: TPixels;
+    function HasAnyValue: Boolean;
+    function GetAll: TPixels;
+    procedure SetAll(const Value: TPixels);
+    function GetStoredAll: Boolean;
+    function GetStoredSides: Boolean;
     procedure SetLeft(const Value: TPixels);
     procedure SetTop(const Value: TPixels);
     procedure SetRight(const Value: TPixels);
@@ -210,10 +215,11 @@ type
     constructor Create(Lb: TDzHTMLText);
     procedure Assign(Source: TPersistent); override;
   published
-    property Left: TPixels read FLeft write SetLeft;
-    property Top: TPixels read FTop write SetTop;
-    property Right: TPixels read FRight write SetRight;
-    property Bottom: TPixels read FBottom write SetBottom;
+    property All: TPixels read GetAll write SetAll stored GetStoredAll;
+    property Left: TPixels read FLeft write SetLeft stored GetStoredSides;
+    property Top: TPixels read FTop write SetTop stored GetStoredSides;
+    property Right: TPixels read FRight write SetRight stored GetStoredSides;
+    property Bottom: TPixels read FBottom write SetBottom stored GetStoredSides;
   end;
 
   TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
@@ -2630,10 +2636,7 @@ end;
 
 function TDzHTMLText.GetStoredBorders: Boolean;
 begin
-  with FBorders do
-    Result := not (
-      (FLeft = 0) and (FTop = 0) and (FRight = 0) and (FBottom = 0)
-    );
+  Result := FBorders.HasAnyValue;
 end;
 
 constructor TDHBorders.Create(Lb: TDzHTMLText);
@@ -2659,6 +2662,41 @@ begin
   FTop := P.FTop;
   FRight := P.FRight;
   FBottom := P.FBottom;
+end;
+
+function TDHBorders.HasAnyValue: Boolean;
+begin
+  Result := not (
+      (FLeft = 0) and (FTop = 0) and (FRight = 0) and (FBottom = 0)
+    );
+end;
+
+function TDHBorders.GetAll: TPixels;
+begin
+  if (FLeft=FTop) and (FLeft=FRight) and (FLeft=FBottom) then
+    Result := FLeft
+  else
+    Result := 0;
+end;
+
+procedure TDHBorders.SetAll(const Value: TPixels);
+begin
+  FLeft := Value;
+  FTop := Value;
+  FRight := Value;
+  FBottom := Value;
+
+  Lb.BuildAndPaint;
+end;
+
+function TDHBorders.GetStoredAll: Boolean;
+begin
+  Result := All<>0;
+end;
+
+function TDHBorders.GetStoredSides: Boolean;
+begin
+  Result := HasAnyValue and not GetStoredAll;
 end;
 
 procedure TDHBorders.SetLeft(const Value: TPixels);
@@ -2716,6 +2754,7 @@ begin
   Result := R;
   Result.Offset(FLeft, FTop);
 end;
+
 {$ENDREGION}
 
 function TDzHTMLText.GetStoredMaxWidth: Boolean;
