@@ -32,13 +32,17 @@
 
 ## What's New
 
-- 03/21/2021 (Version 3.3)
+- 03/31/2021 (Version 3.4)
 
-   - VCL custom themes supporting.
-   - Fixed FMX measuring type (now uses `Single` instead `Integer` type, avoiding incorrect canvas bounds drawing).
+   - New Padding property, allowing to define the text area margins.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+  
+- 03/21/2021 (Version 3.3)
+
+   - VCL custom themes supporting.
+   - Fixed FMX measuring type (now uses `Single` instead `Integer` type, avoiding incorrect canvas bounds drawing).  
   
 - 03/13/2021 (Version 3.2)
 
@@ -330,6 +334,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 `OverallHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Determines overall text horizontal alignment. This property only take effects if `AutoWidth` is false.
 
 `OverallVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Determines overall text vertical alignment. This property only take effects if `AutoHeight` is false.
+
+`Padding: TDHPadding` = Defines `Left`, `Top`, `Right` and `Bottom` sub-properties, specifying the text area margins.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 
