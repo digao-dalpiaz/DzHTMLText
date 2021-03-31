@@ -32,13 +32,17 @@
 
 ## What's New
 
-- 03/21/2021 (Version 3.3)
+- 03/31/2021 (Version 3.4)
 
-   - VCL custom themes supporting.
-   - Fixed FMX measuring type (now uses `Single` instead `Integer` type, avoiding incorrect canvas bounds drawing).
+   - New Borders property, allowing to define the text area margins.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+  
+- 03/21/2021 (Version 3.3)
+
+   - VCL custom themes supporting.
+   - Fixed FMX measuring type (now uses `Single` instead `Integer` type, avoiding incorrect canvas bounds drawing).  
   
 - 03/13/2021 (Version 3.2)
 
@@ -306,6 +310,8 @@ Supports Delphi XE3..Delphi 10.4
 If you are using AutoWidth, the text never wraps to a new line unless a line break is specified at text or there is a value specified in MaxWidth property.
 
 `AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick. This only works in Windows, Linux and Android platforms. For others platforms like iOS and MacOS, you can use OnLinkClick event.
+
+`Borders: TDHBorders` = Defines `Left`, `Top`, `Right` and `Bottom` sub-properties, specifying the text area margins.
 
 `Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background. In VCL environment, transparency is not available.
 

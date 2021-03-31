@@ -184,12 +184,42 @@ type
   protected
     function GetOwner: TPersistent; override;
   public
-    constructor Create(xLb: TDzHTMLText; xKind: TDHKindStyleLinkProp);
+    constructor Create(Lb: TDzHTMLText; Kind: TDHKindStyleLinkProp);
     procedure Assign(Source: TPersistent); override;
   published
     property FontColor: TColor read FFontColor write SetFontColor stored GetStoredFontColor;
     property BackColor: TColor read FBackColor write SetBackColor default clNone;
     property Underline: Boolean read FUnderline write SetUnderline default False;
+  end;
+
+  TDHBorders = class(TPersistent)
+  private
+    Lb: TDzHTMLText;
+
+    FLeft, FTop, FRight, FBottom: TPixels;
+    function HasAnyValue: Boolean;
+    function GetAll: TPixels;
+    procedure SetAll(const Value: TPixels);
+    function GetStoredAll: Boolean;
+    function GetStoredSides: Boolean;
+    procedure SetLeft(const Value: TPixels);
+    procedure SetTop(const Value: TPixels);
+    procedure SetRight(const Value: TPixels);
+    procedure SetBottom(const Value: TPixels);
+    function GetHorizontal: TPixels;
+    function GetVertical: TPixels;
+    function GetRealRect(R: TRect): TRect; inline;
+  protected
+    function GetOwner: TPersistent; override;
+  public
+    constructor Create(Lb: TDzHTMLText);
+    procedure Assign(Source: TPersistent); override;
+  published
+    property All: TPixels read GetAll write SetAll stored GetStoredAll;
+    property Left: TPixels read FLeft write SetLeft stored GetStoredSides;
+    property Top: TPixels read FTop write SetTop stored GetStoredSides;
+    property Right: TPixels read FRight write SetRight stored GetStoredSides;
+    property Bottom: TPixels read FBottom write SetBottom stored GetStoredSides;
   end;
 
   TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
@@ -245,6 +275,8 @@ type
     FLineSpacing: TPixels;
     FListLevelPadding: TPixels;
 
+    FBorders: TDHBorders;
+
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
 
@@ -267,6 +299,7 @@ type
     function GetStoredMaxWidth: Boolean;
     function GetStoredLineSpacing: Boolean;
     function GetStoredListLevelPadding: Boolean;
+    function GetStoredBorders: Boolean;
 
     function GetStoredStyleLink(const Index: Integer): Boolean;
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
@@ -283,6 +316,7 @@ type
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
     procedure SetLineSpacing(const Value: TPixels);
     procedure SetListLevelPadding(const Value: TPixels);
+    procedure SetBorders(const Value: TDHBorders);
 
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
@@ -456,6 +490,8 @@ type
     property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
     property ListLevelPadding: TPixels read FListLevelPadding write SetListLevelPadding stored GetStoredListLevelPadding;
 
+    property Borders: TDHBorders read FBorders write SetBorders stored GetStoredBorders;
+
     property About: string read FAbout;
   end;
 
@@ -482,7 +518,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '3.3';
+const STR_VERSION = '3.4';
 
 procedure Register;
 begin
@@ -656,6 +692,8 @@ begin
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
 
+  FBorders := TDHBorders.Create(Self);
+
   FCursor := crDefault;
 
   {$IFDEF FMX}
@@ -679,6 +717,7 @@ begin
   FLines.Free;
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
+  FBorders.Free;
   LVisualItem.Free;
   LLinkRef.Free;
   LSpoiler.Free;
@@ -767,12 +806,12 @@ end;
 
 function TDzHTMLText.GetAreaWidth: TPixels;
 begin
-  Result := Width;
+  Result := Width - FBorders.GetHorizontal;
 end;
 
 function TDzHTMLText.GetAreaHeight: TPixels;
 begin
-  Result := Height;
+  Result := Height - FBorders.GetVertical;
 end;
 
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
@@ -910,8 +949,8 @@ begin
 
   InternalResizing := True;
   try
-    if FAutoWidth then Width := W;
-    if FAutoHeight then Height := H;
+    if FAutoWidth then Width := W + FBorders.GetHorizontal;
+    if FAutoHeight then Height := H + FBorders.GetVertical;
   finally
     InternalResizing := False;
   end;
@@ -993,6 +1032,8 @@ begin
 
     for W in LVisualItem do
     begin
+      R := FBorders.GetRealRect(W.Rect);
+
       C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := W.BColor;
 
       if W is TDHVisualItem_Word then
@@ -1014,15 +1055,14 @@ begin
       if C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then
         C.FillRect(
           {$IFDEF FMX}
-          W.Rect, 0, 0, [], 1
+          R, 0, 0, [], 1
           {$ELSE}
-          W.Rect
+          R
           {$ENDIF});
 
       if W is TDHVisualItem_Word then
         with TDHVisualItem_Word(W) do
         begin
-          R := W.Rect;
           R.Top := R.Top + YPos;
 
           {$IFDEF FMX}
@@ -1051,9 +1091,9 @@ begin
           {$IFDEF USE_IMGLST}
           if Assigned(FImages) then
             {$IFDEF FMX}
-            FImages.Draw(C, W.Rect, ImageIndex, 1);
+            FImages.Draw(C, R, ImageIndex, 1);
             {$ELSE}
-            FImages.Draw(C, W.Rect.Left, W.Rect.Top, ImageIndex);
+            FImages.Draw(C, R.Left, R.Top, ImageIndex);
             {$ENDIF}
           {$ENDIF}
         end
@@ -1062,10 +1102,9 @@ begin
         with TDHVisualItem_ImageResource(W) do
         begin
           {$IFDEF FMX}
-          C.DrawBitmap(Picture, TRect{F}.Create(0, 0, Picture.Width, Picture.Height),
-            W.Rect, 1);
+          C.DrawBitmap(Picture, TRect{F}.Create(0, 0, Picture.Width, Picture.Height), R, 1);
           {$ELSE}
-          C.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
+          C.Draw(R.Left, R.Top, Picture.Graphic);
           {$ENDIF}
         end
       else
@@ -1108,7 +1147,7 @@ begin
   for W in LVisualItem do
     if Assigned(W.Link) then
     begin
-      if W.Rect.Contains(P) then //selected
+      if FBorders.GetRealRect(W.Rect).Contains(P) then //selected
       begin
         Link := W.Link;
         Break;
@@ -2484,12 +2523,10 @@ begin
 end;
 
 {$REGION 'StyleLinkProp'}
-constructor TDHStyleLinkProp.Create(xLb: TDzHTMLText; xKind: TDHKindStyleLinkProp);
+constructor TDHStyleLinkProp.Create(Lb: TDzHTMLText; Kind: TDHKindStyleLinkProp);
 begin
-  inherited Create;
-
-  Lb := xLb;
-  Kind := xKind;
+  Self.Lb := Lb;
+  Self.Kind := Kind;
 
   FFontColor := GetDefaultFontColor;
   FBackColor := clNone;
@@ -2552,14 +2589,17 @@ begin
 end;
 
 procedure TDHStyleLinkProp.Assign(Source: TPersistent);
+var
+  P: TDHStyleLinkProp;
 begin
-  if Source is TDHStyleLinkProp then
-  begin
-    Self.FFontColor := TDHStyleLinkProp(Source).FFontColor;
-    Self.FBackColor := TDHStyleLinkProp(Source).FBackColor;
-    Self.FUnderline := TDHStyleLinkProp(Source).FUnderline;
-  end else
-    inherited;
+  if not (Source is TDHStyleLinkProp) then
+    raise Exception.CreateFmt('Could not assign %s class', [Source.ClassName]);
+
+  P := TDHStyleLinkProp(Source);
+
+  FFontColor := P.FFontColor;
+  FBackColor := P.FBackColor;
+  FUnderline := P.FUnderline;
 end;
 
 function TDHStyleLinkProp.GetStored: Boolean;
@@ -2585,6 +2625,149 @@ begin
     1: Result := FStyleLinkNormal.GetStored;
     2: Result := FStyleLinkHover.GetStored;
   end;
+end;
+{$ENDREGION}
+
+{$REGION 'Borders'}
+procedure TDzHTMLText.SetBorders(const Value: TDHBorders);
+begin
+  FBorders.Assign(Value);
+end;
+
+function TDzHTMLText.GetStoredBorders: Boolean;
+begin
+  Result := FBorders.HasAnyValue;
+end;
+
+constructor TDHBorders.Create(Lb: TDzHTMLText);
+begin
+  Self.Lb := Lb;
+end;
+
+function TDHBorders.GetOwner: TPersistent;
+begin
+  Result := Lb;
+end;
+
+procedure TDHBorders.Assign(Source: TPersistent);
+var
+  P: TDHBorders;
+begin
+  if not (Source is TDHBorders) then
+    raise Exception.CreateFmt('Could not assign %s class', [Source.ClassName]);
+
+  P := TDHBorders(Source);
+
+  FLeft := P.FLeft;
+  FTop := P.FTop;
+  FRight := P.FRight;
+  FBottom := P.FBottom;
+end;
+
+function TDHBorders.HasAnyValue: Boolean;
+begin
+  Result := not (
+      (FLeft = 0) and (FTop = 0) and (FRight = 0) and (FBottom = 0)
+    );
+end;
+
+function TDHBorders.GetAll: TPixels;
+begin
+  if (FLeft=FTop) and (FLeft=FRight) and (FLeft=FBottom) then
+    Result := FLeft
+  else
+    Result := 0;
+end;
+
+procedure TDHBorders.SetAll(const Value: TPixels);
+var
+  Changed: Boolean;
+
+  procedure SetProp(var Prop: TPixels);
+  begin
+    if Value<>Prop then
+    begin
+      Prop := Value;
+      Changed := True;
+    end;
+  end;
+
+begin
+  Changed := False;
+
+  SetProp(FLeft);
+  SetProp(FTop);
+  SetProp(FRight);
+  SetProp(FBottom);
+
+  if Changed then
+    Lb.BuildAndPaint;
+end;
+
+function TDHBorders.GetStoredAll: Boolean;
+begin
+  Result := All<>0;
+end;
+
+function TDHBorders.GetStoredSides: Boolean;
+begin
+  Result := HasAnyValue and not GetStoredAll;
+end;
+
+procedure TDHBorders.SetLeft(const Value: TPixels);
+begin
+  if Value <> FLeft then
+  begin
+    FLeft := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+procedure TDHBorders.SetTop(const Value: TPixels);
+begin
+  if Value <> FTop then
+  begin
+    FTop := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+procedure TDHBorders.SetRight(const Value: TPixels);
+begin
+  if Value <> FRight then
+  begin
+    FRight := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+procedure TDHBorders.SetBottom(const Value: TPixels);
+begin
+  if Value <> FBottom then
+  begin
+    FBottom := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+function TDHBorders.GetHorizontal: TPixels;
+begin
+  Result := FLeft + FRight;
+end;
+
+function TDHBorders.GetVertical: TPixels;
+begin
+  Result := FTop + FBottom;
+end;
+
+function TDHBorders.GetRealRect(R: TRect): TRect;
+begin
+  Result := R;
+  Result.Offset(FLeft, FTop);
 end;
 {$ENDREGION}
 
