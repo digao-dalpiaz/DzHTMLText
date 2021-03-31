@@ -2679,13 +2679,28 @@ begin
 end;
 
 procedure TDHBorders.SetAll(const Value: TPixels);
-begin
-  FLeft := Value;
-  FTop := Value;
-  FRight := Value;
-  FBottom := Value;
+var
+  Changed: Boolean;
 
-  Lb.BuildAndPaint;
+  procedure SetProp(var Prop: TPixels);
+  begin
+    if Value<>Prop then
+    begin
+      Prop := Value;
+      Changed := True;
+    end;
+  end;
+
+begin
+  Changed := False;
+
+  SetProp(FLeft);
+  SetProp(FTop);
+  SetProp(FRight);
+  SetProp(FBottom);
+
+  if Changed then
+    Lb.BuildAndPaint;
 end;
 
 function TDHBorders.GetStoredAll: Boolean;
@@ -2753,7 +2768,6 @@ begin
   Result := R;
   Result.Offset(FLeft, FTop);
 end;
-
 {$ENDREGION}
 
 function TDzHTMLText.GetStoredMaxWidth: Boolean;
