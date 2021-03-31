@@ -183,12 +183,36 @@ type
   protected
     function GetOwner: TPersistent; override;
   public
-    constructor Create(xLb: TDzHTMLText; xKind: TDHKindStyleLinkProp);
+    constructor Create(Lb: TDzHTMLText; Kind: TDHKindStyleLinkProp);
     procedure Assign(Source: TPersistent); override;
   published
     property FontColor: TColor read FFontColor write SetFontColor stored GetStoredFontColor;
     property BackColor: TColor read FBackColor write SetBackColor default clNone;
     property Underline: Boolean read FUnderline write SetUnderline default False;
+  end;
+
+  TDHPadding = class(TPersistent)
+  private
+    Lb: TDzHTMLText;
+
+    FLeft, FTop, FRight, FBottom: TPixels;
+    procedure SetLeft(const Value: TPixels);
+    procedure SetTop(const Value: TPixels);
+    procedure SetRight(const Value: TPixels);
+    procedure SetBottom(const Value: TPixels);
+    function GetHorizontalPadding: Integer;
+    function GetVerticalPadding: Integer;
+    function GetRealRect(R: TRect): TRect; inline;
+  protected
+    function GetOwner: TPersistent; override;
+  public
+    constructor Create(Lb: TDzHTMLText);
+    procedure Assign(Source: TPersistent); override;
+  published
+    property Left: TPixels read FLeft write SetLeft;
+    property Top: TPixels read FTop write SetTop;
+    property Right: TPixels read FRight write SetRight;
+    property Bottom: TPixels read FBottom write SetBottom;
   end;
 
   TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
@@ -244,6 +268,8 @@ type
     FLineSpacing: TPixels;
     FListLevelPadding: TPixels;
 
+    FPadding: TDHPadding;
+
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
 
@@ -266,6 +292,7 @@ type
     function GetStoredMaxWidth: Boolean;
     function GetStoredLineSpacing: Boolean;
     function GetStoredListLevelPadding: Boolean;
+    function GetStoredPadding: Boolean;
 
     function GetStoredStyleLink(const Index: Integer): Boolean;
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
@@ -282,6 +309,7 @@ type
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
     procedure SetLineSpacing(const Value: TPixels);
     procedure SetListLevelPadding(const Value: TPixels);
+    procedure SetPadding(const Value: TDHPadding);
 
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
@@ -454,6 +482,8 @@ type
     property OverallHorzAlign: TDHHorzAlign read FOverallHorzAlign write SetOverallHorzAlign default haLeft;
     property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
     property ListLevelPadding: TPixels read FListLevelPadding write SetListLevelPadding stored GetStoredListLevelPadding;
+
+    property Padding: TDHPadding read FPadding write SetPadding stored GetStoredPadding;
 
     property About: string read FAbout;
   end;
@@ -655,6 +685,8 @@ begin
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
 
+  FPadding := TDHPadding.Create(Self);
+
   FCursor := crDefault;
 
   {$IFDEF FMX}
@@ -678,6 +710,7 @@ begin
   FLines.Free;
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
+  FPadding.Free;
   LVisualItem.Free;
   LLinkRef.Free;
   LSpoiler.Free;
@@ -766,12 +799,12 @@ end;
 
 function TDzHTMLText.GetAreaWidth: TPixels;
 begin
-  Result := Width;
+  Result := Width - FPadding.GetHorizontalPadding;
 end;
 
 function TDzHTMLText.GetAreaHeight: TPixels;
 begin
-  Result := Height;
+  Result := Height - FPadding.GetVerticalPadding;
 end;
 
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
@@ -909,8 +942,8 @@ begin
 
   InternalResizing := True;
   try
-    if FAutoWidth then Width := W;
-    if FAutoHeight then Height := H;
+    if FAutoWidth then Width := W + FPadding.GetHorizontalPadding;
+    if FAutoHeight then Height := H + FPadding.GetVerticalPadding;
   finally
     InternalResizing := False;
   end;
@@ -992,6 +1025,8 @@ begin
 
     for W in LVisualItem do
     begin
+      R := FPadding.GetRealRect(W.Rect);
+
       C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := W.BColor;
 
       if W is TDHVisualItem_Word then
@@ -1013,15 +1048,14 @@ begin
       if C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then
         C.FillRect(
           {$IFDEF FMX}
-          W.Rect, 0, 0, [], 1
+          R, 0, 0, [], 1
           {$ELSE}
-          W.Rect
+          R
           {$ENDIF});
 
       if W is TDHVisualItem_Word then
         with TDHVisualItem_Word(W) do
         begin
-          R := W.Rect;
           R.Top := R.Top + YPos;
 
           {$IFDEF FMX}
@@ -1050,9 +1084,9 @@ begin
           {$IFDEF USE_IMGLST}
           if Assigned(FImages) then
             {$IFDEF FMX}
-            FImages.Draw(C, W.Rect, ImageIndex, 1);
+            FImages.Draw(C, R, ImageIndex, 1);
             {$ELSE}
-            FImages.Draw(C, W.Rect.Left, W.Rect.Top, ImageIndex);
+            FImages.Draw(C, R.Left, R.Top, ImageIndex);
             {$ENDIF}
           {$ENDIF}
         end
@@ -1061,10 +1095,9 @@ begin
         with TDHVisualItem_ImageResource(W) do
         begin
           {$IFDEF FMX}
-          C.DrawBitmap(Picture, TRect{F}.Create(0, 0, Picture.Width, Picture.Height),
-            W.Rect, 1);
+          C.DrawBitmap(Picture, TRect{F}.Create(0, 0, Picture.Width, Picture.Height), R, 1);
           {$ELSE}
-          C.Draw(W.Rect.Left, W.Rect.Top, Picture.Graphic);
+          C.Draw(R.Left, R.Top, Picture.Graphic);
           {$ENDIF}
         end
       else
@@ -1107,7 +1140,7 @@ begin
   for W in LVisualItem do
     if Assigned(W.Link) then
     begin
-      if W.Rect.Contains(P) then //selected
+      if FPadding.GetRealRect(W.Rect).Contains(P) then //selected
       begin
         Link := W.Link;
         Break;
@@ -2483,12 +2516,10 @@ begin
 end;
 
 {$REGION 'StyleLinkProp'}
-constructor TDHStyleLinkProp.Create(xLb: TDzHTMLText; xKind: TDHKindStyleLinkProp);
+constructor TDHStyleLinkProp.Create(Lb: TDzHTMLText; Kind: TDHKindStyleLinkProp);
 begin
-  inherited Create;
-
-  Lb := xLb;
-  Kind := xKind;
+  Self.Lb := Lb;
+  Self.Kind := Kind;
 
   FFontColor := GetDefaultFontColor;
   FBackColor := clNone;
@@ -2551,14 +2582,17 @@ begin
 end;
 
 procedure TDHStyleLinkProp.Assign(Source: TPersistent);
+var
+  P: TDHStyleLinkProp;
 begin
-  if Source is TDHStyleLinkProp then
-  begin
-    Self.FFontColor := TDHStyleLinkProp(Source).FFontColor;
-    Self.FBackColor := TDHStyleLinkProp(Source).FBackColor;
-    Self.FUnderline := TDHStyleLinkProp(Source).FUnderline;
-  end else
-    inherited;
+  if not (Source is TDHStyleLinkProp) then
+    raise Exception.CreateFmt('Could not assign %s class', [Source.ClassName]);
+
+  P := TDHStyleLinkProp(Source);
+
+  FFontColor := P.FFontColor;
+  FBackColor := P.FBackColor;
+  FUnderline := P.FUnderline;
 end;
 
 function TDHStyleLinkProp.GetStored: Boolean;
@@ -2584,6 +2618,102 @@ begin
     1: Result := FStyleLinkNormal.GetStored;
     2: Result := FStyleLinkHover.GetStored;
   end;
+end;
+{$ENDREGION}
+
+{$REGION 'Padding'}
+procedure TDzHTMLText.SetPadding(const Value: TDHPadding);
+begin
+  FPadding.Assign(Value);
+end;
+
+function TDzHTMLText.GetStoredPadding: Boolean;
+begin
+  with FPadding do
+    Result := not (
+      (FLeft = 0) and (FTop = 0) and (FRight = 0) and (FBottom = 0)
+    );
+end;
+
+constructor TDHPadding.Create(Lb: TDzHTMLText);
+begin
+  Self.Lb := Lb;
+end;
+
+function TDHPadding.GetOwner: TPersistent;
+begin
+  Result := Lb;
+end;
+
+procedure TDHPadding.Assign(Source: TPersistent);
+var
+  P: TDHPadding;
+begin
+  if not (Source is TDHPadding) then
+    raise Exception.CreateFmt('Could not assign %s class', [Source.ClassName]);
+
+  P := TDHPadding(Source);
+
+  FLeft := P.FLeft;
+  FTop := P.FTop;
+  FRight := P.FRight;
+  FBottom := P.FBottom;
+end;
+
+procedure TDHPadding.SetLeft(const Value: TPixels);
+begin
+  if Value <> FLeft then
+  begin
+    FLeft := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+procedure TDHPadding.SetTop(const Value: TPixels);
+begin
+  if Value <> FTop then
+  begin
+    FTop := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+procedure TDHPadding.SetRight(const Value: TPixels);
+begin
+  if Value <> FRight then
+  begin
+    FRight := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+procedure TDHPadding.SetBottom(const Value: TPixels);
+begin
+  if Value <> FBottom then
+  begin
+    FBottom := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+function TDHPadding.GetHorizontalPadding: Integer;
+begin
+  Result := FLeft + FRight;
+end;
+
+function TDHPadding.GetVerticalPadding: Integer;
+begin
+  Result := FTop + FBottom;
+end;
+
+function TDHPadding.GetRealRect(R: TRect): TRect;
+begin
+  Result := R;
+  Result.Offset(FLeft, FTop);
 end;
 {$ENDREGION}
 
