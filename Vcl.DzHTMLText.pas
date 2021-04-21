@@ -517,7 +517,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '3.4';
+const STR_VERSION = '3.5';
 
 procedure Register;
 begin
