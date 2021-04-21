@@ -1887,7 +1887,10 @@ end;
 procedure TTokensProcess.Execute;
 var
   T: TToken;
+  ListItemAlreadyInThisLine: Boolean;
 begin
+  ListItemAlreadyInThisLine := False;
+
   for T in Builder.LToken do
   begin
     if not (T.Kind in [ttSpoilerTitle, ttSpoilerDetail]) then
@@ -1895,6 +1898,12 @@ begin
       //Bypass when inside a closed spoiler detail tag
       if LSpoilerDet.Count>0 then
         if not LSpoilerDet.IsAllOpened(Lb) then Continue;
+    end;
+
+    if (T.Kind = ttListItem) and not T.TagClose then
+    begin
+      if ListItemAlreadyInThisLine then DoBreak;
+      ListItemAlreadyInThisLine := True;
     end;
 
     case T.Kind of
@@ -1913,7 +1922,11 @@ begin
       ttSpoilerTitle: DoSpoilerTitle(T);
       ttSpoilerDetail: DoSpoilerDetail(T);
       ttTab, ttTabF: DoTab(T);
-      ttBreak: DoBreak;
+      ttBreak:
+        begin
+          DoBreak;
+          ListItemAlreadyInThisLine := False;
+        end;
     end;
   end;
 end;
