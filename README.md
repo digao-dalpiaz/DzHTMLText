@@ -32,13 +32,17 @@
 
 ## What's New
 
-- 03/31/2021 (Version 3.4)
+- 04/21/2021 (Version 3.5)
 
-   - New Borders property, allowing to define the text area margins.
+   - Fixed `<LI>` tag incorrect overlap painting when using multiple items in the same line of HTML code.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
   
+- 03/31/2021 (Version 3.4)
+
+   - New Borders property, allowing to define the text area margins.
+
 - 03/21/2021 (Version 3.3)
 
    - VCL custom themes supporting.
