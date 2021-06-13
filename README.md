@@ -32,12 +32,16 @@
 
 ## What's New
 
-- 04/21/2021 (Version 3.5)
+- 06/13/2021 (Version 3.6)
 
-   - Fixed `<LI>` tag incorrect overlap painting when using multiple items in the same line of HTML code.
+   - New HTMLToPlainText function, removing HTML tags and unescaping special HTML identifiers.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 04/21/2021 (Version 3.5)
+
+   - Fixed `<LI>` tag incorrect overlap painting when using multiple items in the same line of HTML code.
   
 - 03/31/2021 (Version 3.4)
 
