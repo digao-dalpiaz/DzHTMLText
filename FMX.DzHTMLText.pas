@@ -51,7 +51,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 704; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 705; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -376,6 +376,7 @@ type
 
     class function UnescapeHTMLToText(const aHTML: string): string;
     class function EscapeTextToHTML(const aText: string): string;
+    class function HTMLToPlainText(const aHTML: string): string;
   published
     property Align;
     property Anchors;
@@ -501,9 +502,9 @@ implementation
 
 uses
 {$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, Math, LResources
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources
 {$ELSE}
-  System.SysUtils, System.Math
+  System.SysUtils, System.StrUtils, System.Math
   {$IFDEF FMX}
   , System.UIConsts
     {$IFDEF ANDROID}
@@ -665,6 +666,26 @@ begin
   Result := StringReplace(Result, '&gt;', '>', [rfReplaceAll]);
 
   Result := StringReplace(Result, '&amp;', '&', [rfReplaceAll]);
+end;
+
+class function TDzHTMLText.HTMLToPlainText(const aHTML: string): string;
+var
+  X, XEnd: Integer;
+begin
+  Result := aHTML;
+
+  while True do
+  begin
+    X := Pos('<', Result);
+    if X=0 then Break;
+
+    XEnd := PosEx('>', Result, X+1);
+    if XEnd=0 then Break;
+
+    Delete(Result, X, XEnd-X+1);
+  end;
+
+  Result := UnescapeHTMLToText(Result);
 end;
 
 //
