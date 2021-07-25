@@ -982,7 +982,7 @@ begin
 
   //on component creating, there is no parent and the resize is fired,
   //so, the canvas is not present at this moment.
-  if HasParent then
+  if HasParent and Assigned(Canvas) then
     Modified([mfBuild]);
 
   inherited;
