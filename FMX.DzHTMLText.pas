@@ -507,9 +507,13 @@ uses
   System.SysUtils, System.StrUtils, System.Math
   {$IFDEF FMX}
   , System.UIConsts
-    {$IFDEF ANDROID}
+    {$IF Defined(ANDROID)}
     , Androidapi.JNI.GraphicsContentViewText
     , Androidapi.Helpers
+    {$ELSEIF Defined(IOS)}
+    , macapi.helpers, FMX.helpers.iOS
+    {$ELSEIF Defined(MACOS)}
+    , Posix.Stdlib
     {$ENDIF}
   {$ELSE}
   , System.UITypes, Vcl.Themes
@@ -1242,6 +1246,10 @@ begin
               on E: EJNIException do
                 if not E.ExceptionClassName.Contains('ActivityNotFoundException') then raise;
             end;
+            {$ELSEIF Defined(IOS)}
+              SharedApplication.OpenURL(StrToNSUrl(aTarget));
+            {$ELSEIF Defined(MACOS)}
+              _system(PAnsiChar('open ' + AnsiString(aTarget)));
             {$ELSE}
             raise Exception.Create('Unsupported platform');
             {$ENDIF}
