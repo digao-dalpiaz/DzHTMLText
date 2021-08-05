@@ -32,12 +32,17 @@
 
 ## What's New
 
-- 06/13/2021 (Version 3.6)
+- 08/05/2021 (Version 3.7)
 
-   - New HTMLToPlainText function, removing HTML tags and unescaping special HTML identifiers.
+   - Fixed access violation error when creating component on iOS (when canvas not present yet).
+   - Open link support for Mac and iOS.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 06/13/2021 (Version 3.6)
+
+   - New HTMLToPlainText function, removing HTML tags and unescaping special HTML identifiers.
 
 - 04/21/2021 (Version 3.5)
 
