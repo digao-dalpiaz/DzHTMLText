@@ -32,13 +32,17 @@
 
 ## What's New
 
+- 09/12/2021 (Version 3.8)
+
+   - Delphi 11 auto-install support.
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 08/05/2021 (Version 3.7)
 
    - Fixed access violation error when creating component on iOS (when canvas not present yet).
    - Open link support for Mac and iOS.
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 06/13/2021 (Version 3.6)
 
