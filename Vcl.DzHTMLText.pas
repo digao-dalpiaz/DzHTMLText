@@ -1366,6 +1366,8 @@ begin
   LVisualItem.Clear; //clean old words
   LLinkRef.Clear; //clean old links
 
+  FSelectedLink := nil;
+
   B := TBuilder.Create;
   try
     B.Lb := Self;
