@@ -32,12 +32,16 @@
 
 ## What's New
 
-- 09/12/2021 (Version 3.8)
+- 11/03/2021 (Version 3.9)
 
-   - Delphi 11 auto-install support.
+   - Fixed to clear and renew selected link when rebuilding text contents, avoiding access violation when mouse stay at the same previous link (Issue #59).
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 09/12/2021 (Version 3.8)
+
+   - Delphi 11 auto-install support.
 
 - 08/05/2021 (Version 3.7)
 
