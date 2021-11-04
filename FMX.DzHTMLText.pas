@@ -42,7 +42,7 @@ uses
 {$ELSE}
   System.Generics.Collections, System.Types, System.Classes,
   {$IFDEF FMX}
-  FMX.Controls, FMX.Types, System.UITypes
+  FMX.Forms, FMX.Controls, FMX.Types, System.UITypes
     {$IFDEF USE_NEW_UNITS}, FMX.StdCtrls, FMX.Graphics, FMX.MultiResBitmap{$ENDIF}
     {$IFDEF USE_IMGLST}, FMX.ImgList{$ENDIF}
   {$ELSE}
@@ -1369,15 +1369,14 @@ begin
 end;
 
 procedure TDzHTMLText.Rebuild;
-var B: TBuilder;
+var
+  B: TBuilder;
+  P: TPoint;
 begin
   if csLoading in ComponentState then Exit;
 
   LVisualItem.Clear; //clean old words
   LLinkRef.Clear; //clean old links
-
-  FSelectedLink := nil;
-  SetCursorByLink(False);
 
   B := TBuilder.Create;
   try
@@ -1388,6 +1387,18 @@ begin
   finally
     B.Free;
   end;
+
+  //reset selected link
+  FSelectedLink := nil;
+  SetCursorByLink(False);
+
+  //update link by cursor pos
+  {$IFDEF FMX}
+  P := ScreenToLocal(Screen.MousePos);
+  {$ELSE}
+  P := ScreenToClient(Mouse.CursorPos);
+  {$ENDIF}
+  CheckMouse(P.X, P.Y);
 end;
 
 //
