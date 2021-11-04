@@ -309,6 +309,7 @@ type
 
     function GetIsLinkHover: Boolean;
     procedure CheckMouse(X, Y: TPixels); //check links by mouse position
+    procedure SetCursorByLink(Selected: Boolean);
     procedure SetCursor(const Value: TCursor); reintroduce;
     procedure SetLineVertAlign(const Value: TDHVertAlign);
     procedure SetOverallVertAlign(const Value: TDHVertAlign);
@@ -1182,13 +1183,13 @@ begin
   begin
     if Assigned(Link) then //enter the link
     begin
-      inherited Cursor := crHandPoint;
+      SetCursorByLink(True);
       FSelectedLink := Link;
       if Assigned(FOnLinkEnter) then
         FOnLinkEnter(Self, Link);
     end else
     begin //leave the link
-      inherited Cursor := FCursor;
+      SetCursorByLink(False);
       Link := FSelectedLink; //save to use on OnLinkLeave event
       FSelectedLink := nil;
       if Assigned(FOnLinkLeave) then
@@ -1201,6 +1202,14 @@ begin
     Invalidate;
     {$ENDIF}
   end;
+end;
+
+procedure TDzHTMLText.SetCursorByLink(Selected: Boolean);
+begin
+  if Selected then
+    inherited Cursor := crHandPoint
+  else
+    inherited Cursor := FCursor;
 end;
 
 procedure TDzHTMLText.Click;
@@ -1365,6 +1374,9 @@ begin
 
   LVisualItem.Clear; //clean old words
   LLinkRef.Clear; //clean old links
+
+  FSelectedLink := nil;
+  SetCursorByLink(False);
 
   B := TBuilder.Create;
   try
