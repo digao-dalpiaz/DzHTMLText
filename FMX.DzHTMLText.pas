@@ -1868,7 +1868,7 @@ begin
   inherited Create;
   Builder := xBuilder;
   Lb := Builder.Lb;
-  C := Lb.Canvas;
+  C := {$IFDEF FMX}TCanvasManager.MeasureCanvas{$ELSE}Lb.Canvas{$ENDIF};
   C.Font.Assign(Lb.Font);
   {$IFDEF FMX}
   C.Stroke.Color := Lb.FFontColor;
