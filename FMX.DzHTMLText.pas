@@ -524,7 +524,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '3.9';
+const STR_VERSION = '3.10';
 
 procedure Register;
 begin
@@ -1868,7 +1868,7 @@ begin
   inherited Create;
   Builder := xBuilder;
   Lb := Builder.Lb;
-  C := Lb.Canvas;
+  C := {$IFDEF FMX}TCanvasManager.MeasureCanvas{$ELSE}Lb.Canvas{$ENDIF};
   C.Font.Assign(Lb.Font);
   {$IFDEF FMX}
   C.Stroke.Color := Lb.FFontColor;
