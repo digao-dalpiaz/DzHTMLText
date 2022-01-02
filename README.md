@@ -32,12 +32,16 @@
 
 ## What's New
 
-- 11/03/2021 (Version 3.9)
+- 01/02/2022 (Version 3.10)
 
-   - Fixed to clear and renew selected link when rebuilding text contents, avoiding access violation when mouse stay at the same previous link (Issue #59).
+   - Fixed canvas usage when component is loading in FMX environment using MeasureCanvas. This will avoid access violation in canvas when component is loading (Issue #65).
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 11/03/2021 (Version 3.9)
+
+   - Fixed to clear and renew selected link when rebuilding text contents, avoiding access violation when mouse stay at the same previous link (Issue #59).
 
 - 09/12/2021 (Version 3.8)
 
