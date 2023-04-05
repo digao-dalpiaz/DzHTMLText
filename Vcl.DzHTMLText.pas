@@ -121,8 +121,12 @@ type
     function Find(const Name: string): TDHSpoiler;
   end;
 
+  TDHVertAlign = (vaTop, vaCenter, vaBottom);
+  TDHHorzAlign = (haLeft, haCenter, haRight);
+
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
+    OffsetTop, OffsetBottom: TPixels;
     Rect: TRect;
     BColor: TColor; //background color
     Link: TDHBaseLink;
@@ -160,6 +164,31 @@ type
   end;
 
   TDHVisualItemList = class(TObjectList<TDHVisualItem>);
+
+  TDHVisualItem_Line = class(TDHVisualItem)
+  private
+    Color: TColor;
+    ColorAlt: TColor;
+    VertAlign: TDHVertAlign;
+  end;
+
+  TDHOffset = class(TPersistent)
+  private
+    Lb: TDzHTMLText; //owner
+
+    FTop, FBottom: TPixels;
+
+    procedure SetTop(const Value: TPixels);
+    procedure SetBottom(const Value: TPixels);
+  protected
+    function GetOwner: TPersistent; override;
+  public
+    constructor Create(Lb: TDzHTMLText);
+    procedure Assign(Source: TPersistent); override;
+  published
+    property Top: TPixels read FTop write SetTop default 0;
+    property Bottom: TPixels read FBottom write SetBottom default 0;
+  end;
 
   TDHKindStyleLinkProp = (tslpNormal, tslpHover); //kind of link style
 
@@ -224,9 +253,6 @@ type
   TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
   TDHEvLinkClick = procedure(Sender: TObject; Link: TDHBaseLink; var Handled: Boolean) of object;
 
-  TDHVertAlign = (vaTop, vaCenter, vaBottom);
-  TDHHorzAlign = (haLeft, haCenter, haRight);
-
   TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: string; Picture: TPicture; var Handled: Boolean) of object;
 
   TDHModifiedFlag = (mfBuild, mfPaint);
@@ -254,6 +280,8 @@ type
     FLineCount: Integer; //read-only
     FTextWidth: TPixels; //read-only
     FTextHeight: TPixels; //read-only
+
+    FOffset: TDHOffset;
 
     FStyleLinkNormal, FStyleLinkHover: TDHStyleLinkProp;
 
@@ -299,6 +327,7 @@ type
     function GetStoredLineSpacing: Boolean;
     function GetStoredListLevelPadding: Boolean;
     function GetStoredBorders: Boolean;
+    function GetStoredOffset: Boolean;
 
     function GetStoredStyleLink(const Index: Integer): Boolean;
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
@@ -317,6 +346,7 @@ type
     procedure SetLineSpacing(const Value: TPixels);
     procedure SetListLevelPadding(const Value: TPixels);
     procedure SetBorders(const Value: TDHBorders);
+    procedure SetOffset(const Value: TDHOffset);
 
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
@@ -465,6 +495,8 @@ type
     property AutoHeight: Boolean read FAutoHeight write SetAutoHeight default False;
     property MaxWidth: TPixels read FMaxWidth write SetMaxWidth stored GetStoredMaxWidth;
 
+    property Offset: TDHOffset read FOffset write SetOffset stored GetStoredOffset;
+
     property StyleLinkNormal: TDHStyleLinkProp index 1 read FStyleLinkNormal write SetStyleLink stored GetStoredStyleLink;
     property StyleLinkHover: TDHStyleLinkProp index 2 read FStyleLinkHover write SetStyleLink stored GetStoredStyleLink;
 
@@ -541,6 +573,18 @@ type
 constructor EInternalExcept.Create(const Msg: string);
 begin
   inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
+end;
+
+//
+
+procedure DefineFillColor(C: TCanvas; Color: TColor);
+begin
+  C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := Color;
+end;
+
+procedure DefineFontColor(C: TCanvas; Color: TColor);
+begin
+  C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := Color;
 end;
 
 { TDHBaseLink }
@@ -718,6 +762,7 @@ begin
   FListLevelPadding := _DEF_LISTLEVELPADDING;
 
   FBorders := TDHBorders.Create(Self);
+  FOffset := TDHOffset.Create(Self);
 
   FCursor := crDefault;
 
@@ -743,6 +788,7 @@ begin
   FStyleLinkNormal.Free;
   FStyleLinkHover.Free;
   FBorders.Free;
+  FOffset.Free;
   LVisualItem.Free;
   LLinkRef.Free;
   LSpoiler.Free;
@@ -1005,6 +1051,17 @@ var
   C: TCanvas;
   R: TRect;
   {$IFDEF VCL}B: TBitmap;{$ENDIF}
+
+  procedure Fill;
+  begin
+    C.FillRect(
+      {$IFDEF FMX}
+      R, 0, 0, [], 1
+      {$ELSE}
+      R
+      {$ENDIF});
+  end;
+
 begin
   {$IFDEF VCL}
   //Using internal bitmap as a buffer to reduce flickering
@@ -1059,7 +1116,7 @@ begin
     begin
       R := FBorders.GetRealRect(W.Rect);
 
-      C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := W.BColor;
+      DefineFillColor(C, W.BColor);
 
       if W is TDHVisualItem_Word then
       begin
@@ -1077,13 +1134,10 @@ begin
           FStyleLinkNormal.SetPropsToCanvas(C);
       end;
 
-      if C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then
-        C.FillRect(
-          {$IFDEF FMX}
-          R, 0, 0, [], 1
-          {$ELSE}
-          R
-          {$ENDIF});
+      if C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then Fill;
+
+      R.Top := R.Top + W.OffsetTop;
+      R.Bottom := R.Bottom - W.OffsetBottom;
 
       if W is TDHVisualItem_Word then
         with TDHVisualItem_Word(W) do
@@ -1131,6 +1185,24 @@ begin
           {$ELSE}
           C.Draw(R.Left, R.Top, Picture.Graphic);
           {$ENDIF}
+        end
+      else
+      if W is TDHVisualItem_Line then
+        with TDHVisualItem_Line(W) do
+        begin
+          if ColorAlt <> clNone then
+            R.Height := R.Height {$IFDEF VCL}div{$ELSE}/{$ENDIF}2;
+
+          DefineFillColor(C, Color);
+          Fill;
+
+          if ColorAlt <> clNone then
+          begin
+            R.Offset(0, R.Height);
+
+            DefineFillColor(C, ColorAlt);
+            Fill;
+          end;
         end
       else
         raise EInternalExcept.Create('Invalid visual item object');
@@ -1328,7 +1400,9 @@ type
     ttFloat,
     ttSpoilerTitle, ttSpoilerDetail,
     ttLineSpace,
-    ttSuperscript, ttSubscript);
+    ttSuperscript, ttSubscript,
+    ttLine,
+    ttOffset, ttVAlign);
 
   TTokenValue = Int64;
 
@@ -1458,7 +1532,7 @@ type TDefToken = record
   AllowPar, OptionalPar: Boolean;
   ProcValue: function(const Value: string; var Valid: Boolean): TTokenValue;
 end;
-const DEF_TOKENS: array[0..25] of TDefToken = (
+const DEF_TOKENS: array[0..28] of TDefToken = (
   (Ident: 'BR'; Kind: ttBreak; Single: True),
   (Ident: 'B'; Kind: ttBold),
   (Ident: 'I'; Kind: ttItalic),
@@ -1484,7 +1558,10 @@ const DEF_TOKENS: array[0..25] of TDefToken = (
   (Ident: 'SDETAIL'; Kind: ttSpoilerDetail; AllowPar: True),
   (Ident: 'LS'; Kind: ttLineSpace; AllowPar: True; ProcValue: Tag_IntZeroBased_ProcValue),
   (Ident: 'SUP'; Kind: ttSuperscript),
-  (Ident: 'SUB'; Kind: ttSubscript)
+  (Ident: 'SUB'; Kind: ttSubscript),
+  (Ident: 'LINE'; Kind: ttLine; Single: True; AllowPar: True),
+  (Ident: 'OFFSET'; Kind: ttOffset; AllowPar: True),
+  (Ident: 'VALIGN'; Kind: ttVAlign; AllowPar: True)
 );
 
 function TBuilder.ProcessTag(const Tag: string): Boolean;
@@ -1705,6 +1782,10 @@ type
   THTMLSupTag = class(THTMLSupSubTag);
   THTMLSubTag = class(THTMLSupSubTag);
 
+  THTMLOffsetTag = class(TObjectListStackItem)
+    Top, Bottom: TPixels;
+  end;
+
 procedure TObjectListStack<T>.AddOrDel(Token: TToken; &Class: TObjectListStackItemClass);
 begin
   if Token.TagClose then
@@ -1768,6 +1849,7 @@ type
     {The group is isolated at each line or tabulation to delimit text horizontal align area}
     FixedPos: TFixedPosition;
     Align: TDHHorzAlign;
+    VertAlign: TDHVertAlign;
     LineSpace: TPixels;
     Space: Boolean;
     Print: Boolean;
@@ -1786,6 +1868,62 @@ begin
   inherited;
 end;
 
+{$REGION 'THTMLTokenParams'}
+type
+  THTMLTokenParams = class
+    Token: TToken;
+    Params: TArray<string>;
+    constructor Create(Token: TToken);
+
+    procedure PreParse;
+  public
+    function GetParam(const Name: string): string;
+    function GetParamAsInteger(const Name: string; Def: Integer = 0): Integer;
+    function GetParamAsFloat(const Name: string; Def: Extended = 0): Extended;
+  end;
+
+constructor THTMLTokenParams.Create(Token: TToken);
+begin
+  Self.Token := Token;
+  PreParse;
+end;
+
+procedure THTMLTokenParams.PreParse;
+begin
+  Params := Token.Text.Split([',']);
+end;
+
+function THTMLTokenParams.GetParam(const Name: string): string;
+var
+  Param: string;
+  Ar: TArray<string>;
+begin
+  Result := EmptyStr;
+
+  for Param in Params do
+  begin
+    Ar := Param.Split(['=']);
+    if Length(Ar) < 2 then Continue;
+
+    if SameText(Ar[0], Name) then
+    begin
+      Result := Ar[1];
+      Break;
+    end;
+  end;
+end;
+
+function THTMLTokenParams.GetParamAsInteger(const Name: string; Def: Integer): Integer;
+begin
+  Result := StrToIntDef(GetParam(Name), Def);
+end;
+
+function THTMLTokenParams.GetParamAsFloat(const Name: string; Def: Extended): Extended;
+begin
+  Result := StrToFloatDef(GetParam(Name), Def);
+end;
+{$ENDREGION}
+
 type
   TTokensProcess = class
     Builder: TBuilder;
@@ -1798,11 +1936,14 @@ type
     Items: TListPreObj;
 
     CurrentProps: record
+      Offset: THTMLOffsetTag;
       BackColor: TColor;
       Align: TDHHorzAlign;
+      VertAlign: TDHVertAlign;
       LineSpace: TPixels;
     end;
 
+    LOffset: TObjectListStack<THTMLOffsetTag>;
     LBold: TListStack<Boolean>;
     LItalic: TListStack<Boolean>;
     LUnderline: TListStack<Boolean>;
@@ -1812,6 +1953,7 @@ type
     LFontColor: TListStack<TColor>;
     LBackColor: TListStack<TColor>;
     LAlign: TListStack<TDHHorzAlign>;
+    LVertAlign: TListStack<TDHVertAlign>;
     LLineSpace: TListStack<TPixels>;
     LHTMLList: TObjectListStack<THTMLList>;
     LSupAndSubScript: TObjectListStack<THTMLSupSubTag>;
@@ -1823,6 +1965,7 @@ type
     destructor Destroy; override;
     procedure Execute;
 
+    procedure DoOffset(T: TToken);
     procedure DoTypographicalEmphasis(T: TToken);
     procedure DoFontName(T: TToken);
     procedure DoFontSize(T: TToken);
@@ -1830,6 +1973,7 @@ type
     procedure DoBackColor(T: TToken);
     procedure DoSupOrSubScript(T: TToken);
     procedure DoAlignment(T: TToken);
+    procedure DoVertAlign(T: TToken);
     procedure DoLineSpace(T: TToken);
     procedure DoTextAndRelated(T: TToken);
     procedure DoLink(T: TToken);
@@ -1841,6 +1985,8 @@ type
     procedure DoBreak;
 
     procedure CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
+
+    procedure ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TSize);
 
     procedure DefineVisualRect;
     procedure Publish;
@@ -1878,8 +2024,13 @@ begin
     {$ENDIF}
   {$ENDIF}
 
+  CurrentProps.Offset := THTMLOffsetTag.Create;
+  CurrentProps.Offset.Top := Lb.FOffset.FTop;
+  CurrentProps.Offset.Bottom := Lb.FOffset.FBottom;
+
   CurrentProps.BackColor := clNone;
   CurrentProps.Align := haLeft;
+  CurrentProps.VertAlign := Lb.FLineVertAlign;
   CurrentProps.LineSpace := Lb.FLineSpacing;
 
   Items := TListPreObj.Create;
@@ -1895,11 +2046,15 @@ begin
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TDHHorzAlign>.Create;
+  LVertAlign := TListStack<TDHVertAlign>.Create;
   LLineSpace := TListStack<TPixels>.Create;
 
   LHTMLList := TObjectListStack<THTMLList>.Create;
   LSupAndSubScript := TObjectListStack<THTMLSupSubTag>.Create;
   LSpoilerDet := THTMLSpoilerDetList.Create;
+
+  LOffset := TObjectListStack<THTMLOffsetTag>.Create;
+  LOffset.Add(CurrentProps.Offset);
 
   vBool := TFontStyle.fsBold in C.Font.Style; LBold.Add(vBool);
   vBool := TFontStyle.fsItalic in C.Font.Style; LItalic.Add(vBool);
@@ -1910,6 +2065,7 @@ begin
   LFontColor.Add(C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color);
   LBackColor.Add(CurrentProps.BackColor);
   LAlign.Add(CurrentProps.Align);
+  LVertAlign.Add(CurrentProps.VertAlign);
   LLineSpace.Add(CurrentProps.LineSpace);
 end;
 
@@ -1919,6 +2075,7 @@ begin
   LLineInfo.Free;
   LGroupBound.Free;
 
+  LOffset.Free;
   LBold.Free;
   LItalic.Free;
   LUnderline.Free;
@@ -1928,6 +2085,7 @@ begin
   LFontColor.Free;
   LBackColor.Free;
   LAlign.Free;
+  LVertAlign.Free;
   LLineSpace.Free;
 
   LHTMLList.Free;
@@ -1959,6 +2117,7 @@ begin
     end;
 
     case T.Kind of
+      ttOffset: DoOffset(T);
       ttBold, ttItalic, ttUnderline, ttStrike: DoTypographicalEmphasis(T);
       ttFontName: DoFontName(T);
       ttFontSize: DoFontSize(T);
@@ -1966,8 +2125,9 @@ begin
       ttBackColor: DoBackColor(T);
       ttSuperscript, ttSubscript: DoSupOrSubScript(T);
       ttAlignLeft, ttAlignCenter, ttAlignRight: DoAlignment(T);
+      ttVAlign: DoVertAlign(T);
       ttLineSpace: DoLineSpace(T);
-      ttText, ttInvalid, ttImage, ttImageResource, ttListItem: DoTextAndRelated(T);
+      ttText, ttInvalid, ttImage, ttImageResource, ttListItem, ttLine: DoTextAndRelated(T);
       ttLink: DoLink(T);
       ttBulletList, ttNumberList: DoLists(T);
       ttFloat: DoFloat(T);
@@ -1979,6 +2139,28 @@ begin
           DoBreak;
           ListItemAlreadyInThisLine := False;
         end;
+    end;
+  end;
+end;
+
+procedure TTokensProcess.DoOffset(T: TToken);
+var
+  Item: THTMLOffsetTag;
+  P: THTMLTokenParams;
+begin
+  LOffset.AddOrDel(T, THTMLOffsetTag);
+  Item := LOffset.Last;
+
+  CurrentProps.Offset := Item;
+
+  if not T.TagClose then
+  begin
+    P := THTMLTokenParams.Create(T);
+    try
+      Item.Top := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('top');
+      Item.Bottom := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('bottom');
+    finally
+      P.Free;
     end;
   end;
 end;
@@ -2038,6 +2220,18 @@ begin
   end;
   LAlign.AddOrDel(T, Align);
   CurrentProps.Align := LAlign.Last;
+end;
+
+procedure TTokensProcess.DoVertAlign(T: TToken);
+var Align: TDHVertAlign;
+begin
+  if SameText(T.Text, 'top') then Align := vaTop else
+  if SameText(T.Text, 'center') then Align := vaCenter else
+  if SameText(T.Text, 'bottom') then Align := vaBottom else
+    Align := vaTop; //default
+
+  LVertAlign.AddOrDel(T, Align);
+  CurrentProps.VertAlign := LVertAlign.Last;
 end;
 
 procedure TTokensProcess.DoLineSpace(T: TToken);
@@ -2108,6 +2302,12 @@ begin
       end;
     end;
 
+    ttLine:
+    begin
+      W := TDHVisualItem_Line.Create;
+      ParseLineParams(T, TDHVisualItem_Line(W), Ex);
+    end;
+
     else
     begin
       W := TDHVisualItem_Word.Create;
@@ -2132,9 +2332,15 @@ begin
   W.BColor := CurrentProps.BackColor;
   W.Link := CurrentLink;
 
+  W.OffsetTop := CurrentProps.Offset.Top;
+  W.OffsetBottom := CurrentProps.Offset.Bottom;
+
+  Ex.Height := Ex.Height + W.OffsetTop + W.OffsetBottom;
+
   Z := TPreObj_Visual.Create;
   Z.Size := Ex;
   Z.Align := CurrentProps.Align;
+  Z.VertAlign := CurrentProps.VertAlign;
   Z.LineSpace := CurrentProps.LineSpace;
   Z.Space := (T.Kind=ttText) and (T.Text=STR_SPACE);
   Z.BreakableChar := (T.Kind=ttText) and (T.Value=INT_BREAKABLE_CHAR);
@@ -2222,6 +2428,33 @@ begin
   end;
 
   LSupAndSubScript.AddOrDel(T, &Class);
+end;
+
+procedure TTokensProcess.ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TSize);
+var
+  P: THTMLTokenParams;
+  VertAlign: string;
+begin
+  P := THTMLTokenParams.Create(T);
+  try
+    Size.Width := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('width', 100);
+    Size.Height := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('height', 1);
+
+    V.Color := ParamToColor(P.GetParam('Color'));
+    V.ColorAlt := ParamToColor(P.GetParam('ColorAlt'));
+
+    VertAlign := P.GetParam('VertAlign');
+    if SameText(VertAlign, 'top') then V.VertAlign := vaTop else
+    if SameText(VertAlign, 'center') then V.VertAlign := vaCenter else
+    if SameText(VertAlign, 'bottom') then V.VertAlign := vaBottom else
+      V.VertAlign := vaCenter; //default
+
+    //if V.Color = clNone then V.Color := Font;
+
+    if V.ColorAlt <> clNone then Size.Height := Size.Height * 2;
+  finally
+    P.Free;
+  end;
 end;
 
 procedure TTokensProcess.DoFloat(T: TToken);
@@ -2532,6 +2765,14 @@ type
     Result.Inside := Lb.FTextHeight;
   end;
 
+  function getVertAlign: TDHVertAlign;
+  begin
+    if V.Visual is TDHVisualItem_Line then
+      Result := TDHVisualItem_Line(V.Visual).VertAlign
+    else
+      Result := V.VertAlign;
+  end;
+
   procedure Check(fnIndex: Byte; horz: Boolean; prop: Variant);
   var
     R: TFuncAlignResult;
@@ -2562,7 +2803,7 @@ type
 
 begin
   Check(0, True, V.Align);
-  Check(1, False, Lb.FLineVertAlign);
+  Check(1, False, getVertAlign);
 
   Check(2, True, Lb.FOverallHorzAlign);
   Check(3, False, Lb.FOverallVertAlign);
@@ -2647,8 +2888,8 @@ end;
 
 procedure TDHStyleLinkProp.SetPropsToCanvas(C: TCanvas);
 begin
-  if FFontColor<>clNone then C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := FFontColor;
-  if FBackColor<>clNone then C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := FBackColor;
+  if FFontColor<>clNone then DefineFontColor(C, FFontColor);
+  if FBackColor<>clNone then DefineFillColor(C, FBackColor);
   if FUnderline then C.Font.Style := C.Font.Style + [TFontStyle.fsUnderline];
 end;
 
@@ -2832,6 +3073,61 @@ function TDHBorders.GetRealRect(R: TRect): TRect;
 begin
   Result := R;
   Result.Offset(FLeft, FTop);
+end;
+{$ENDREGION}
+
+{$REGION 'TDHOffset'}
+constructor TDHOffset.Create(Lb: TDzHTMLText);
+begin
+  Self.Lb := Lb;
+end;
+
+function TDHOffset.GetOwner: TPersistent;
+begin
+  Result := Lb;
+end;
+
+procedure TDzHTMLText.SetOffset(const Value: TDHOffset);
+begin
+  FOffset.Assign(Value);
+end;
+
+procedure TDHOffset.Assign(Source: TPersistent);
+var
+  P: TDHOffset;
+begin
+  if not (Source is TDHOffset) then
+    raise Exception.CreateFmt('Could not assign %s class', [Source.ClassName]);
+
+  P := TDHOffset(Source);
+
+  FTop := P.FTop;
+  FBottom := P.FBottom;
+end;
+
+function TDzHTMLText.GetStoredOffset: Boolean;
+begin
+  Result := (FOffset.FTop <> 0) or (FOffset.FBottom <> 0);
+end;
+
+procedure TDHOffset.SetTop(const Value: TPixels);
+begin
+  if Value <> FTop then
+  begin
+    FTop := Value;
+
+    Lb.BuildAndPaint;
+  end;
+end;
+
+procedure TDHOffset.SetBottom(const Value: TPixels);
+begin
+  if Value <> FBottom then
+  begin
+    FBottom := Value;
+
+    Lb.BuildAndPaint;
+  end;
 end;
 {$ENDREGION}
 
