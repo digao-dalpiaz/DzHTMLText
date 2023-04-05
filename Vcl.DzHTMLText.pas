@@ -249,13 +249,13 @@ type
   TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
   TDHEvLinkClick = procedure(Sender: TObject; Link: TDHBaseLink; var Handled: Boolean) of object;
 
+  TDHVertAlign = (vaTop, vaCenter, vaBottom);
+  TDHHorzAlign = (haLeft, haCenter, haRight);
+
   TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: string; Picture: TPicture; var Handled: Boolean) of object;
 
   TDHModifiedFlag = (mfBuild, mfPaint);
   TDHModifiedFlags = set of TDHModifiedFlag;
-
-  TDHVertAlign = (vaTop, vaCenter, vaBottom);
-  TDHHorzAlign = (haLeft, haCenter, haRight);
 
   TDzHTMLText = class(
     {$IFDEF FMX}
