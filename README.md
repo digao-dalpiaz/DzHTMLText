@@ -279,8 +279,8 @@ Here are all possible tags you can use in text:
 <S></S> - Strike out
 <FN:abc></FN> - Font Name
 <FS:123></FS> - Font Size
-<FC:clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678></FC> - Font Color
-<BC:clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678></BC> - Background Color
+<FC:{COLOR_VALUE}></FC> - Font Color
+<BC:{COLOR_VALUE}></BC> - Background Color
 <BR> - Line Break
 <NBR> - Prevent line break after #13#10 sequence
 <L></L> - Align Left
@@ -299,9 +299,16 @@ Here are all possible tags you can use in text:
 <LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
-<LINE:width=123,height=456,color={COLOR},colorAlt={COLOR}> - 
-<VALIGN:top|center|bottom></ALIGN> - 
-<OFFSET:[top=123],[bottom=456]></OFFSET>
+<LINE:[width=123],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
+  Default values:
+    width = 100
+	height = 1
+	color = Current font color
+	coloralt = No value (specify a color to draw dual color line, otherwise it will draw a single color line)
+<VALIGN:top|center|bottom></ALIGN> - Aligning content vertically to the line
+<OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
+
+* {COLOR_VALUE} - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
