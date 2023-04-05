@@ -313,6 +313,7 @@ Here are all possible tags you can use in text:
     coloralt = No value (specify a color to draw dual color line, otherwise it will draw a single color line)
 <VALIGN:top|center|bottom></ALIGN> - Aligning content vertically to the line
 <OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
+  Offset margins are memorized if a new offset tag is specifyed without same parameter name
 
 * {COLOR_VALUE} - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
 ```
