@@ -182,8 +182,8 @@ type
     constructor Create(Lb: TDzHTMLText);
     procedure Assign(Source: TPersistent); override;
   published
-    property Top: TPixels read FTop write SetTop default 0;
-    property Bottom: TPixels read FBottom write SetBottom default 0;
+    property Top: TPixels read FTop write SetTop {$IFDEF VCL}default 0{$ENDIF};
+    property Bottom: TPixels read FBottom write SetBottom {$IFDEF VCL}default 0{$ENDIF};
   end;
 
   TDHKindStyleLinkProp = (tslpNormal, tslpHover); //kind of link style
@@ -1911,8 +1911,8 @@ type
     constructor Create(Token: TToken);
 
     function GetParam(const Name: string): string;
-    function GetParamAsInteger(const Name: string; Def: Integer = 0): Integer;
-    function GetParamAsFloat(const Name: string; Def: Extended = 0): Extended;
+    function GetParamAsInteger(const Name: string; Def: Integer): Integer;
+    function GetParamAsFloat(const Name: string; Def: Extended): Extended;
   end;
 
 constructor THTMLTokenParams.Create(Token: TToken);
