@@ -602,6 +602,8 @@ end;
 
 function ParamToColor(A: string): TColor;
 begin
+  if A = EmptyStr then Exit(clNone);
+
   if A.StartsWith('#') then A[1] := '$';
 
   if A.StartsWith('$') then
@@ -648,7 +650,8 @@ end;
 
 {$REGION 'TDHSpoilerList'}
 function TDHSpoilerList.Find(const Name: string): TDHSpoiler;
-var DHSpoiler: TDHSpoiler;
+var
+  DHSpoiler: TDHSpoiler;
 begin
   for DHSpoiler in Self do
     if DHSpoiler.FName = Name then Exit(DHSpoiler);
@@ -1241,7 +1244,7 @@ begin
       /
     {$ENDIF} 2;
 
-  DefineFillColor(C, Color);
+  DefineFillColor(C, W.Color);
   GenericFillRect(C, R);
 
   if W.ColorAlt <> clNone then
@@ -1322,7 +1325,8 @@ begin
 end;
 
 procedure TDzHTMLText.Click;
-var Handled: Boolean;
+var
+  Handled: Boolean;
   aTarget: string;
   Link: TDHBaseLink;
 begin
@@ -1389,7 +1393,8 @@ end;
 
 procedure TDzHTMLText.MouseUp(Button: TMouseButton; Shift: TShiftState;
   X, Y: {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF});
-var Handled: Boolean;
+var
+  Handled: Boolean;
 begin
   if Button = TMouseButton.mbRight then
     if IsLinkHover then
@@ -1513,7 +1518,8 @@ end;
 //
 
 procedure TBuilder.AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: TTokenValue = 0);
-var T: TToken;
+var
+  T: TToken;
 begin
   T := TToken.Create;
   T.Kind := aKind;
@@ -1581,11 +1587,12 @@ const DEF_TOKENS: array[0..28] of TDefToken = (
 );
 
 function TBuilder.ProcessTag(const Tag: string): Boolean;
-var TOff, TOn, HasPar, ValidPar: Boolean;
-    Value: TTokenValue;
-    A, Par: string;
-    I: Integer;
-    Def: TDefToken;
+var
+  TOff, TOn, HasPar, ValidPar: Boolean;
+  Value: TTokenValue;
+  A, Par: string;
+  I: Integer;
+  Def: TDefToken;
 begin
   //Result=True means valid tag
   Result := False;
@@ -1778,6 +1785,8 @@ type
   TObjectListStackItem = class(TObject);
   TObjectListStackItemClass = class of TObjectListStackItem;
   TObjectListStack<T: TObjectListStackItem{, constructor}> = class(TObjectList<T>)
+    OneItemRequired: Boolean;
+    constructor Create(OneItemRequired: Boolean = False);
     procedure AddOrDel(Token: TToken; &Class: TObjectListStackItemClass);
   end;
 
@@ -1802,11 +1811,17 @@ type
     Top, Bottom: TPixels;
   end;
 
+constructor TObjectListStack<T>.Create(OneItemRequired: Boolean);
+begin
+  inherited Create(True);
+  Self.OneItemRequired := OneItemRequired;
+end;
+
 procedure TObjectListStack<T>.AddOrDel(Token: TToken; &Class: TObjectListStackItemClass);
 begin
   if Token.TagClose then
   begin
-    if (Count>0) and (Last is &Class) then
+    if (Count>IfThen(OneItemRequired, 1, 0)) and (Last is &Class) then
       Delete(Count-1);
   end else
   begin
@@ -2013,7 +2028,8 @@ type
   end;
 
 procedure TBuilder.ProcessTokens;
-var P: TTokensProcess;
+var
+  P: TTokensProcess;
 begin
   P := TTokensProcess.Create(Self);
   try
@@ -2026,7 +2042,8 @@ begin
 end;
 
 constructor TTokensProcess.Create(xBuilder: TBuilder);
-var vBool: Boolean; //Required for Lazarus
+var
+  vBool: Boolean; //Required for Lazarus
 begin
   inherited Create;
   Builder := xBuilder;
@@ -2071,7 +2088,7 @@ begin
   LSupAndSubScript := TObjectListStack<THTMLSupSubTag>.Create;
   LSpoilerDet := THTMLSpoilerDetList.Create;
 
-  LOffset := TObjectListStack<THTMLOffsetTag>.Create;
+  LOffset := TObjectListStack<THTMLOffsetTag>.Create(True);
   LOffset.Add(CurrentProps.Offset);
 
   vBool := TFontStyle.fsBold in C.Font.Style; LBold.Add(vBool);
@@ -2169,18 +2186,21 @@ begin
   LOffset.AddOrDel(T, THTMLOffsetTag);
   Item := LOffset.Last;
 
-  CurrentProps.Offset := Item;
-
   if not T.TagClose then
   begin
     P := THTMLTokenParams.Create(T);
     try
-      Item.Top := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Top');
-      Item.Bottom := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Bottom');
+      Item.Top := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Top', -1);
+      Item.Bottom := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Bottom', -1);
+
+      if Item.Top = -1 then Item.Top := CurrentProps.Offset.Top;
+      if Item.Bottom = -1 then Item.Bottom := CurrentProps.Offset.Bottom;
     finally
       P.Free;
     end;
   end;
+
+  CurrentProps.Offset := Item;
 end;
 
 procedure TTokensProcess.DoTypographicalEmphasis(T: TToken);
@@ -2228,7 +2248,8 @@ begin
 end;
 
 procedure TTokensProcess.DoAlignment(T: TToken);
-var Align: TDHHorzAlign;
+var
+  Align: TDHHorzAlign;
 begin
   case T.Kind of
     ttAlignLeft: Align := haLeft;
@@ -2241,7 +2262,8 @@ begin
 end;
 
 procedure TTokensProcess.DoVertAlign(T: TToken);
-var Align: TDHVertAlign;
+var
+  Align: TDHVertAlign;
 begin
   if SameText(T.Text, 'top') then Align := vaTop else
   if SameText(T.Text, 'center') then Align := vaCenter else
@@ -2454,14 +2476,13 @@ var
 begin
   P := THTMLTokenParams.Create(T);
   try
-    Size.Width := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Width', 100);
-    Size.Height := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Height', 1);
+    Size.Width := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('width', 100);
+    Size.Height := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('height', 1);
 
-    V.Color := ParamToColor(P.GetParam('Color'));
-    V.ColorAlt := ParamToColor(P.GetParam('ColorAlt'));
+    V.Color := ParamToColor(P.GetParam('color'));
+    V.ColorAlt := ParamToColor(P.GetParam('coloralt'));
 
-    //if V.Color = clNone then V.Color := Font;
-
+    if V.Color = clNone then V.Color := C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color;
     if V.ColorAlt <> clNone then Size.Height := Size.Height * 2;
   finally
     P.Free;
@@ -2469,7 +2490,8 @@ begin
 end;
 
 procedure TTokensProcess.DoFloat(T: TToken);
-var Z: TPreObj_Float;
+var
+  Z: TPreObj_Float;
   Ar: TArray<string>;
 begin
   Z := TPreObj_Float.Create;
@@ -2489,7 +2511,8 @@ begin
 end;
 
 procedure TTokensProcess.DoSpoilerTitle(T: TToken);
-var DHSpoiler: TDHSpoiler;
+var
+  DHSpoiler: TDHSpoiler;
 begin
   //When first time rebuild (or after text changes), the LSpoiler is empty.
   //If rebuilding by spoiler click, the LSpoiler already contains all items.
@@ -2519,7 +2542,8 @@ begin
 end;
 
 procedure TTokensProcess.DoTab(T: TToken);
-var Z: TPreObj_Tab;
+var
+  Z: TPreObj_Tab;
 begin
   Z := TPreObj_Tab.Create;
   Z.Position := T.Value;
@@ -2528,7 +2552,8 @@ begin
 end;
 
 procedure TTokensProcess.DoBreak;
-var Z: TPreObj_Break;
+var
+  Z: TPreObj_Break;
 begin
   Z := TPreObj_Break.Create;
   Z.Height := C.TextHeight(STR_SPACE);
@@ -2552,7 +2577,8 @@ var
   FloatRect: TRect; InFloat: Boolean;
 
   procedure IncPreviousGroup(Right, Limit: TPixels);
-  var B: TGroupBound;
+  var
+    B: TGroupBound;
   begin
     B := TGroupBound.Create;
     B.Right := Right;
@@ -2566,7 +2592,8 @@ var
   end;
 
   function IsToWrapText: Boolean;
-  var J: Integer;
+  var
+    J: Integer;
     EndPos: TPixels;
     PV: TPreObj_Visual;
   begin
@@ -2592,7 +2619,8 @@ var
   end;
 
   procedure CheckPriorSpace;
-  var PV: TPreObj_Visual;
+  var
+    PV: TPreObj_Visual;
   begin
     if (I>0) and (Items[I-1] is TPreObj_Visual) then
     begin
@@ -2607,7 +2635,8 @@ var
   end;
 
   procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TPoint);
-  var GrpLim: TPixels;
+  var
+    GrpLim: TPixels;
     LI: TLineInfo;
   begin
     GrpLim := -1;
