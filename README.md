@@ -308,9 +308,9 @@ Here are all possible tags you can use in text:
 <LINE:[width=123],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
   Default values:
     width = 100
-	height = 1
-	color = Current font color
-	coloralt = No value (specify a color to draw dual color line, otherwise it will draw a single color line)
+    height = 1
+    color = Current font color
+    coloralt = No value (specify a color to draw dual color line, otherwise it will draw a single color line)
 <VALIGN:top|center|bottom></ALIGN> - Aligning content vertically to the line
 <OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
 
