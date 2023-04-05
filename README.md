@@ -32,12 +32,18 @@
 
 ## What's New
 
+- 04/05/2023 (Version 3.11)
+
+   - New LINE tag
+   - New VALIGN tag
+   - New OFFSET tag
+   
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 01/02/2022 (Version 3.10)
 
    - Fixed canvas usage when component is loading in FMX environment using MeasureCanvas. This will avoid access violation in canvas when component is loading (Issue #65).
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 11/03/2021 (Version 3.9)
 
