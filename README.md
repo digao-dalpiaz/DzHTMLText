@@ -299,6 +299,9 @@ Here are all possible tags you can use in text:
 <LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
+<LINE:width=123,height=456,color={COLOR},colorAlt={COLOR}> - 
+<VALIGN:top|center|bottom></ALIGN> - 
+<OFFSET:[top=123],[bottom=456]></OFFSET>
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
