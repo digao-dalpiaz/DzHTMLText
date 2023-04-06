@@ -307,6 +307,7 @@ Here are all possible tags you can use in text:
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
 <LINE:[width=123|full],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
+  "full" option only works when AutoWidth is disabled
   Default values:
     width = 100
     height = 1
