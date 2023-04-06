@@ -305,7 +305,7 @@ Here are all possible tags you can use in text:
 <LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
-<LINE:[width=123],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
+<LINE:[width=123|full],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
   Default values:
     width = 100
     height = 1
