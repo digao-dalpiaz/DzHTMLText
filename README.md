@@ -37,6 +37,7 @@
    - New LINE tag
    - New VALIGN tag
    - New OFFSET tag
+   - Fixed MaxWidth to calc correct width size when using borders
    
 <details>
   <summary>Click here to view the entire changelog</summary>
