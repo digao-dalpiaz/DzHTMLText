@@ -322,14 +322,12 @@ type
     procedure SetAutoWidth(const Value: Boolean);
     procedure SetMaxWidth(const Value: TPixels);
 
+    function GetStoredStyleLink(const Index: Integer): Boolean;
     function GetStoredMaxWidth: Boolean;
     function GetStoredLineSpacing: Boolean;
     function GetStoredListLevelPadding: Boolean;
     function GetStoredBorders: Boolean;
     function GetStoredOffset: Boolean;
-
-    function GetStoredStyleLink(const Index: Integer): Boolean;
-    procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
 
     procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure CanvasProcess(C: TCanvas);
@@ -349,6 +347,7 @@ type
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
     procedure SetLineSpacing(const Value: TPixels);
     procedure SetListLevelPadding(const Value: TPixels);
+    procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
     procedure SetBorders(const Value: TDHBorders);
     procedure SetOffset(const Value: TDHOffset);
 
@@ -993,6 +992,25 @@ begin
   end;
 end;
 
+procedure TDzHTMLText.SetStyleLink(const Index: Integer;
+  const Value: TDHStyleLinkProp);
+begin
+  case Index of
+    1: FStyleLinkNormal.Assign(Value);
+    2: FStyleLinkHover.Assign(Value);
+  end;
+end;
+
+procedure TDzHTMLText.SetBorders(const Value: TDHBorders);
+begin
+  FBorders.Assign(Value);
+end;
+
+procedure TDzHTMLText.SetOffset(const Value: TDHOffset);
+begin
+  FOffset.Assign(Value);
+end;
+
 procedure TDzHTMLText.BeginUpdate;
 begin
   Inc(UpdatingSemaphore);
@@ -1426,8 +1444,43 @@ begin
 
   inherited;
 end;
+
+function TDzHTMLText.GetStoredStyleLink(const Index: Integer): Boolean;
+begin
+  Result := False;
+  case Index of
+    1: Result := FStyleLinkNormal.GetStored;
+    2: Result := FStyleLinkHover.GetStored;
+  end;
+end;
+
+function TDzHTMLText.GetStoredMaxWidth: Boolean;
+begin
+  Result := FMaxWidth <> 0;
+end;
+
+function TDzHTMLText.GetStoredLineSpacing: Boolean;
+begin
+  Result := FLineSpacing <> 0;
+end;
+
+function TDzHTMLText.GetStoredListLevelPadding: Boolean;
+begin
+  Result := FListLevelPadding <> _DEF_LISTLEVELPADDING;
+end;
+
+function TDzHTMLText.GetStoredBorders: Boolean;
+begin
+  Result := FBorders.HasAnyValue;
+end;
+
+function TDzHTMLText.GetStoredOffset: Boolean;
+begin
+  Result := (FOffset.FTop <> 0) or (FOffset.FBottom <> 0);
+end;
 {$ENDREGION}
 
+{$REGION 'TBuilder and related'}
 type
   TTokenKind = (
     ttInvalid,
@@ -1765,7 +1818,9 @@ begin
     Delete(Text, 1, Jump);
   end;
 end;
+{$ENDREGION}
 
+{$REGION 'Engine process objects'}
 type
   TListStack<T> = class(TList<T>)
     procedure AddOrDel(Token: TToken; const XValue: T);
@@ -1898,6 +1953,7 @@ begin
   if Assigned(Visual) then Visual.Free;
   inherited;
 end;
+{$ENDREGION}
 
 {$REGION 'THTMLTokenParams'}
 type
@@ -1957,6 +2013,7 @@ begin
 end;
 {$ENDREGION}
 
+{$REGION 'TTokensProcess'}
 type
   TTokensProcess = class
     Builder: TBuilder;
@@ -2858,8 +2915,9 @@ begin
     V.Visual := nil;
   end;
 end;
+{$ENDREGION}
 
-{$REGION 'StyleLinkProp'}
+{$REGION 'TDHStyleLinkProp'}
 constructor TDHStyleLinkProp.Create(Lb: TDzHTMLText; Kind: TDHKindStyleLinkProp);
 begin
   Self.Lb := Lb;
@@ -2945,37 +3003,9 @@ begin
          or FUnderline
          or (FBackColor<>clNone);
 end;
-
-procedure TDzHTMLText.SetStyleLink(const Index: Integer;
-  const Value: TDHStyleLinkProp);
-begin
-  case Index of
-    1: FStyleLinkNormal.Assign(Value);
-    2: FStyleLinkHover.Assign(Value);
-  end;
-end;
-
-function TDzHTMLText.GetStoredStyleLink(const Index: Integer): Boolean;
-begin
-  Result := False;
-  case Index of
-    1: Result := FStyleLinkNormal.GetStored;
-    2: Result := FStyleLinkHover.GetStored;
-  end;
-end;
 {$ENDREGION}
 
 {$REGION 'Borders'}
-procedure TDzHTMLText.SetBorders(const Value: TDHBorders);
-begin
-  FBorders.Assign(Value);
-end;
-
-function TDzHTMLText.GetStoredBorders: Boolean;
-begin
-  Result := FBorders.HasAnyValue;
-end;
-
 constructor TDHBorders.Create(Lb: TDzHTMLText);
 begin
   Self.Lb := Lb;
@@ -3119,11 +3149,6 @@ begin
   Result := Lb;
 end;
 
-procedure TDzHTMLText.SetOffset(const Value: TDHOffset);
-begin
-  FOffset.Assign(Value);
-end;
-
 procedure TDHOffset.Assign(Source: TPersistent);
 var
   P: TDHOffset;
@@ -3135,11 +3160,6 @@ begin
 
   FTop := P.FTop;
   FBottom := P.FBottom;
-end;
-
-function TDzHTMLText.GetStoredOffset: Boolean;
-begin
-  Result := (FOffset.FTop <> 0) or (FOffset.FBottom <> 0);
 end;
 
 procedure TDHOffset.SetTop(const Value: TPixels);
@@ -3162,20 +3182,5 @@ begin
   end;
 end;
 {$ENDREGION}
-
-function TDzHTMLText.GetStoredMaxWidth: Boolean;
-begin
-  Result := FMaxWidth <> 0;
-end;
-
-function TDzHTMLText.GetStoredLineSpacing: Boolean;
-begin
-  Result := FLineSpacing <> 0;
-end;
-
-function TDzHTMLText.GetStoredListLevelPadding: Boolean;
-begin
-  Result := FListLevelPadding <> _DEF_LISTLEVELPADDING;
-end;
 
 end.
