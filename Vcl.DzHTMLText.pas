@@ -592,6 +592,11 @@ begin
   C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := Color;
 end;
 
+function GetGenericFontColor(C: TCanvas): TColor;
+begin
+  Result := C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color;
+end;
+
 procedure GenericFillRect(C: TCanvas; R: TRect);
 begin
   C.FillRect(
@@ -2168,7 +2173,7 @@ begin
   vBool := TFontStyle.fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
   LFontName.Add(C.Font.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF});
   LFontSize.Add(C.Font.Size);
-  LFontColor.Add(C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color);
+  LFontColor.Add(GetGenericFontColor(C));
   LBackColor.Add(CurrentProps.BackColor);
   LAlign.Add(CurrentProps.Align);
   LVertAlign.Add(CurrentProps.VertAlign);
@@ -2310,7 +2315,7 @@ end;
 procedure TTokensProcess.DoFontColor(T: TToken);
 begin
   LFontColor.AddOrDel(T, T.Value);
-  C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := LFontColor.Last;
+  DefineFontColor(C, LFontColor.Last);
 end;
 
 procedure TTokensProcess.DoBackColor(T: TToken);
@@ -2556,7 +2561,7 @@ begin
     V.Color := ParamToColor(P.GetParam('color'));
     V.ColorAlt := ParamToColor(P.GetParam('coloralt'));
 
-    if V.Color = clNone then V.Color := C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color;
+    if V.Color = clNone then V.Color := GetGenericFontColor(C);
     if V.ColorAlt <> clNone then Size.Height := Size.Height * 2;
   finally
     P.Free;
