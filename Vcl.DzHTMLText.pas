@@ -166,6 +166,7 @@ type
   private
     Color: TColor;
     ColorAlt: TColor;
+    Full: Boolean;
   end;
 
   TDHOffset = class(TPersistent)
@@ -342,11 +343,13 @@ type
     procedure CheckMouse(X, Y: TPixels); //check links by mouse position
     procedure SetCursorByLink(Selected: Boolean);
     procedure SetCursor(const Value: TCursor); reintroduce;
+
     procedure SetLineVertAlign(const Value: TDHVertAlign);
     procedure SetOverallVertAlign(const Value: TDHVertAlign);
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
     procedure SetLineSpacing(const Value: TPixels);
     procedure SetListLevelPadding(const Value: TPixels);
+
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
     procedure SetBorders(const Value: TDHBorders);
     procedure SetOffset(const Value: TDHOffset);
@@ -2236,6 +2239,7 @@ begin
 end;
 
 procedure TTokensProcess.DoOffset(T: TToken);
+const NOT_SET = -1;
 var
   Item: THTMLOffsetTag;
   P: THTMLTokenParams;
@@ -2247,11 +2251,11 @@ begin
   begin
     P := THTMLTokenParams.Create(T);
     try
-      Item.Top := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Top', -1);
-      Item.Bottom := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Bottom', -1);
+      Item.Top := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Top', NOT_SET);
+      Item.Bottom := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Bottom', NOT_SET);
 
-      if Item.Top = -1 then Item.Top := CurrentProps.Offset.Top;
-      if Item.Bottom = -1 then Item.Bottom := CurrentProps.Offset.Bottom;
+      if Item.Top = NOT_SET then Item.Top := CurrentProps.Offset.Top;
+      if Item.Bottom = NOT_SET then Item.Bottom := CurrentProps.Offset.Bottom;
     finally
       P.Free;
     end;
@@ -2536,6 +2540,8 @@ begin
     Size.Width := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('width', 100);
     Size.Height := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('height', 1);
 
+    V.Full := SameText(P.GetParam('width'), 'full');
+
     V.Color := ParamToColor(P.GetParam('color'));
     V.ColorAlt := ParamToColor(P.GetParam('coloralt'));
 
@@ -2801,6 +2807,9 @@ begin
 
     if V.FixedPos.Active then X := V.FixedPos.Left;
 
+    if (V.Visual is TDHVisualItem_Line) and TDHVisualItem_Line(V.Visual).Full and not Lb.FAutoWidth then
+      V.Size.Width := Lb.GetAreaWidth - X;
+
     V.Visual.Rect := TRect.Create(X, Y, X+V.Size.Width, Y+V.Size.Height);
     V.Line := CurLine;
     V.Group := LGroupBound.Count;
@@ -3005,7 +3014,7 @@ begin
 end;
 {$ENDREGION}
 
-{$REGION 'Borders'}
+{$REGION 'TDHBorders'}
 constructor TDHBorders.Create(Lb: TDzHTMLText);
 begin
   Self.Lb := Lb;
