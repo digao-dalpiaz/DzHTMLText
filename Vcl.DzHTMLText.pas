@@ -1972,6 +1972,7 @@ type
     function GetParam(const Name: string): string;
     function GetParamAsInteger(const Name: string; Def: Integer): Integer;
     function GetParamAsFloat(const Name: string; Def: Extended): Extended;
+    function GetParamAsPixels(const Name: string; Def: TPixels): TPixels;
   end;
 
 constructor THTMLTokenParams.Create(Token: TToken);
@@ -2013,6 +2014,16 @@ end;
 function THTMLTokenParams.GetParamAsFloat(const Name: string; Def: Extended): Extended;
 begin
   Result := StrToFloatDef(GetParam(Name), Def);
+end;
+
+function THTMLTokenParams.GetParamAsPixels(const Name: string; Def: TPixels): TPixels;
+begin
+  Result :=
+  {$IFDEF VCL}
+    GetParamAsInteger(Name, Def)
+  {$ELSE}
+    GetParamAsFloat(Name, Def)
+  {$ENDIF};
 end;
 {$ENDREGION}
 
@@ -2251,8 +2262,8 @@ begin
   begin
     P := THTMLTokenParams.Create(T);
     try
-      Item.Top := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Top', NOT_SET);
-      Item.Bottom := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('Bottom', NOT_SET);
+      Item.Top := P.GetParamAsPixels('Top', NOT_SET);
+      Item.Bottom := P.GetParamAsPixels('Bottom', NOT_SET);
 
       if Item.Top = NOT_SET then Item.Top := CurrentProps.Offset.Top;
       if Item.Bottom = NOT_SET then Item.Bottom := CurrentProps.Offset.Bottom;
@@ -2537,8 +2548,8 @@ var
 begin
   P := THTMLTokenParams.Create(T);
   try
-    Size.Width := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('width', 100);
-    Size.Height := P.{$IFDEF VCL}GetParamAsInteger{$ELSE}GetParamAsFloat{$ENDIF}('height', 1);
+    Size.Width := P.GetParamAsPixels('width', 100);
+    Size.Height := P.GetParamAsPixels('height', 1);
 
     V.Full := SameText(P.GetParam('width'), 'full');
 
