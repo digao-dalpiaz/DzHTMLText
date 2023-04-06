@@ -587,6 +587,11 @@ begin
   C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := Color;
 end;
 
+function GetGenericFillColor(C: TCanvas): TColor;
+begin
+  Result := C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color;
+end;
+
 procedure DefineFontColor(C: TCanvas; Color: TColor);
 begin
   C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := Color;
@@ -1194,7 +1199,7 @@ begin
         FStyleLinkNormal.SetPropsToCanvas(C);
     end;
 
-    if C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color<>clNone then GenericFillRect(C, R);
+    if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R);
 
     R.Top := R.Top + W.OffsetTop;
     R.Bottom := R.Bottom - W.OffsetBottom;
