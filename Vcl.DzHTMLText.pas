@@ -2676,7 +2676,7 @@ var
     if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
 
     Result :=
-      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>Lb.FMaxWidth) )
+      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>(Lb.FMaxWidth-Lb.FBorders.GetHorizontal)) )
       or
       ( (not Lb.FAutoWidth) and (EndPos>Lb.GetAreaWidth) );
   end;
