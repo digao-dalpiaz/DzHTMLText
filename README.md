@@ -32,7 +32,7 @@
 
 ## What's New
 
-- 04/05/2023 (Version 3.11)
+- 04/07/2023 (Version 3.11)
 
    - New `<LINE>` tag
    - New `<VALIGN>` tag
