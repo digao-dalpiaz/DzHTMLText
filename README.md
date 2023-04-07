@@ -32,12 +32,19 @@
 
 ## What's New
 
+- 04/05/2023 (Version 3.11)
+
+   - New `<LINE>` tag
+   - New `<VALIGN>` tag
+   - New `<OFFSET>` tag
+   - Fixed MaxWidth to calc correct width size when using borders
+   
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 01/02/2022 (Version 3.10)
 
    - Fixed canvas usage when component is loading in FMX environment using MeasureCanvas. This will avoid access violation in canvas when component is loading (Issue #65).
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 11/03/2021 (Version 3.9)
 
@@ -279,8 +286,8 @@ Here are all possible tags you can use in text:
 <S></S> - Strike out
 <FN:abc></FN> - Font Name
 <FS:123></FS> - Font Size
-<FC:clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678></FC> - Font Color
-<BC:clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678></BC> - Background Color
+<FC:{COLOR_VALUE}></FC> - Font Color
+<BC:{COLOR_VALUE}></BC> - Background Color
 <BR> - Line Break
 <NBR> - Prevent line break after #13#10 sequence
 <L></L> - Align Left
@@ -299,6 +306,18 @@ Here are all possible tags you can use in text:
 <LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
+<LINE:[width=123|full],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
+  "full" option only works when AutoWidth is disabled
+  Default values:
+    width = 100
+    height = 1
+    color = Current font color
+    coloralt = No value (specify a color to draw dual color line, otherwise it will draw a single color line)
+<VALIGN:top|center|bottom></ALIGN> - Aligning content vertically to the line
+<OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
+  Offset margins are memorized if a new offset tag is specifyed without same parameter name
+
+* {COLOR_VALUE} - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
