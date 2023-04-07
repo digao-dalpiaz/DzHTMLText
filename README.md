@@ -34,9 +34,9 @@
 
 - 04/05/2023 (Version 3.11)
 
-   - New `LINE` tag
-   - New `VALIGN` tag
-   - New `OFFSET` tag
+   - New `<LINE>` tag
+   - New `<VALIGN>` tag
+   - New `<OFFSET>` tag
    - Fixed MaxWidth to calc correct width size when using borders
    
 <details>
