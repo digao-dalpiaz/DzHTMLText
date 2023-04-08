@@ -353,7 +353,7 @@ Supports Delphi XE3..Delphi 11
 `AutoWidth: Boolean` = Auto set width of control when Text property changed.
 If you are using AutoWidth, the text never wraps to a new line unless a line break is specified at text or there is a value specified in MaxWidth property.
 
-`AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick. This only works in Windows, Linux and Android platforms. For others platforms like iOS and MacOS, you can use OnLinkClick event.
+`AutoOpenLink: Boolean` = Open links automatically on click over, without set event OnLinkClick.
 
 `Borders: TDHBorders` = Defines `Left`, `Top`, `Right` and `Bottom` sub-properties, specifying the text area margins.
 
