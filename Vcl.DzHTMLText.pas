@@ -921,7 +921,7 @@ begin
   {$IFDEF VCL}
   F := GetParentForm(Self);
   if (F<>nil) and TFormScaleHack(F).Scaled then
-    Result := ScaleValue(Value)
+    Result := {$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF}
   else
     Result := Value;
   {$ELSE}
@@ -936,9 +936,9 @@ var
 begin
   F := GetParentForm(Self);
   if F<>nil then
-    Result := TFormScaleHack(F).GetDesignDpi
+    Result := {$IFDEF FPC}F.PixelsPerInch{$ELSE}TFormScaleHack(F).GetDesignDpi{$ENDIF}
   else
-    Result := Winapi.Windows.USER_DEFAULT_SCREEN_DPI;
+    Result := {$IFDEF FPC}96{$ELSE}Winapi.Windows.USER_DEFAULT_SCREEN_DPI{$ENDIF};
 end;
 {$ENDIF}
 
