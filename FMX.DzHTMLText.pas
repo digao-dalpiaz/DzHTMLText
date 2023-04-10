@@ -332,6 +332,9 @@ type
     function GetStoredOffset: Boolean;
 
     function GetScaledPixels(Value: TPixels): TPixels;
+    {$IFDEF VCL}
+    function GetDesignerPPI: Integer;
+    {$ENDIF}
 
     procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure CanvasProcess(C: TCanvas);
@@ -543,7 +546,7 @@ implementation
 
 uses
 {$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources, Forms
 {$ELSE}
   System.SysUtils, System.StrUtils, System.Math
   {$IFDEF FMX}
@@ -557,7 +560,7 @@ uses
     , Posix.Stdlib
     {$ENDIF}
   {$ELSE}
-  , System.UITypes, Vcl.Themes
+  , System.UITypes, Vcl.Themes, Vcl.Forms
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   , Winapi.Windows, Winapi.ShellAPI
@@ -906,10 +909,39 @@ begin
   Modified([mfBuild, mfPaint]);
 end;
 
+{$IFDEF VCL}
+type
+  TFormScaleHack = class(TCustomForm);
+{$ENDIF}
 function TDzHTMLText.GetScaledPixels(Value: TPixels): TPixels;
+{$IFDEF VCL}
+var
+  F: TCustomForm;
+{$ENDIF}
 begin
-  Result := {$IFDEF VCL}ScaleValue(Value){$ELSE}Value{$ENDIF};
+  {$IFDEF VCL}
+  F := GetParentForm(Self);
+  if (F<>nil) and TFormScaleHack(F).Scaled then
+    Result := ScaleValue(Value)
+  else
+    Result := Value;
+  {$ELSE}
+  Result := Value;
+  {$ENDIF}
 end;
+
+{$IFDEF VCL}
+function TDzHTMLText.GetDesignerPPI: Integer;
+var
+  F: TCustomForm;
+begin
+  F := GetParentForm(Self);
+  if F<>nil then
+    Result := TFormScaleHack(F).GetDesignDpi
+  else
+    Result := Winapi.Windows.USER_DEFAULT_SCREEN_DPI;
+end;
+{$ENDIF}
 
 procedure TDzHTMLText.SetAutoHeight(const Value: Boolean);
 begin
@@ -2335,7 +2367,7 @@ begin
     {$IFDEF FMX}
       T.Value //font size
     {$ELSE}
-      Lb.GetScaledPixels(-MulDiv(T.Value, Lb.GetDesignDpi, 72)) //font height
+      Lb.GetScaledPixels(-MulDiv(T.Value, Lb.GetDesignerPPI, 72)) //font height
     {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
@@ -2535,7 +2567,7 @@ begin
 
   //keep height but adjust new text width
   Size.Width := C.TextWidth(W.Text);
-  W.Font.Size:= C.Font.Size;
+  W.Font.Size := C.Font.Size;
   W.YPos := OuterY;
 
   //restore canvas original font size
