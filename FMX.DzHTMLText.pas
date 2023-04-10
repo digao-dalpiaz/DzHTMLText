@@ -232,8 +232,8 @@ type
     procedure SetTop(const Value: TPixels);
     procedure SetRight(const Value: TPixels);
     procedure SetBottom(const Value: TPixels);
-    function GetHorizontal: TPixels;
-    function GetVertical: TPixels;
+    function GetHorizontalScaled: TPixels;
+    function GetVerticalScaled: TPixels;
     function GetRealRect(R: TRect): TRect; inline;
   protected
     function GetOwner: TPersistent; override;
@@ -330,6 +330,8 @@ type
     function GetStoredListLevelPadding: Boolean;
     function GetStoredBorders: Boolean;
     function GetStoredOffset: Boolean;
+
+    function GetScaledPixels(Value: TPixels): TPixels;
 
     procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure CanvasProcess(C: TCanvas);
@@ -601,6 +603,16 @@ end;
 function GetGenericFontColor(C: TCanvas): TColor;
 begin
   Result := C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color;
+end;
+
+procedure DefineFontPt(F: TFont; Pt: TFontPt);
+begin
+  F.{$IFDEF FMX}Size{$ELSE}Height{$ENDIF} := Pt;
+end;
+
+function GetGenericFontPt(F: TFont): TFontPt;
+begin
+  Result := F.{$IFDEF FMX}Size{$ELSE}Height{$ENDIF};
 end;
 
 procedure GenericFillRect(C: TCanvas; R: TRect);
@@ -894,6 +906,11 @@ begin
   Modified([mfBuild, mfPaint]);
 end;
 
+function TDzHTMLText.GetScaledPixels(Value: TPixels): TPixels;
+begin
+  Result := {$IFDEF VCL}ScaleValue(Value){$ELSE}Value{$ENDIF};
+end;
+
 procedure TDzHTMLText.SetAutoHeight(const Value: Boolean);
 begin
   if Value<>FAutoHeight then
@@ -926,12 +943,12 @@ end;
 
 function TDzHTMLText.GetAreaWidth: TPixels;
 begin
-  Result := Width - FBorders.GetHorizontal;
+  Result := Width - FBorders.GetHorizontalScaled;
 end;
 
 function TDzHTMLText.GetAreaHeight: TPixels;
 begin
-  Result := Height - FBorders.GetVertical;
+  Result := Height - FBorders.GetVerticalScaled;
 end;
 
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
@@ -1088,8 +1105,8 @@ begin
 
   InternalResizing := True;
   try
-    if FAutoWidth then Width := W + FBorders.GetHorizontal;
-    if FAutoHeight then Height := H + FBorders.GetVertical;
+    if FAutoWidth then Width := W + FBorders.GetHorizontalScaled;
+    if FAutoHeight then Height := H + FBorders.GetVerticalScaled;
   finally
     InternalResizing := False;
   end;
@@ -2064,7 +2081,7 @@ type
     LUnderline: TListStack<Boolean>;
     LStrike: TListStack<Boolean>;
     LFontName: TListStack<string>;
-    LFontSize: TListStack<TFontPt>;
+    LFontHeightOrSize: TListStack<TFontPt>;
     LFontColor: TListStack<TColor>;
     LBackColor: TListStack<TColor>;
     LAlign: TListStack<TDHHorzAlign>;
@@ -2159,7 +2176,7 @@ begin
   LUnderline := TListStack<Boolean>.Create;
   LStrike := TListStack<Boolean>.Create;
   LFontName := TListStack<string>.Create;
-  LFontSize := TListStack<TFontPt>.Create;
+  LFontHeightOrSize := TListStack<TFontPt>.Create;
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TDHHorzAlign>.Create;
@@ -2178,7 +2195,7 @@ begin
   vBool := TFontStyle.fsUnderline in C.Font.Style; LUnderline.Add(vBool);
   vBool := TFontStyle.fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
   LFontName.Add(C.Font.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF});
-  LFontSize.Add(C.Font.Size);
+  LFontHeightOrSize.Add(GetGenericFontPt(C.Font));
   LFontColor.Add(GetGenericFontColor(C));
   LBackColor.Add(CurrentProps.BackColor);
   LAlign.Add(CurrentProps.Align);
@@ -2198,7 +2215,7 @@ begin
   LUnderline.Free;
   LStrike.Free;
   LFontName.Free;
-  LFontSize.Free;
+  LFontHeightOrSize.Free;
   LFontColor.Free;
   LBackColor.Free;
   LAlign.Free;
@@ -2261,7 +2278,6 @@ begin
 end;
 
 procedure TTokensProcess.DoOffset(T: TToken);
-const NOT_SET = -1;
 var
   Item: THTMLOffsetTag;
   P: THTMLTokenParams;
@@ -2273,11 +2289,8 @@ begin
   begin
     P := THTMLTokenParams.Create(T);
     try
-      Item.Top := P.GetParamAsPixels('Top', NOT_SET);
-      Item.Bottom := P.GetParamAsPixels('Bottom', NOT_SET);
-
-      if Item.Top = NOT_SET then Item.Top := CurrentProps.Offset.Top;
-      if Item.Bottom = NOT_SET then Item.Bottom := CurrentProps.Offset.Bottom;
+      Item.Top := P.GetParamAsPixels('Top', CurrentProps.Offset.Top);
+      Item.Bottom := P.GetParamAsPixels('Bottom', CurrentProps.Offset.Bottom);
     finally
       P.Free;
     end;
@@ -2313,9 +2326,20 @@ begin
 end;
 
 procedure TTokensProcess.DoFontSize(T: TToken);
+var
+  FontVal: TFontPt;
 begin
-  LFontSize.AddOrDel(T, T.Value);
-  C.Font.Size := LFontSize.Last;
+  FontVal := 0;
+  if not T.TagClose then
+    FontVal :=
+    {$IFDEF FMX}
+      T.Value //font size
+    {$ELSE}
+      Lb.GetScaledPixels(-MulDiv(T.Value, Lb.GetDesignDpi, 72)) //font height
+    {$ENDIF};
+
+  LFontHeightOrSize.AddOrDel(T, FontVal);
+  DefineFontPt(C.Font, LFontHeightOrSize.Last);
 end;
 
 procedure TTokensProcess.DoFontColor(T: TToken);
@@ -2388,7 +2412,7 @@ begin
         raise EInternalExcept.Create('Invalid HTML List object');
 
       FixedPos.Active := True;
-      FixedPos.Left := LHTMLList.Count * Lb.FListLevelPadding;
+      FixedPos.Left := LHTMLList.Count * Lb.GetScaledPixels(Lb.FListLevelPadding);
     end;
   end;
 
@@ -2449,14 +2473,20 @@ begin
     end;
   end;
 
+  if not (W is TDHVisualItem_Word) then
+  begin
+    Ex.Width := Lb.GetScaledPixels(Ex.Width);
+    Ex.Height := Lb.GetScaledPixels(Ex.Height);
+  end;
+
   if Assigned(CurrentLink) and (CurrentLink is TDHLinkRef) and (T.Kind=ttText) then
     with TDHLinkRef(CurrentLink) do FText := FText + T.Text; //set link display text on the link data object
 
   W.BColor := CurrentProps.BackColor;
   W.Link := CurrentLink;
 
-  W.OffsetTop := CurrentProps.Offset.Top;
-  W.OffsetBottom := CurrentProps.Offset.Bottom;
+  W.OffsetTop := Lb.GetScaledPixels(CurrentProps.Offset.Top);
+  W.OffsetBottom := Lb.GetScaledPixels(CurrentProps.Offset.Bottom);
 
   Ex.Height := Ex.Height + W.OffsetTop + W.OffsetBottom;
 
@@ -2464,7 +2494,7 @@ begin
   Z.Size := Ex;
   Z.Align := CurrentProps.Align;
   Z.VertAlign := CurrentProps.VertAlign;
-  Z.LineSpace := CurrentProps.LineSpace;
+  Z.LineSpace := Lb.GetScaledPixels(CurrentProps.LineSpace);
   Z.Space := (T.Kind=ttText) and (T.Text=STR_SPACE);
   Z.BreakableChar := (T.Kind=ttText) and (T.Value=INT_BREAKABLE_CHAR);
   Z.FixedPos := FixedPos;
@@ -2475,13 +2505,14 @@ end;
 
 procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
 var
-  OriginalFontSize: TFontPt;
+  OriginalFontPt, OriginalFontSize: TFontPt;
   I: Integer;
   Tag: THTMLSupSubTag;
   H, Y, TextH, OuterY: TPixels;
 begin
   if LSupAndSubScript.Count=0 then Exit;
 
+  OriginalFontPt := GetGenericFontPt(C.Font);
   OriginalFontSize := C.Font.Size;
 
   H := Size.Height; //initial height
@@ -2504,11 +2535,11 @@ begin
 
   //keep height but adjust new text width
   Size.Width := C.TextWidth(W.Text);
-  W.Font.Size := C.Font.Size;
+  W.Font.Size:= C.Font.Size;
   W.YPos := OuterY;
 
   //restore canvas original font size
-  C.Font.Size := OriginalFontSize;
+  DefineFontPt(C.Font, OriginalFontPt);
 end;
 
 procedure TTokensProcess.DoLink(T: TToken);
@@ -2585,10 +2616,10 @@ begin
     Ar := T.Text.Split([',']);
     if Length(Ar)>=2 then
     begin
-      Z.Rect.Left := StrToIntDef(Ar[0], 0);
-      Z.Rect.Top := StrToIntDef(Ar[1], 0);
+      Z.Rect.Left := Lb.GetScaledPixels(StrToIntDef(Ar[0], 0));
+      Z.Rect.Top := Lb.GetScaledPixels(StrToIntDef(Ar[1], 0));
       if Length(Ar)>=3 then
-        Z.Rect.Width := StrToIntDef(Ar[2], 0);
+        Z.Rect.Width := Lb.GetScaledPixels(StrToIntDef(Ar[2], 0));
     end;
   end;
   Z.Close := T.TagClose;
@@ -2698,7 +2729,7 @@ var
     if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
 
     Result :=
-      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>(Lb.FMaxWidth-Lb.FBorders.GetHorizontal)) )
+      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>(Lb.GetScaledPixels(Lb.FMaxWidth)-Lb.FBorders.GetHorizontalScaled)) )
       or
       ( (not Lb.FAutoWidth) and (EndPos>Lb.GetAreaWidth) );
   end;
@@ -3152,14 +3183,14 @@ begin
   end;
 end;
 
-function TDHBorders.GetHorizontal: TPixels;
+function TDHBorders.GetHorizontalScaled: TPixels;
 begin
-  Result := FLeft + FRight;
+  Result := Lb.GetScaledPixels(FLeft + FRight);
 end;
 
-function TDHBorders.GetVertical: TPixels;
+function TDHBorders.GetVerticalScaled: TPixels;
 begin
-  Result := FTop + FBottom;
+  Result := Lb.GetScaledPixels(FTop + FBottom);
 end;
 
 function TDHBorders.GetRealRect(R: TRect): TRect;
