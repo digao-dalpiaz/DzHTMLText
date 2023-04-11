@@ -631,6 +631,16 @@ begin
   Result := F.{$IFDEF FMX}Size{$ELSE}Height{$ENDIF};
 end;
 
+procedure DefineFontName(F: TFont; const Name: string);
+begin
+   F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF} := Name;
+end;
+
+function GetGenericFontName(F: TFont): string;
+begin
+   Result := F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF};
+end;
+
 procedure GenericFillRect(C: TCanvas; R: TRect);
 begin
   C.FillRect(
@@ -2285,7 +2295,7 @@ begin
   vBool := TFontStyle.fsItalic in C.Font.Style; LItalic.Add(vBool);
   vBool := TFontStyle.fsUnderline in C.Font.Style; LUnderline.Add(vBool);
   vBool := TFontStyle.fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
-  LFontName.Add(C.Font.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF});
+  LFontName.Add(GetGenericFontName(C.Font));
   LFontHeightOrSize.Add(GetGenericFontPt(C.Font));
   LFontColor.Add(GetGenericFontColor(C));
   LBackColor.Add(CurrentProps.BackColor);
@@ -2413,7 +2423,7 @@ end;
 procedure TTokensProcess.DoFontName(T: TToken);
 begin
   LFontName.AddOrDel(T, T.Text);
-  C.Font.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF} := LFontName.Last;
+  DefineFontName(C.Font, LFontName.Last);
 end;
 
 procedure TTokensProcess.DoFontSize(T: TToken);
