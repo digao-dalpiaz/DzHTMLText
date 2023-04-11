@@ -217,6 +217,19 @@ type
     property Underline: Boolean read FUnderline write SetUnderline default False;
   end;
 
+  TDHScaling = class
+  private
+    Lb: TDzHTMLText;
+
+    Scaled: Boolean;
+    DesignerPPI, MonitorPPI: Integer;
+
+    procedure Update;
+    function Calc(Value: TPixels): TPixels;
+  public
+    constructor Create(aOwner: TDzHTMLText);
+  end;
+
   TDHBorders = class(TPersistent)
   private
     Lb: TDzHTMLText;
@@ -266,6 +279,8 @@ type
     {$ENDIF})
   private
     FAbout: string;
+
+    Scaling: TDHScaling;
 
     LVisualItem: TDHVisualItemList; //visual item list to paint event
     LLinkRef: TDHLinkRefList; //list of links info
@@ -329,11 +344,6 @@ type
     function GetStoredListLevelPadding: Boolean;
     function GetStoredBorders: Boolean;
     function GetStoredOffset: Boolean;
-
-    function GetScaledPixels(Value: TPixels): TPixels;
-    {$IFDEF VCL}
-    function GetDesignerPPI: Integer;
-    {$ENDIF}
 
     procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure CanvasProcess(C: TCanvas);
@@ -759,6 +769,65 @@ begin
 end;
 {$ENDREGION}
 
+{$REGION 'TDHScaling'}
+constructor TDHScaling.Create(aOwner: TDzHTMLText);
+begin
+  Lb := aOwner;
+end;
+
+{$IFDEF VCL}
+type
+  TFormScaleHack = class(TCustomForm);
+
+function GetDesignerPPI(F: TCustomForm): Integer;
+begin
+  Result :=
+    {$IFDEF FPC}
+    F.PixelsPerInch
+    {$ELSE}
+      {$IF CompilerVersion >= 30} //D10 Seattle
+      TFormScaleHack(F).GetDesignDpi
+      {$ELSE}
+      TFormScaleHack(F).PixelsPerInch
+      {$ENDIF}
+    {$ENDIF};
+end;
+{$ENDIF}
+
+procedure TDHScaling.Update;
+{$IFDEF VCL}
+const DEFAULT_PPI = 96;
+var
+  F: TCustomForm;
+{$ENDIF}
+begin
+  {$IFDEF VCL}
+  F := GetParentForm(Lb);
+  if F<>nil then
+  begin
+    Scaled := TFormScaleHack(F).Scaled;
+    DesignerPPI := GetDesignerPPI(F);
+    MonitorPPI := GetMonitorPPI(F.Monitor.Handle);
+  end else
+  begin
+    Scaled := False;
+    DesignerPPI := DEFAULT_PPI;
+    MonitorPPI := DEFAULT_PPI;
+  end;
+  {$ENDIF}
+end;
+
+function TDHScaling.Calc(Value: TPixels): TPixels;
+begin
+  {$IFDEF VCL}
+  if Scaled then
+    Result := MulDiv(Value, MonitorPPI, DesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
+  else
+  {$ENDIF}
+  Result := Value;
+end;
+{$ENDREGION}
+
 {$REGION 'TDzHTMLText class functions'}
 class function TDzHTMLText.EscapeTextToHTML(const aText: string): string;
 begin
@@ -816,6 +885,8 @@ begin
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full functional in Lazarus
   TStringList(FLines).OnChange := OnLinesChange;
 
+  Scaling := TDHScaling.Create(Self);
+
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
   LVisualItem := TDHVisualItemList.Create;
@@ -856,6 +927,7 @@ begin
   LVisualItem.Free;
   LLinkRef.Free;
   LSpoiler.Free;
+  Scaling.Free;
   inherited;
 end;
 
@@ -908,47 +980,6 @@ begin
   //Rebuild words and repaint
   Modified([mfBuild, mfPaint]);
 end;
-
-{$IFDEF VCL}
-type
-  TFormScaleHack = class(TCustomForm);
-{$ENDIF}
-function TDzHTMLText.GetScaledPixels(Value: TPixels): TPixels;
-{$IFDEF VCL}
-var
-  F: TCustomForm;
-{$ENDIF}
-begin
-  {$IFDEF VCL}
-  F := GetParentForm(Self);
-  if (F<>nil) and TFormScaleHack(F).Scaled then
-    Result := MulDiv(Value, GetMonitorPPI(F.Monitor.Handle), GetDesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
-  else
-  {$ENDIF}
-  Result := Value;
-end;
-
-{$IFDEF VCL}
-function TDzHTMLText.GetDesignerPPI: Integer;
-var
-  F: TCustomForm;
-begin
-  F := GetParentForm(Self);
-  if F<>nil then
-    Result :=
-      {$IFDEF FPC}
-      F.PixelsPerInch
-      {$ELSE}
-        {$IF CompilerVersion >= 30} //D10 Seattle
-        TFormScaleHack(F).GetDesignDpi
-        {$ELSE}
-        TFormScaleHack(F).PixelsPerInch
-        {$ENDIF}
-      {$ENDIF}
-  else
-    Result := {$IFDEF FPC}96{$ELSE}Winapi.Windows.USER_DEFAULT_SCREEN_DPI{$ENDIF};
-end;
-{$ENDIF}
 
 procedure TDzHTMLText.SetAutoHeight(const Value: Boolean);
 begin
@@ -1630,6 +1661,8 @@ begin
 
   LVisualItem.Clear; //clean old words
   LLinkRef.Clear; //clean old links
+
+  Scaling.Update;
 
   B := TBuilder.Create;
   try
@@ -2390,7 +2423,7 @@ begin
     {$IFDEF FMX}
       T.Value //font size
     {$ELSE}
-      Lb.GetScaledPixels(-MulDiv(T.Value, Lb.GetDesignerPPI, 72)) //font height
+      Lb.Scaling.Calc(-MulDiv(T.Value, Lb.Scaling.DesignerPPI, 72)) //font height
     {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
@@ -2467,7 +2500,7 @@ begin
         raise EInternalExcept.Create('Invalid HTML List object');
 
       FixedPos.Active := True;
-      FixedPos.Left := LHTMLList.Count * Lb.GetScaledPixels(Lb.FListLevelPadding);
+      FixedPos.Left := LHTMLList.Count * Lb.Scaling.Calc(Lb.FListLevelPadding);
     end;
   end;
 
@@ -2530,8 +2563,8 @@ begin
 
   if not (W is TDHVisualItem_Word) then
   begin
-    Ex.Width := Lb.GetScaledPixels(Ex.Width);
-    Ex.Height := Lb.GetScaledPixels(Ex.Height);
+    Ex.Width := Lb.Scaling.Calc(Ex.Width);
+    Ex.Height := Lb.Scaling.Calc(Ex.Height);
   end;
 
   if Assigned(CurrentLink) and (CurrentLink is TDHLinkRef) and (T.Kind=ttText) then
@@ -2540,8 +2573,8 @@ begin
   W.BColor := CurrentProps.BackColor;
   W.Link := CurrentLink;
 
-  W.OffsetTop := Lb.GetScaledPixels(CurrentProps.Offset.Top);
-  W.OffsetBottom := Lb.GetScaledPixels(CurrentProps.Offset.Bottom);
+  W.OffsetTop := Lb.Scaling.Calc(CurrentProps.Offset.Top);
+  W.OffsetBottom := Lb.Scaling.Calc(CurrentProps.Offset.Bottom);
 
   Ex.Height := Ex.Height + W.OffsetTop + W.OffsetBottom;
 
@@ -2549,7 +2582,7 @@ begin
   Z.Size := Ex;
   Z.Align := CurrentProps.Align;
   Z.VertAlign := CurrentProps.VertAlign;
-  Z.LineSpace := Lb.GetScaledPixels(CurrentProps.LineSpace);
+  Z.LineSpace := Lb.Scaling.Calc(CurrentProps.LineSpace);
   Z.Space := (T.Kind=ttText) and (T.Text=STR_SPACE);
   Z.BreakableChar := (T.Kind=ttText) and (T.Value=INT_BREAKABLE_CHAR);
   Z.FixedPos := FixedPos;
@@ -2671,10 +2704,10 @@ begin
     Ar := T.Text.Split([',']);
     if Length(Ar)>=2 then
     begin
-      Z.Rect.Left := Lb.GetScaledPixels(StrToIntDef(Ar[0], 0));
-      Z.Rect.Top := Lb.GetScaledPixels(StrToIntDef(Ar[1], 0));
+      Z.Rect.Left := Lb.Scaling.Calc(StrToIntDef(Ar[0], 0));
+      Z.Rect.Top := Lb.Scaling.Calc(StrToIntDef(Ar[1], 0));
       if Length(Ar)>=3 then
-        Z.Rect.Width := Lb.GetScaledPixels(StrToIntDef(Ar[2], 0));
+        Z.Rect.Width := Lb.Scaling.Calc(StrToIntDef(Ar[2], 0));
     end;
   end;
   Z.Close := T.TagClose;
@@ -2784,7 +2817,7 @@ var
     if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
 
     Result :=
-      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>(Lb.GetScaledPixels(Lb.FMaxWidth)-Lb.FBorders.GetHorizontalScaled)) )
+      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>(Lb.Scaling.Calc(Lb.FMaxWidth)-Lb.FBorders.GetHorizontalScaled)) )
       or
       ( (not Lb.FAutoWidth) and (EndPos>Lb.GetAreaWidth) );
   end;
@@ -3240,18 +3273,18 @@ end;
 
 function TDHBorders.GetHorizontalScaled: TPixels;
 begin
-  Result := Lb.GetScaledPixels(FLeft + FRight);
+  Result := Lb.Scaling.Calc(FLeft + FRight);
 end;
 
 function TDHBorders.GetVerticalScaled: TPixels;
 begin
-  Result := Lb.GetScaledPixels(FTop + FBottom);
+  Result := Lb.Scaling.Calc(FTop + FBottom);
 end;
 
 function TDHBorders.GetRealRect(R: TRect): TRect;
 begin
   Result := R;
-  Result.Offset(FLeft, FTop);
+  Result.Offset(Lb.Scaling.Calc(FLeft), Lb.Scaling.Calc(FTop));
 end;
 {$ENDREGION}
 
