@@ -2763,7 +2763,7 @@ var
   Z: TPreObj_Tab;
 begin
   Z := TPreObj_Tab.Create;
-  Z.Position := T.Value;
+  Z.Position := Lb.Scaling.Calc(T.Value);
   Z.Fixed := (T.Kind=ttTabF);
   Items.Add(Z);
 end;
