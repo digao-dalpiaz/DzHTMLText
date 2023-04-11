@@ -221,8 +221,10 @@ type
   private
     Lb: TDzHTMLText;
 
+    {$IFDEF VCL}
     Scaled: Boolean;
     DesignerPPI, MonitorPPI: Integer;
+    {$ENDIF}
 
     procedure Update;
     function Calc(Value: TPixels): TPixels;
