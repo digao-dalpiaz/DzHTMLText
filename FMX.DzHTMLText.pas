@@ -218,6 +218,21 @@ type
     property Underline: Boolean read FUnderline write SetUnderline default False;
   end;
 
+  TDHScaling = class
+  private
+    Lb: TDzHTMLText;
+
+    {$IFDEF VCL}
+    Scaled: Boolean;
+    DesignerPPI, MonitorPPI: Integer;
+    {$ENDIF}
+
+    procedure Update;
+    function Calc(Value: TPixels): TPixels;
+  public
+    constructor Create(aOwner: TDzHTMLText);
+  end;
+
   TDHBorders = class(TPersistent)
   private
     Lb: TDzHTMLText;
@@ -232,8 +247,8 @@ type
     procedure SetTop(const Value: TPixels);
     procedure SetRight(const Value: TPixels);
     procedure SetBottom(const Value: TPixels);
-    function GetHorizontal: TPixels;
-    function GetVertical: TPixels;
+    function GetHorizontalScaled: TPixels;
+    function GetVerticalScaled: TPixels;
     function GetRealRect(R: TRect): TRect; inline;
   protected
     function GetOwner: TPersistent; override;
@@ -267,6 +282,8 @@ type
     {$ENDIF})
   private
     FAbout: string;
+
+    Scaling: TDHScaling;
 
     LVisualItem: TDHVisualItemList; //visual item list to paint event
     LLinkRef: TDHLinkRefList; //list of links info
@@ -540,8 +557,9 @@ procedure Register;
 implementation
 
 uses
+{$IFDEF VCL}ScalingUtils, {$ENDIF}
 {$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources, Forms
 {$ELSE}
   System.SysUtils, System.StrUtils, System.Math
   {$IFDEF FMX}
@@ -555,7 +573,7 @@ uses
     , Posix.Stdlib
     {$ENDIF}
   {$ELSE}
-  , System.UITypes, Vcl.Themes
+  , System.UITypes, Vcl.Themes, Vcl.Forms
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   , Winapi.Windows, Winapi.ShellAPI
@@ -601,6 +619,26 @@ end;
 function GetGenericFontColor(C: TCanvas): TColor;
 begin
   Result := C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color;
+end;
+
+procedure DefineFontPt(F: TFont; Pt: TFontPt);
+begin
+  F.{$IFDEF FMX}Size{$ELSE}Height{$ENDIF} := Pt;
+end;
+
+function GetGenericFontPt(F: TFont): TFontPt;
+begin
+  Result := F.{$IFDEF FMX}Size{$ELSE}Height{$ENDIF};
+end;
+
+procedure DefineFontName(F: TFont; const Name: string);
+begin
+   F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF} := Name;
+end;
+
+function GetGenericFontName(F: TFont): string;
+begin
+   Result := F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF};
 end;
 
 procedure GenericFillRect(C: TCanvas; R: TRect);
@@ -744,6 +782,65 @@ begin
 end;
 {$ENDREGION}
 
+{$REGION 'TDHScaling'}
+constructor TDHScaling.Create(aOwner: TDzHTMLText);
+begin
+  Lb := aOwner;
+end;
+
+{$IFDEF VCL}
+type
+  TFormScaleHack = class(TCustomForm);
+
+function GetDesignerPPI(F: TCustomForm): Integer;
+begin
+  Result :=
+    {$IFDEF FPC}
+    F.PixelsPerInch
+    {$ELSE}
+      {$IF CompilerVersion >= 30} //D10 Seattle
+      TFormScaleHack(F).GetDesignDpi
+      {$ELSE}
+      TFormScaleHack(F).PixelsPerInch
+      {$ENDIF}
+    {$ENDIF};
+end;
+{$ENDIF}
+
+procedure TDHScaling.Update;
+{$IFDEF VCL}
+const DEFAULT_PPI = 96;
+var
+  F: TCustomForm;
+{$ENDIF}
+begin
+  {$IFDEF VCL}
+  F := GetParentForm(Lb);
+  if F<>nil then
+  begin
+    Scaled := TFormScaleHack(F).Scaled;
+    DesignerPPI := GetDesignerPPI(F);
+    MonitorPPI := GetMonitorPPI(F.Monitor.Handle);
+  end else
+  begin
+    Scaled := False;
+    DesignerPPI := DEFAULT_PPI;
+    MonitorPPI := DEFAULT_PPI;
+  end;
+  {$ENDIF}
+end;
+
+function TDHScaling.Calc(Value: TPixels): TPixels;
+begin
+  {$IFDEF VCL}
+  if Scaled then
+    Result := MulDiv(Value, MonitorPPI, DesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
+  else
+  {$ENDIF}
+  Result := Value;
+end;
+{$ENDREGION}
+
 {$REGION 'TDzHTMLText class functions'}
 class function TDzHTMLText.EscapeTextToHTML(const aText: string): string;
 begin
@@ -801,6 +898,8 @@ begin
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full functional in Lazarus
   TStringList(FLines).OnChange := OnLinesChange;
 
+  Scaling := TDHScaling.Create(Self);
+
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
   LVisualItem := TDHVisualItemList.Create;
@@ -841,6 +940,7 @@ begin
   LVisualItem.Free;
   LLinkRef.Free;
   LSpoiler.Free;
+  Scaling.Free;
   inherited;
 end;
 
@@ -926,12 +1026,12 @@ end;
 
 function TDzHTMLText.GetAreaWidth: TPixels;
 begin
-  Result := Width - FBorders.GetHorizontal;
+  Result := Width - FBorders.GetHorizontalScaled;
 end;
 
 function TDzHTMLText.GetAreaHeight: TPixels;
 begin
-  Result := Height - FBorders.GetVertical;
+  Result := Height - FBorders.GetVerticalScaled;
 end;
 
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
@@ -1088,8 +1188,8 @@ begin
 
   InternalResizing := True;
   try
-    if FAutoWidth then Width := W + FBorders.GetHorizontal;
-    if FAutoHeight then Height := H + FBorders.GetVertical;
+    if FAutoWidth then Width := W + FBorders.GetHorizontalScaled;
+    if FAutoHeight then Height := H + FBorders.GetVerticalScaled;
   finally
     InternalResizing := False;
   end;
@@ -1246,23 +1346,39 @@ begin
 end;
 
 procedure TDzHTMLText.Paint_Image(C: TCanvas; R: TRect; W: TDHVisualItem_Image);
+{$IFDEF VCL}
+var
+  Icon: TIcon;
+{$ENDIF}
 begin
   {$IFDEF USE_IMGLST}
   if Assigned(FImages) then
+  begin
     {$IFDEF FMX}
     FImages.Draw(C, R, W.ImageIndex, 1);
     {$ELSE}
-    FImages.Draw(C, R.Left, R.Top, W.ImageIndex);
+      {$IFDEF FPC}
+      FImages.StretchDraw(C, W.ImageIndex, R);
+      {$ELSE}
+      Icon := TIcon.Create;
+      try
+        FImages.GetIcon(W.ImageIndex, Icon);
+        DrawIconEx(C.Handle, R.Left, R.Top, Icon.Handle, R.Width, R.Height, 0, 0, DI_NORMAL); //Windows only
+      finally
+        Icon.Free;
+      end;
+      {$ENDIF}
     {$ENDIF}
+  end;
   {$ENDIF}
 end;
 
 procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TRect; W: TDHVisualItem_ImageResource);
 begin
   {$IFDEF FMX}
-  C.DrawBitmap(W.Picture, TRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1);
+  C.DrawBitmap(W.Picture, TRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1); //FMX scaling?
   {$ELSE}
-  C.Draw(R.Left, R.Top, W.Picture.Graphic);
+  C.StretchDraw(R, W.Picture.Graphic);
   {$ENDIF}
 end;
 
@@ -1558,6 +1674,8 @@ begin
 
   LVisualItem.Clear; //clean old words
   LLinkRef.Clear; //clean old links
+
+  Scaling.Update;
 
   B := TBuilder.Create;
   try
@@ -2064,7 +2182,7 @@ type
     LUnderline: TListStack<Boolean>;
     LStrike: TListStack<Boolean>;
     LFontName: TListStack<string>;
-    LFontSize: TListStack<TFontPt>;
+    LFontHeightOrSize: TListStack<TFontPt>;
     LFontColor: TListStack<TColor>;
     LBackColor: TListStack<TColor>;
     LAlign: TListStack<TDHHorzAlign>;
@@ -2159,7 +2277,7 @@ begin
   LUnderline := TListStack<Boolean>.Create;
   LStrike := TListStack<Boolean>.Create;
   LFontName := TListStack<string>.Create;
-  LFontSize := TListStack<TFontPt>.Create;
+  LFontHeightOrSize := TListStack<TFontPt>.Create;
   LFontColor := TListStack<TColor>.Create;
   LBackColor := TListStack<TColor>.Create;
   LAlign := TListStack<TDHHorzAlign>.Create;
@@ -2177,8 +2295,8 @@ begin
   vBool := TFontStyle.fsItalic in C.Font.Style; LItalic.Add(vBool);
   vBool := TFontStyle.fsUnderline in C.Font.Style; LUnderline.Add(vBool);
   vBool := TFontStyle.fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
-  LFontName.Add(C.Font.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF});
-  LFontSize.Add(C.Font.Size);
+  LFontName.Add(GetGenericFontName(C.Font));
+  LFontHeightOrSize.Add(GetGenericFontPt(C.Font));
   LFontColor.Add(GetGenericFontColor(C));
   LBackColor.Add(CurrentProps.BackColor);
   LAlign.Add(CurrentProps.Align);
@@ -2198,7 +2316,7 @@ begin
   LUnderline.Free;
   LStrike.Free;
   LFontName.Free;
-  LFontSize.Free;
+  LFontHeightOrSize.Free;
   LFontColor.Free;
   LBackColor.Free;
   LAlign.Free;
@@ -2261,7 +2379,6 @@ begin
 end;
 
 procedure TTokensProcess.DoOffset(T: TToken);
-const NOT_SET = -1;
 var
   Item: THTMLOffsetTag;
   P: THTMLTokenParams;
@@ -2273,11 +2390,8 @@ begin
   begin
     P := THTMLTokenParams.Create(T);
     try
-      Item.Top := P.GetParamAsPixels('Top', NOT_SET);
-      Item.Bottom := P.GetParamAsPixels('Bottom', NOT_SET);
-
-      if Item.Top = NOT_SET then Item.Top := CurrentProps.Offset.Top;
-      if Item.Bottom = NOT_SET then Item.Bottom := CurrentProps.Offset.Bottom;
+      Item.Top := P.GetParamAsPixels('Top', CurrentProps.Offset.Top);
+      Item.Bottom := P.GetParamAsPixels('Bottom', CurrentProps.Offset.Bottom);
     finally
       P.Free;
     end;
@@ -2309,13 +2423,24 @@ end;
 procedure TTokensProcess.DoFontName(T: TToken);
 begin
   LFontName.AddOrDel(T, T.Text);
-  C.Font.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF} := LFontName.Last;
+  DefineFontName(C.Font, LFontName.Last);
 end;
 
 procedure TTokensProcess.DoFontSize(T: TToken);
+var
+  FontVal: TFontPt;
 begin
-  LFontSize.AddOrDel(T, T.Value);
-  C.Font.Size := LFontSize.Last;
+  FontVal := 0;
+  if not T.TagClose then
+    FontVal :=
+    {$IFDEF FMX}
+      T.Value //font size
+    {$ELSE}
+      Lb.Scaling.Calc(-MulDiv(T.Value, Lb.Scaling.DesignerPPI, 72)) //font height
+    {$ENDIF};
+
+  LFontHeightOrSize.AddOrDel(T, FontVal);
+  DefineFontPt(C.Font, LFontHeightOrSize.Last);
 end;
 
 procedure TTokensProcess.DoFontColor(T: TToken);
@@ -2388,7 +2513,7 @@ begin
         raise EInternalExcept.Create('Invalid HTML List object');
 
       FixedPos.Active := True;
-      FixedPos.Left := LHTMLList.Count * Lb.FListLevelPadding;
+      FixedPos.Left := LHTMLList.Count * Lb.Scaling.Calc(Lb.FListLevelPadding);
     end;
   end;
 
@@ -2449,14 +2574,20 @@ begin
     end;
   end;
 
+  if not (W is TDHVisualItem_Word) then
+  begin
+    Ex.Width := Lb.Scaling.Calc(Ex.Width);
+    Ex.Height := Lb.Scaling.Calc(Ex.Height);
+  end;
+
   if Assigned(CurrentLink) and (CurrentLink is TDHLinkRef) and (T.Kind=ttText) then
     with TDHLinkRef(CurrentLink) do FText := FText + T.Text; //set link display text on the link data object
 
   W.BColor := CurrentProps.BackColor;
   W.Link := CurrentLink;
 
-  W.OffsetTop := CurrentProps.Offset.Top;
-  W.OffsetBottom := CurrentProps.Offset.Bottom;
+  W.OffsetTop := Lb.Scaling.Calc(CurrentProps.Offset.Top);
+  W.OffsetBottom := Lb.Scaling.Calc(CurrentProps.Offset.Bottom);
 
   Ex.Height := Ex.Height + W.OffsetTop + W.OffsetBottom;
 
@@ -2464,7 +2595,7 @@ begin
   Z.Size := Ex;
   Z.Align := CurrentProps.Align;
   Z.VertAlign := CurrentProps.VertAlign;
-  Z.LineSpace := CurrentProps.LineSpace;
+  Z.LineSpace := Lb.Scaling.Calc(CurrentProps.LineSpace);
   Z.Space := (T.Kind=ttText) and (T.Text=STR_SPACE);
   Z.BreakableChar := (T.Kind=ttText) and (T.Value=INT_BREAKABLE_CHAR);
   Z.FixedPos := FixedPos;
@@ -2475,13 +2606,14 @@ end;
 
 procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
 var
-  OriginalFontSize: TFontPt;
+  OriginalFontPt, OriginalFontSize: TFontPt;
   I: Integer;
   Tag: THTMLSupSubTag;
   H, Y, TextH, OuterY: TPixels;
 begin
   if LSupAndSubScript.Count=0 then Exit;
 
+  OriginalFontPt := GetGenericFontPt(C.Font);
   OriginalFontSize := C.Font.Size;
 
   H := Size.Height; //initial height
@@ -2508,7 +2640,7 @@ begin
   W.YPos := OuterY;
 
   //restore canvas original font size
-  C.Font.Size := OriginalFontSize;
+  DefineFontPt(C.Font, OriginalFontPt);
 end;
 
 procedure TTokensProcess.DoLink(T: TToken);
@@ -2585,10 +2717,10 @@ begin
     Ar := T.Text.Split([',']);
     if Length(Ar)>=2 then
     begin
-      Z.Rect.Left := StrToIntDef(Ar[0], 0);
-      Z.Rect.Top := StrToIntDef(Ar[1], 0);
+      Z.Rect.Left := Lb.Scaling.Calc(StrToIntDef(Ar[0], 0));
+      Z.Rect.Top := Lb.Scaling.Calc(StrToIntDef(Ar[1], 0));
       if Length(Ar)>=3 then
-        Z.Rect.Width := StrToIntDef(Ar[2], 0);
+        Z.Rect.Width := Lb.Scaling.Calc(StrToIntDef(Ar[2], 0));
     end;
   end;
   Z.Close := T.TagClose;
@@ -2631,7 +2763,7 @@ var
   Z: TPreObj_Tab;
 begin
   Z := TPreObj_Tab.Create;
-  Z.Position := T.Value;
+  Z.Position := Lb.Scaling.Calc(T.Value);
   Z.Fixed := (T.Kind=ttTabF);
   Items.Add(Z);
 end;
@@ -2698,7 +2830,7 @@ var
     if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
 
     Result :=
-      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>(Lb.FMaxWidth-Lb.FBorders.GetHorizontal)) )
+      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>(Lb.Scaling.Calc(Lb.FMaxWidth)-Lb.FBorders.GetHorizontalScaled)) )
       or
       ( (not Lb.FAutoWidth) and (EndPos>Lb.GetAreaWidth) );
   end;
@@ -3152,20 +3284,20 @@ begin
   end;
 end;
 
-function TDHBorders.GetHorizontal: TPixels;
+function TDHBorders.GetHorizontalScaled: TPixels;
 begin
-  Result := FLeft + FRight;
+  Result := Lb.Scaling.Calc(FLeft + FRight);
 end;
 
-function TDHBorders.GetVertical: TPixels;
+function TDHBorders.GetVerticalScaled: TPixels;
 begin
-  Result := FTop + FBottom;
+  Result := Lb.Scaling.Calc(FTop + FBottom);
 end;
 
 function TDHBorders.GetRealRect(R: TRect): TRect;
 begin
   Result := R;
-  Result.Offset(FLeft, FTop);
+  Result.Offset(Lb.Scaling.Calc(FLeft), Lb.Scaling.Calc(FTop));
 end;
 {$ENDREGION}
 
