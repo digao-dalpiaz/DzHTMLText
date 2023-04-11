@@ -32,15 +32,19 @@
 
 ## What's New
 
+- 04/11/2023 (Version 4.0)
+
+   - DPI Scaling supporting for VCL (Windows and Linux)
+   
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 04/07/2023 (Version 3.11)
 
    - New `<LINE>` tag
    - New `<VALIGN>` tag
    - New `<OFFSET>` tag
    - Fixed MaxWidth to calc correct width size when using borders
-   
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 01/02/2022 (Version 3.10)
 
