@@ -27,7 +27,7 @@ function GetDpiForMonitor(
   dpiType: TMonitorDpiType;
   out dpiX: UINT;
   out dpiY: UINT
-  ): HRESULT; stdcall; external 'Shcore.dll' delayed;
+  ): HRESULT; stdcall; external 'Shcore.dll' {$IFDEF DCC}delayed{$ENDIF};
 {$WARN SYMBOL_PLATFORM ON}
 
 function GetMonitorPPI(FHandle: HMONITOR): Integer;
