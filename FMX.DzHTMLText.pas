@@ -923,7 +923,7 @@ begin
   {$IFDEF VCL}
   F := GetParentForm(Self);
   if (F<>nil) and TFormScaleHack(F).Scaled then
-    Result := MulDiv(Value, GetMonitorPPI(F.Monitor.Handle), GetDesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4
+    Result := MulDiv(Value, GetMonitorPPI(F.Monitor.Handle), GetDesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
   else
   {$ENDIF}
   Result := Value;
@@ -1303,23 +1303,39 @@ begin
 end;
 
 procedure TDzHTMLText.Paint_Image(C: TCanvas; R: TRect; W: TDHVisualItem_Image);
+{$IFDEF VCL}
+var
+  Icon: TIcon;
+{$ENDIF}
 begin
   {$IFDEF USE_IMGLST}
   if Assigned(FImages) then
+  begin
     {$IFDEF FMX}
     FImages.Draw(C, R, W.ImageIndex, 1);
     {$ELSE}
-    FImages.Draw(C, R.Left, R.Top, W.ImageIndex);
+      {$IFDEF FPC}
+      FImages.StretchDraw(C, W.ImageIndex, R);
+      {$ELSE}
+      Icon := TIcon.Create;
+      try
+        FImages.GetIcon(W.ImageIndex, Icon);
+        DrawIconEx(C.Handle, R.Left, R.Top, Icon.Handle, R.Width, R.Height, 0, 0, DI_NORMAL); //Windows only
+      finally
+        Icon.Free;
+      end;
+      {$ENDIF}
     {$ENDIF}
+  end;
   {$ENDIF}
 end;
 
 procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TRect; W: TDHVisualItem_ImageResource);
 begin
   {$IFDEF FMX}
-  C.DrawBitmap(W.Picture, TRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1);
+  C.DrawBitmap(W.Picture, TRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1); //FMX scaling?
   {$ELSE}
-  C.Draw(R.Left, R.Top, W.Picture.Graphic);
+  C.StretchDraw(R, W.Picture.Graphic);
   {$ENDIF}
 end;
 
