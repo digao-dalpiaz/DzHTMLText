@@ -544,6 +544,7 @@ procedure Register;
 implementation
 
 uses
+{$IFDEF VCL}ScalingUtils, {$ENDIF}
 {$IFDEF FPC}
   {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources, Forms
 {$ELSE}
@@ -921,12 +922,10 @@ begin
   {$IFDEF VCL}
   F := GetParentForm(Self);
   if (F<>nil) and TFormScaleHack(F).Scaled then
-    Result := {$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF}
+    Result := MulDiv(Value, GetMonitorPPI(F.Monitor.Handle), GetDesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4
   else
-    Result := Value;
-  {$ELSE}
-  Result := Value;
   {$ENDIF}
+  Result := Value;
 end;
 
 {$IFDEF VCL}
@@ -936,7 +935,16 @@ var
 begin
   F := GetParentForm(Self);
   if F<>nil then
-    Result := {$IFDEF FPC}F.PixelsPerInch{$ELSE}TFormScaleHack(F).GetDesignDpi{$ENDIF}
+    Result :=
+      {$IFDEF FPC}
+      F.PixelsPerInch
+      {$ELSE}
+        {$IF CompilerVersion >= 30} //D10 Seattle
+        TFormScaleHack(F).GetDesignDpi
+        {$ELSE}
+        TFormScaleHack(F).PixelsPerInch
+        {$ENDIF}
+      {$ENDIF}
   else
     Result := {$IFDEF FPC}96{$ELSE}Winapi.Windows.USER_DEFAULT_SCREEN_DPI{$ENDIF};
 end;
