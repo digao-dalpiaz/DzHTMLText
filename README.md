@@ -32,12 +32,16 @@
 
 ## What's New
 
+- 04/26/2023 (Version 4.1)
+
+   - Fixed Delphi 10 Seattle compiling (conditional directive about GetDesignDpi)
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 04/11/2023 (Version 4.0)
 
    - DPI Scaling supporting for VCL (Windows and Linux)
-   
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 04/07/2023 (Version 3.11)
 
