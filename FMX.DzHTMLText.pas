@@ -798,7 +798,7 @@ begin
     {$IFDEF FPC}
     F.PixelsPerInch
     {$ELSE}
-      {$IF CompilerVersion >= 30} //D10 Seattle
+      {$IF CompilerVersion >= 31} //D10.1 Berlin
       TFormScaleHack(F).GetDesignDpi
       {$ELSE}
       TFormScaleHack(F).PixelsPerInch
