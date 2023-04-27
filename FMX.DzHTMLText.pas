@@ -580,7 +580,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '4.0';
+const STR_VERSION = '4.1';
 
 procedure Register;
 begin
