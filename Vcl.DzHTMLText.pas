@@ -220,12 +220,14 @@ type
 
   TDHScaling = class
   private
+    Lb: TDzHTMLText;
     {$IFDEF VCL}
     Ctrl: TDzFormScaling;
     {$ENDIF}
+    procedure Update;
     function Calc(Value: TPixels): TPixels;
   public
-    constructor Create(Lb: TDzHTMLText);
+    constructor Create(aOwner: TDzHTMLText);
     destructor Destroy; override;
   end;
 
@@ -778,10 +780,12 @@ end;
 {$ENDREGION}
 
 {$REGION 'TDHScaling'}
-constructor TDHScaling.Create(Lb: TDzHTMLText);
+constructor TDHScaling.Create(aOwner: TDzHTMLText);
 begin
+  Lb := aOwner;
+
   {$IFDEF VCL}
-  Ctrl := TDzFormScaling.Create(GetParentForm(Lb));
+  Ctrl := TDzFormScaling.Create;
   {$ENDIF}
 end;
 
@@ -790,6 +794,13 @@ begin
   {$IFDEF VCL}
   Ctrl.Free;
   {$ENDIF}
+end;
+
+procedure TDHScaling.Update;
+begin
+   {$IFDEF VCL}
+   Ctrl.Update(GetParentForm(Lb));
+   {$ENDIF}
 end;
 
 function TDHScaling.Calc(Value: TPixels): TPixels;
@@ -1636,9 +1647,7 @@ begin
   LVisualItem.Clear; //clean old words
   LLinkRef.Clear; //clean old links
 
-  {$IFDEF VCL}
-  Scaling.Ctrl.Update;
-  {$ENDIF}
+  Scaling.Update;
 
   B := TBuilder.Create;
   try

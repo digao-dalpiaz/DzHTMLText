@@ -11,14 +11,11 @@ uses
 
 type
   TDzFormScaling = class
-  private
-    Form: TCustomForm;
   public
     Scaled: Boolean;
     DesignerPPI, MonitorPPI: Integer;
 
-    constructor Create(Form: TCustomForm);
-    procedure Update;
+    procedure Update(F: TCustomForm);
     function Calc(Value: Integer): Integer;
   end;
 
@@ -90,18 +87,13 @@ begin
     {$ENDIF};
 end;
 
-constructor TDzFormScaling.Create(Form: TCustomForm);
+procedure TDzFormScaling.Update(F: TCustomForm);
 begin
-  Self.Form := Form;
-end;
-
-procedure TDzFormScaling.Update;
-begin
-  if Form<>nil then
+  if F<>nil then
   begin
-    Scaled := TFormScaleHack(Form).Scaled;
-    DesignerPPI := GetDesignerPPI(Form);
-    MonitorPPI := GetMonitorPPI(Form.Monitor.Handle);
+    Scaled := TFormScaleHack(F).Scaled;
+    DesignerPPI := GetDesignerPPI(F);
+    MonitorPPI := GetMonitorPPI(F.Monitor.Handle);
   end else
   begin
     Scaled := False;
