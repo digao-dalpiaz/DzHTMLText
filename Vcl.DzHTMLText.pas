@@ -8,7 +8,7 @@ https://github.com/digao-dalpiaz/DzHTMLText
 Please, read the documentation at GitHub link.
 ------------------------------------------------------------------------------}
 
-unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
+{$IFNDEF FMX}unit Vcl.DzHTMLText;{$ENDIF}
 
 {$IFDEF FMX}
   {$IF CompilerVersion >= 26} //XE5
@@ -36,6 +36,7 @@ unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
 interface
 
 uses
+{$IFDEF VCL}ScalingUtils, {$ENDIF}
 {$IFDEF FPC}
   Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf, ImgList
 {$ELSE}
@@ -50,7 +51,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 706; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 707; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -219,17 +220,13 @@ type
 
   TDHScaling = class
   private
-    Lb: TDzHTMLText;
-
     {$IFDEF VCL}
-    Scaled: Boolean;
-    DesignerPPI, MonitorPPI: Integer;
+    Ctrl: TDzFormScaling;
     {$ENDIF}
-
-    procedure Update;
     function Calc(Value: TPixels): TPixels;
   public
-    constructor Create(aOwner: TDzHTMLText);
+    constructor Create(Lb: TDzHTMLText);
+    destructor Destroy; override;
   end;
 
   TDHBorders = class(TPersistent)
@@ -556,7 +553,6 @@ procedure Register;
 implementation
 
 uses
-{$IFDEF VCL}ScalingUtils, {$ENDIF}
 {$IFDEF FPC}
   {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources, Forms
 {$ELSE}
@@ -579,7 +575,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '4.1';
+const STR_VERSION = '4.2';
 
 procedure Register;
 begin
@@ -782,61 +778,27 @@ end;
 {$ENDREGION}
 
 {$REGION 'TDHScaling'}
-constructor TDHScaling.Create(aOwner: TDzHTMLText);
-begin
-  Lb := aOwner;
-end;
-
-{$IFDEF VCL}
-type
-  TFormScaleHack = class(TCustomForm);
-
-function GetDesignerPPI(F: TCustomForm): Integer;
-begin
-  Result :=
-    {$IFDEF FPC}
-    F.PixelsPerInch
-    {$ELSE}
-      {$IF CompilerVersion >= 31} //D10.1 Berlin
-      TFormScaleHack(F).GetDesignDpi
-      {$ELSE}
-      TFormScaleHack(F).PixelsPerInch
-      {$ENDIF}
-    {$ENDIF};
-end;
-{$ENDIF}
-
-procedure TDHScaling.Update;
-{$IFDEF VCL}
-const DEFAULT_PPI = 96;
-var
-  F: TCustomForm;
-{$ENDIF}
+constructor TDHScaling.Create(Lb: TDzHTMLText);
 begin
   {$IFDEF VCL}
-  F := GetParentForm(Lb);
-  if F<>nil then
-  begin
-    Scaled := TFormScaleHack(F).Scaled;
-    DesignerPPI := GetDesignerPPI(F);
-    MonitorPPI := GetMonitorPPI(F.Monitor.Handle);
-  end else
-  begin
-    Scaled := False;
-    DesignerPPI := DEFAULT_PPI;
-    MonitorPPI := DEFAULT_PPI;
-  end;
+  Ctrl := TDzFormScaling.Create(GetParentForm(Lb));
+  {$ENDIF}
+end;
+
+destructor TDHScaling.Destroy;
+begin
+  {$IFDEF VCL}
+  Ctrl.Free;
   {$ENDIF}
 end;
 
 function TDHScaling.Calc(Value: TPixels): TPixels;
 begin
   {$IFDEF VCL}
-  if Scaled then
-    Result := MulDiv(Value, MonitorPPI, DesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
-  else
-  {$ENDIF}
+  Result := Ctrl.Calc(Value);
+  {$ELSE}
   Result := Value;
+  {$ENDIF}
 end;
 {$ENDREGION}
 
@@ -1674,7 +1636,9 @@ begin
   LVisualItem.Clear; //clean old words
   LLinkRef.Clear; //clean old links
 
-  Scaling.Update;
+  {$IFDEF VCL}
+  Scaling.Ctrl.Update;
+  {$ENDIF}
 
   B := TBuilder.Create;
   try
@@ -2435,7 +2399,7 @@ begin
     {$IFDEF FMX}
       T.Value //font size
     {$ELSE}
-      Lb.Scaling.Calc(-MulDiv(T.Value, Lb.Scaling.DesignerPPI, 72)) //font height
+      Lb.Scaling.Calc(-MulDiv(T.Value, Lb.Scaling.Ctrl.DesignerPPI, 72)) //font height
     {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
