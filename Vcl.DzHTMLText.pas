@@ -1318,7 +1318,7 @@ begin
 end;
 
 procedure TDzHTMLText.Paint_Image(C: TCanvas; R: TRect; W: TDHVisualItem_Image);
-{$IFDEF VCL}
+{$IF Defined(VCL) and Defined(DCC)}
 var
   Icon: TIcon;
 {$ENDIF}
