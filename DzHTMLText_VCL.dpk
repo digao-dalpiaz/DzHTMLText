@@ -35,6 +35,7 @@ requires
   vcl;
 
 contains
-  Vcl.DzHTMLText in 'Vcl.DzHTMLText.pas';
+  Vcl.DzHTMLText in 'Vcl.DzHTMLText.pas',
+  ScalingUtils in 'ScalingUtils.pas';
 
 end.
