@@ -20,9 +20,11 @@ type
     property DesignerPPI: Integer read FDesignerPPI;
     property MonitorPPI: Integer read FMonitorPPI;
 
-    procedure Update(F: TCustomForm);
+    procedure Update(F: TCustomForm; DesignDPI: Integer);
     function Calc(Value: Integer): Integer;
   end;
+
+function GetDesignerPPI(F: TCustomForm): Integer;
 
 implementation
 
@@ -92,12 +94,12 @@ begin
     {$ENDIF};
 end;
 
-procedure TDzFormScaling.Update(F: TCustomForm);
+procedure TDzFormScaling.Update(F: TCustomForm; DesignDPI: Integer);
 begin
   if F<>nil then
   begin
     FScaled := TFormScaleHack(F).Scaled;
-    FDesignerPPI := GetDesignerPPI(F);
+    FDesignerPPI := DesignDPI;
     FMonitorPPI := GetMonitorPPI(F.Monitor.Handle);
   end else
   begin

@@ -281,6 +281,9 @@ type
   private
     FAbout: string;
 
+    {$IFDEF VCL}
+    FDesignDPI: Integer;
+    {$ENDIF}
     Scaling: TDHScaling;
 
     LVisualItem: TDHVisualItemList; //visual item list to paint event
@@ -369,6 +372,12 @@ type
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
     procedure SetBorders(const Value: TDHBorders);
     procedure SetOffset(const Value: TDHOffset);
+
+    {$IFDEF VCL}
+    function GetStoredDesignDPI: Boolean;
+    procedure SetDesignDPI(const Value: Integer);
+    function GetDesignDPIFromForm(aOwner: TComponent): Integer;
+    {$ENDIF}
 
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
@@ -546,6 +555,10 @@ type
     property ListLevelPadding: TPixels read FListLevelPadding write SetListLevelPadding stored GetStoredListLevelPadding;
 
     property Borders: TDHBorders read FBorders write SetBorders stored GetStoredBorders;
+
+    {$IFDEF VCL}
+    property DesignDPI: Integer read FDesignDPI write SetDesignDPI stored GetStoredDesignDPI;
+    {$ENDIF}
 
     property About: string read FAbout;
   end;
@@ -799,7 +812,7 @@ end;
 procedure TDHScaling.Update;
 begin
    {$IFDEF VCL}
-   Ctrl.Update(GetParentForm(Lb));
+   Ctrl.Update(GetParentForm(Lb), Lb.DesignDPI);
    {$ENDIF}
 end;
 
@@ -862,6 +875,8 @@ begin
   {$IFDEF VCL}
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
+
+  FDesignDPI := GetDesignDPIFromForm(AOwner);
   {$ENDIF}
 
   FAbout := 'Digao Dalpiaz / Version '+STR_VERSION;
@@ -965,6 +980,31 @@ begin
   //Rebuild words and repaint
   Modified([mfBuild, mfPaint]);
 end;
+
+{$IFDEF VCL}
+procedure TDzHTMLText.SetDesignDPI(const Value: Integer);
+begin
+  if Value<>FDesignDPI then
+  begin
+    FDesignDPI := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+function TDzHTMLText.GetDesignDPIFromForm(aOwner: TComponent): Integer;
+begin
+  if aOwner is TCustomForm then
+    Result := GetDesignerPPI(TCustomForm(aOwner))
+  else
+    Result := 0;
+end;
+
+function TDzHTMLText.GetStoredDesignDPI: Boolean;
+begin
+  Result := FDesignDPI <> GetDesignDPIFromForm(Owner);
+end;
+{$ENDIF}
 
 procedure TDzHTMLText.SetAutoHeight(const Value: Boolean);
 begin
