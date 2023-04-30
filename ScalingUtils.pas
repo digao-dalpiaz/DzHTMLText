@@ -11,9 +11,14 @@ uses
 
 type
   TDzFormScaling = class
+  private
+    FScaled: Boolean;
+    FDesignerPPI: Integer;
+    FMonitorPPI: Integer;
   public
-    Scaled: Boolean;
-    DesignerPPI, MonitorPPI: Integer;
+    property Scaled: Boolean read FScaled;
+    property DesignerPPI: Integer read FDesignerPPI;
+    property MonitorPPI: Integer read FMonitorPPI;
 
     procedure Update(F: TCustomForm);
     function Calc(Value: Integer): Integer;
@@ -91,21 +96,21 @@ procedure TDzFormScaling.Update(F: TCustomForm);
 begin
   if F<>nil then
   begin
-    Scaled := TFormScaleHack(F).Scaled;
-    DesignerPPI := GetDesignerPPI(F);
-    MonitorPPI := GetMonitorPPI(F.Monitor.Handle);
+    FScaled := TFormScaleHack(F).Scaled;
+    FDesignerPPI := GetDesignerPPI(F);
+    FMonitorPPI := GetMonitorPPI(F.Monitor.Handle);
   end else
   begin
-    Scaled := False;
-    DesignerPPI := DEFAULT_PPI;
-    MonitorPPI := DEFAULT_PPI;
+    FScaled := False;
+    FDesignerPPI := DEFAULT_PPI;
+    FMonitorPPI := DEFAULT_PPI;
   end;
 end;
 
 function TDzFormScaling.Calc(Value: Integer): Integer;
 begin
-  if Scaled then
-    Result := MulDiv(Value, MonitorPPI, DesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
+  if FScaled then
+    Result := MulDiv(Value, FMonitorPPI, FDesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
   else
     Result := Value;
 end;
