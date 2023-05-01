@@ -99,7 +99,7 @@ begin
   if F<>nil then
   begin
     FScaled := TFormScaleHack(F).Scaled;
-    FDesignerPPI := DesignDPI;
+    FDesignerPPI := DesignDPI; //Delphi 11 is not storing original design DPI (it changes by current monitor PPI)
     FMonitorPPI := GetMonitorPPI(F.Monitor.Handle);
   end else
   begin
