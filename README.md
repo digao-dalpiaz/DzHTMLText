@@ -32,12 +32,22 @@
 
 ## What's New
 
+- 05/01/2023 (Version 4.2)
+
+   - DPI Scaling improvements
+   - Supporting for new Dam 6.0 (FMX supporting)
+   - Simplifyed VCL x FMX units (using INCLUDE directive)
+   - Included ScalingUtils to VCL package
+   - Removed GenUnit app
+   - New Component DCR icons (transparency)
+   - New alias for internal objects (TAnyRect, TAnyColor, TAnyPoint...) - avoid incorrect using in other units
+   
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 04/26/2023 (Version 4.1)
 
    - Fixed Delphi 10 Seattle compiling (conditional directive about GetDesignDpi)
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 04/11/2023 (Version 4.0)
 
