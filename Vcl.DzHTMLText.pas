@@ -67,14 +67,18 @@ type
   TBitmap = Graphics.TBitmap;
   {$ELSE}
     {$IFDEF FMX}
-    TRect = TRectF;
-    TPoint = TPointF;
-    TSize = TSizeF;
+    TAnyRect = TRectF;
+    TAnyPoint = TPointF;
+    TAnySize = TSizeF;
 
     TColor = TAlphaColor;
     TBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
     TPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
     {$ELSE}
+    TAnyRect = TRect;
+    TAnyPoint = TPoint;
+    TAnySize = TSize;
+
     TBitmap = Vcl.Graphics.TBitmap;
     {$ENDIF}
   {$ENDIF}
@@ -125,7 +129,7 @@ type
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
     OffsetTop, OffsetBottom: TPixels;
-    Rect: TRect;
+    Rect: TAnyRect;
     BColor: TColor; //background color
     Link: TDHBaseLink;
     {The link number is created sequentially, when reading text links
@@ -247,7 +251,7 @@ type
     procedure SetBottom(const Value: TPixels);
     function GetHorizontalScaled: TPixels;
     function GetVerticalScaled: TPixels;
-    function GetRealRect(R: TRect): TRect; inline;
+    function GetRealRect(R: TAnyRect): TAnyRect; inline;
   protected
     function GetOwner: TPersistent; override;
   public
@@ -351,10 +355,10 @@ type
 
     procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure CanvasProcess(C: TCanvas);
-    procedure Paint_Word(C: TCanvas; R: TRect; W: TDHVisualItem_Word);
-    procedure Paint_Image(C: TCanvas; R: TRect; W: TDHVisualItem_Image);
-    procedure Paint_ImageResource(C: TCanvas; R: TRect; W: TDHVisualItem_ImageResource);
-    procedure Paint_Line(C: TCanvas; R: TRect; W: TDHVisualItem_Line);
+    procedure Paint_Word(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Word);
+    procedure Paint_Image(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Image);
+    procedure Paint_ImageResource(C: TCanvas; R: TAnyRect; W: TDHVisualItem_ImageResource);
+    procedure Paint_Line(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Line);
     procedure BuildAndPaint; //rebuild and repaint
     procedure Modified(Flags: TDHModifiedFlags);
 
@@ -651,7 +655,7 @@ begin
    Result := F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF};
 end;
 
-procedure GenericFillRect(C: TCanvas; R: TRect);
+procedure GenericFillRect(C: TCanvas; R: TAnyRect);
 begin
   C.FillRect(
     {$IFDEF FMX}
@@ -1250,7 +1254,7 @@ end;
 
 procedure TDzHTMLText.CanvasProcess(C: TCanvas);
 var
-  R: TRect;
+  R: TAnyRect;
   W: TDHVisualItem;
 begin
   //draw background color
@@ -1333,7 +1337,7 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.Paint_Word(C: TCanvas; R: TRect; W: TDHVisualItem_Word);
+procedure TDzHTMLText.Paint_Word(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Word);
 begin
   R.Top := R.Top + W.YPos;
 
@@ -1357,7 +1361,7 @@ begin
   {$ENDIF}
 end;
 
-procedure TDzHTMLText.Paint_Image(C: TCanvas; R: TRect; W: TDHVisualItem_Image);
+procedure TDzHTMLText.Paint_Image(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Image);
 {$IF Defined(VCL) and Defined(DCC)}
 var
   Icon: TIcon;
@@ -1385,16 +1389,16 @@ begin
   {$ENDIF}
 end;
 
-procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TRect; W: TDHVisualItem_ImageResource);
+procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TAnyRect; W: TDHVisualItem_ImageResource);
 begin
   {$IFDEF FMX}
-  C.DrawBitmap(W.Picture, TRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1); //FMX scaling?
+  C.DrawBitmap(W.Picture, TAnyRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1); //FMX scaling?
   {$ELSE}
   C.StretchDraw(R, W.Picture.Graphic);
   {$ENDIF}
 end;
 
-procedure TDzHTMLText.Paint_Line(C: TCanvas; R: TRect; W: TDHVisualItem_Line);
+procedure TDzHTMLText.Paint_Line(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Line);
 begin
   if W.ColorAlt <> clNone then
     R.Height := R.Height
@@ -1434,11 +1438,11 @@ procedure TDzHTMLText.CheckMouse(X, Y: TPixels);
 var
   Link: TDHBaseLink;
   W: TDHVisualItem;
-  P: TPoint;
+  P: TAnyPoint;
 begin
   Link := nil;
 
-  P := TPoint.Create(X, Y);
+  P := TAnyPoint.Create(X, Y);
 
   //find the first word, if there is any
   for W in LVisualItem do
@@ -1680,7 +1684,7 @@ end;
 procedure TDzHTMLText.Rebuild;
 var
   B: TBuilder;
-  P: TPoint;
+  P: TAnyPoint;
 begin
   if csLoading in ComponentState then Exit;
 
@@ -2062,7 +2066,7 @@ type
   end;
 
   TPreObj_Float = class(TPreObj)
-    Rect: TRect;
+    Rect: TAnyRect;
     Close: Boolean;
   end;
 
@@ -2073,7 +2077,7 @@ type
   end;
 
   TPreObj_Visual = class(TPreObj)
-    Size: TSize;
+    Size: TAnySize;
     Line: Integer; //line number
     Group: Integer; //group number
     {The group is isolated at each line or tabulation to delimit text horizontal align area}
@@ -2229,9 +2233,9 @@ type
     procedure DoTab(T: TToken);
     procedure DoBreak;
 
-    procedure CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
+    procedure CheckSupSubScript(W: TDHVisualItem_Word; var Size: TAnySize);
 
-    procedure ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TSize);
+    procedure ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TAnySize);
 
     procedure DefineVisualRect;
     procedure Publish;
@@ -2502,12 +2506,12 @@ end;
 
 procedure TTokensProcess.DoTextAndRelated(T: TToken);
 var
-  Ex: TSize;
+  Ex: TAnySize;
   Z: TPreObj_Visual;
   W: TDHVisualItem;
   FixedPos: TFixedPosition;
 begin
-  Ex := TSize.Create(0, 0);
+  Ex := TAnySize.Create(0, 0);
   FixedPos := Default(TFixedPosition);
 
   case T.Kind of
@@ -2543,9 +2547,9 @@ begin
       begin
         {$IFDEF FMX}
         with Lb.FImages.Destination[T.Value].Layers[0].SourceRect do
-          Ex := TSize.Create(Width, Height);
+          Ex := TAnySize.Create(Width, Height);
         {$ELSE}
-        Ex := TSize.Create(Lb.FImages.Width, Lb.FImages.Height);
+        Ex := TAnySize.Create(Lb.FImages.Width, Lb.FImages.Height);
         {$ENDIF}
       end;
       {$ENDIF}
@@ -2558,7 +2562,7 @@ begin
       begin
         Load(Lb, T.Text);
 
-        Ex := TSize.Create(Picture.Width, Picture.Height);
+        Ex := TAnySize.Create(Picture.Width, Picture.Height);
       end;
     end;
 
@@ -2579,7 +2583,7 @@ begin
         FontColor := C.Stroke.Color;
         {$ENDIF}
 
-        Ex := TSize.Create(C.TextWidth(Text), C.TextHeight(Text));
+        Ex := TAnySize.Create(C.TextWidth(Text), C.TextHeight(Text));
 
         CheckSupSubScript(TDHVisualItem_Word(W), Ex);
       end;
@@ -2616,7 +2620,7 @@ begin
   Items.Add(Z);
 end;
 
-procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
+procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TAnySize);
 var
   OriginalFontPt, OriginalFontSize: TFontPt;
   I: Integer;
@@ -2697,7 +2701,7 @@ begin
   LSupAndSubScript.AddOrDel(T, &Class);
 end;
 
-procedure TTokensProcess.ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TSize);
+procedure TTokensProcess.ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TAnySize);
 var
   P: THTMLTokenParams;
 begin
@@ -2802,8 +2806,8 @@ var
   X, Y: TPixels;
   Max, OldMax: TSizes;
   LastTabX: TPixels; LastTabF: Boolean;
-  PrevPos: TPoint; PrevLine, CurLine, LineCount: Integer;
-  FloatRect: TRect; InFloat: Boolean;
+  PrevPos: TAnyPoint; PrevLine, CurLine, LineCount: Integer;
+  FloatRect: TAnyRect; InFloat: Boolean;
 
   procedure IncPreviousGroup(Right, Limit: TPixels);
   var
@@ -2863,7 +2867,7 @@ var
     end;
   end;
 
-  procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TPoint);
+  procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TAnyPoint);
   var
     GrpLim: TPixels;
     LI: TLineInfo;
@@ -2899,8 +2903,8 @@ begin
   LineCount := 0;
   CurLine := 0;
   PrevLine := -1;
-  PrevPos := TPoint.Create(0, 0);
-  FloatRect := TRect.Empty;
+  PrevPos := TAnyPoint.Create(0, 0);
+  FloatRect := TAnyRect.Empty;
   LastTabX := 0;
   LastTabF := False;
   InFloat := False;
@@ -2918,12 +2922,12 @@ begin
       if TPreObj_Float(Z).Close then
       begin
         BreakGroupAndLineCtrl(False, PrevPos);
-        FloatRect := TRect.Empty;
+        FloatRect := TAnyRect.Empty;
         InFloat := False;
       end else
       begin
         PrevLine := CurLine; //save current line
-        PrevPos := TPoint.Create(X, Y); //save current position
+        PrevPos := TAnyPoint.Create(X, Y); //save current position
         BreakGroupAndLineCtrl(True, TPreObj_Float(Z).Rect.Location);
         FloatRect := TPreObj_Float(Z).Rect;
         InFloat := True;
@@ -2952,7 +2956,7 @@ begin
         CheckPriorSpace; //remove space at previous line if is the last obj
 
       if not InFloat then Inc(LineCount);
-      BreakGroupAndLineCtrl(True, TPoint.Create(FloatRect.Left, Y+Max.LineHeight+Max.LineSpace));
+      BreakGroupAndLineCtrl(True, TAnyPoint.Create(FloatRect.Left, Y+Max.LineHeight+Max.LineSpace));
       //if line is empty, there is no visual item to check overall height
       if Y>Max.OverallHeight then Max.OverallHeight := Y;
 
@@ -2976,7 +2980,7 @@ begin
     if (V.Visual is TDHVisualItem_Line) and TDHVisualItem_Line(V.Visual).Full and not Lb.FAutoWidth then
       V.Size.Width := Lb.GetAreaWidth - X;
 
-    V.Visual.Rect := TRect.Create(X, Y, X+V.Size.Width, Y+V.Size.Height);
+    V.Visual.Rect := TAnyRect.Create(X, Y, X+V.Size.Width, Y+V.Size.Height);
     V.Line := CurLine;
     V.Group := LGroupBound.Count;
     V.Print := True;
@@ -3040,7 +3044,7 @@ type
   procedure Check(fnIndex: Byte; horz: Boolean; prop: Variant);
   var
     R: TFuncAlignResult;
-    P: TPoint;
+    P: TAnyPoint;
     Offset: TPixels;
   begin
     if prop>0 then //center or right
@@ -3055,7 +3059,7 @@ type
       Offset := R.Outside - R.Inside;
       if prop=1 then Offset := {$IFDEF VCL}Round{$ENDIF}(Offset / 2); //center
 
-      P := TPoint.Create(0, 0);
+      P := TAnyPoint.Create(0, 0);
       if horz then
         P.X := Offset
       else
@@ -3306,7 +3310,7 @@ begin
   Result := Lb.Scaling.Calc(FTop + FBottom);
 end;
 
-function TDHBorders.GetRealRect(R: TRect): TRect;
+function TDHBorders.GetRealRect(R: TAnyRect): TAnyRect;
 begin
   Result := R;
   Result.Offset(Lb.Scaling.Calc(FLeft), Lb.Scaling.Calc(FTop));

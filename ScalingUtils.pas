@@ -25,6 +25,7 @@ type
   end;
 
 function GetDesignerPPI(F: TCustomForm): Integer;
+function GetMonitorPPI(F: TCustomForm): Integer;
 
 implementation
 
@@ -52,7 +53,7 @@ function GetDpiForMonitor(
   ): HRESULT; stdcall; external 'Shcore.dll' {$IFDEF DCC}delayed{$ENDIF};
 {$WARN SYMBOL_PLATFORM ON}
 
-function GetMonitorPPI(FHandle: HMONITOR): Integer;
+function GetMonitorPPI(F: TCustomForm): Integer;
 var
   Ydpi: Cardinal;
   Xdpi: Cardinal;
@@ -60,7 +61,7 @@ var
 begin
   if CheckWin32Version(6,3) then
   begin
-    if GetDpiForMonitor(FHandle, TMonitorDpiType.MDT_EFFECTIVE_DPI, Ydpi, Xdpi) = S_OK then
+    if GetDpiForMonitor(F.Monitor.Handle, TMonitorDpiType.MDT_EFFECTIVE_DPI, Ydpi, Xdpi) = S_OK then
       Result := Ydpi
     else
       Result := 0;
@@ -100,7 +101,7 @@ begin
   begin
     FScaled := TFormScaleHack(F).Scaled;
     FDesignerPPI := DesignDPI; //Delphi 11 is not storing original design DPI (it changes by current monitor PPI)
-    FMonitorPPI := GetMonitorPPI(F.Monitor.Handle);
+    FMonitorPPI := GetMonitorPPI(F);
   end else
   begin
     FScaled := False;
