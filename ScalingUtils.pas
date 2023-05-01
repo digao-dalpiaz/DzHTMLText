@@ -12,20 +12,16 @@ uses
 type
   TDzFormScaling = class
   private
-    FScaled: Boolean;
-    FDesignerPPI: Integer;
-    FMonitorPPI: Integer;
+    Scaled: Boolean;
+    DesignerPPI: Integer;
+    MonitorPPI: Integer;
   public
-    property Scaled: Boolean read FScaled;
-    property DesignerPPI: Integer read FDesignerPPI;
-    property MonitorPPI: Integer read FMonitorPPI;
-
-    procedure Update(F: TCustomForm; DesignDPI: Integer);
+    procedure Update(F: TCustomForm; xDesignerDPI: Integer);
     function Calc(Value: Integer): Integer;
   end;
 
-function GetDesignerPPI(F: TCustomForm): Integer;
-function GetMonitorPPI(F: TCustomForm): Integer;
+function RetrieveDesignerPPI(F: TCustomForm): Integer;
+function RetrieveMonitorPPI(F: TCustomForm): Integer;
 
 implementation
 
@@ -53,7 +49,7 @@ function GetDpiForMonitor(
   ): HRESULT; stdcall; external 'Shcore.dll' {$IFDEF DCC}delayed{$ENDIF};
 {$WARN SYMBOL_PLATFORM ON}
 
-function GetMonitorPPI(F: TCustomForm): Integer;
+function RetrieveMonitorPPI(F: TCustomForm): Integer;
 var
   Ydpi: Cardinal;
   Xdpi: Cardinal;
@@ -76,12 +72,10 @@ end;
 
 //
 
-const DEFAULT_PPI = 96;
-
 type
   TFormScaleHack = class(TCustomForm);
 
-function GetDesignerPPI(F: TCustomForm): Integer;
+function RetrieveDesignerPPI(F: TCustomForm): Integer;
 begin
   Result :=
     {$IFDEF FPC}
@@ -95,25 +89,25 @@ begin
     {$ENDIF};
 end;
 
-procedure TDzFormScaling.Update(F: TCustomForm; DesignDPI: Integer);
+procedure TDzFormScaling.Update(F: TCustomForm; xDesignerDPI: Integer);
 begin
   if F<>nil then
   begin
-    FScaled := TFormScaleHack(F).Scaled;
-    FDesignerPPI := DesignDPI; //Delphi 11 is not storing original design DPI (it changes by current monitor PPI)
-    FMonitorPPI := GetMonitorPPI(F);
+    Scaled := TFormScaleHack(F).Scaled;
+    DesignerPPI := xDesignerDPI; //Delphi 11 is not storing original design DPI (it changes by current monitor PPI)
+    MonitorPPI := RetrieveMonitorPPI(F);
   end else
   begin
-    FScaled := False;
-    FDesignerPPI := DEFAULT_PPI;
-    FMonitorPPI := DEFAULT_PPI;
+    Scaled := False;
+    DesignerPPI := 0;
+    MonitorPPI := 0;
   end;
 end;
 
 function TDzFormScaling.Calc(Value: Integer): Integer;
 begin
-  if FScaled then
-    Result := MulDiv(Value, FMonitorPPI, FDesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
+  if Scaled then
+    Result := MulDiv(Value, MonitorPPI, DesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
   else
     Result := Value;
 end;

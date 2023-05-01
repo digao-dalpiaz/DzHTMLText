@@ -999,7 +999,7 @@ end;
 function TDzHTMLText.GetDesignDPIFromForm(aOwner: TComponent): Integer;
 begin
   if aOwner is TCustomForm then
-    Result := GetDesignerPPI(TCustomForm(aOwner))
+    Result := RetrieveDesignerPPI(TCustomForm(aOwner))
   else
     Result := 0;
 end;
@@ -2452,7 +2452,7 @@ begin
     {$IFDEF FMX}
       T.Value //font size
     {$ELSE}
-      Lb.Scaling.Calc(-MulDiv(T.Value, Lb.Scaling.Ctrl.DesignerPPI, 72)) //font height
+      Lb.Scaling.Calc(-MulDiv(T.Value, Lb.FDesignDPI, 72)) //font height
     {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
