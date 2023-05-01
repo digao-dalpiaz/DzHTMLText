@@ -70,16 +70,16 @@ type
     TAnyRect = TRectF;
     TAnyPoint = TPointF;
     TAnySize = TSizeF;
-
-    TColor = TAlphaColor;
-    TBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
-    TPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
+    TAnyColor = TAlphaColor;
+    TAnyBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
+    TAnyPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
     {$ELSE}
     TAnyRect = TRect;
     TAnyPoint = TPoint;
     TAnySize = TSize;
-
-    TBitmap = Vcl.Graphics.TBitmap;
+    TAnyColor = TColor;
+    TAnyBitmap = Vcl.Graphics.TBitmap;
+    TAnyPicture = TPicture;
     {$ENDIF}
   {$ENDIF}
 
@@ -130,7 +130,7 @@ type
   private
     OffsetTop, OffsetBottom: TPixels;
     Rect: TAnyRect;
-    BColor: TColor; //background color
+    BColor: TAnyColor; //background color
     Link: TDHBaseLink;
     {The link number is created sequentially, when reading text links
     and works to know the link target, stored on a TStringList, because if
@@ -143,7 +143,7 @@ type
     Text: string;
     Font: TFont;
     {$IFDEF FMX}
-    FontColor: TColor;
+    FontColor: TAnyColor;
     {$ENDIF}
     YPos: TPixels;
   public
@@ -158,7 +158,7 @@ type
 
   TDHVisualItem_ImageResource = class(TDHVisualItem)
   private
-    Picture: TPicture;
+    Picture: TAnyPicture;
     procedure Load(Lb: TDzHTMLText; const ResourceName: string);
   public
     constructor Create;
@@ -169,8 +169,8 @@ type
 
   TDHVisualItem_Line = class(TDHVisualItem)
   private
-    Color: TColor;
-    ColorAlt: TColor;
+    Color: TAnyColor;
+    ColorAlt: TAnyColor;
     Full: Boolean;
   end;
 
@@ -201,13 +201,13 @@ type
     Lb: TDzHTMLText; //owner
     Kind: TDHKindStyleLinkProp;
 
-    FFontColor: TColor;
-    FBackColor: TColor;
+    FFontColor: TAnyColor;
+    FBackColor: TAnyColor;
     FUnderline: Boolean;
-    procedure SetFontColor(const Value: TColor);
-    procedure SetBackColor(const Value: TColor);
+    procedure SetFontColor(const Value: TAnyColor);
+    procedure SetBackColor(const Value: TAnyColor);
     procedure SetUnderline(const Value: Boolean);
-    function GetDefaultFontColor: TColor;
+    function GetDefaultFontColor: TAnyColor;
     function GetStoredFontColor: Boolean;
     procedure SetPropsToCanvas(C: TCanvas); //method to use at paint event
     function GetStored: Boolean; //GetStored general to use at owner
@@ -217,8 +217,8 @@ type
     constructor Create(Lb: TDzHTMLText; Kind: TDHKindStyleLinkProp);
     procedure Assign(Source: TPersistent); override;
   published
-    property FontColor: TColor read FFontColor write SetFontColor stored GetStoredFontColor;
-    property BackColor: TColor read FBackColor write SetBackColor default clNone;
+    property FontColor: TAnyColor read FFontColor write SetFontColor stored GetStoredFontColor;
+    property BackColor: TAnyColor read FBackColor write SetBackColor default clNone;
     property Underline: Boolean read FUnderline write SetUnderline default False;
   end;
 
@@ -271,7 +271,7 @@ type
   TDHVertAlign = (vaTop, vaCenter, vaBottom);
   TDHHorzAlign = (haLeft, haCenter, haRight);
 
-  TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: string; Picture: TPicture; var Handled: Boolean) of object;
+  TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: string; Picture: TAnyPicture; var Handled: Boolean) of object;
 
   TDHModifiedFlag = (mfBuild, mfPaint);
   TDHModifiedFlags = set of TDHModifiedFlag;
@@ -309,8 +309,8 @@ type
     FStyleLinkNormal, FStyleLinkHover: TDHStyleLinkProp;
 
     {$IFDEF FMX}
-    FColor: TColor;
-    FFontColor: TColor;
+    FColor: TAnyColor;
+    FFontColor: TAnyColor;
     {$ENDIF}
 
     {$IFDEF USE_IMGLST}
@@ -388,8 +388,8 @@ type
     {$ENDIF}
 
     {$IFDEF FMX}
-    procedure SetFontColor(const Value: TColor);
-    procedure SetColor(const Value: TColor);
+    procedure SetFontColor(const Value: TAnyColor);
+    procedure SetColor(const Value: TAnyColor);
 
     procedure OnFontChanged(Sender: TObject);
     {$ENDIF}
@@ -505,8 +505,8 @@ type
       property Size;
       {$ENDIF}
 
-    property Color: TColor read FColor write SetColor default clNone;
-    property FontColor: TColor read FFontColor write SetFontColor default TAlphaColors.Black;
+    property Color: TAnyColor read FColor write SetColor default clNone;
+    property FontColor: TAnyColor read FFontColor write SetFontColor default TAlphaColors.Black;
     {$ELSE}//VCL
     property Color;
     property ParentColor;
@@ -615,22 +615,22 @@ end;
 {$ENDREGION}
 
 {$REGION 'General Functions'}
-procedure DefineFillColor(C: TCanvas; Color: TColor);
+procedure DefineFillColor(C: TCanvas; Color: TAnyColor);
 begin
   C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := Color;
 end;
 
-function GetGenericFillColor(C: TCanvas): TColor;
+function GetGenericFillColor(C: TCanvas): TAnyColor;
 begin
   Result := C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color;
 end;
 
-procedure DefineFontColor(C: TCanvas; Color: TColor);
+procedure DefineFontColor(C: TCanvas; Color: TAnyColor);
 begin
   C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := Color;
 end;
 
-function GetGenericFontColor(C: TCanvas): TColor;
+function GetGenericFontColor(C: TCanvas): TAnyColor;
 begin
   Result := C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color;
 end;
@@ -665,7 +665,7 @@ begin
     {$ENDIF});
 end;
 
-function ParamToColor(A: string): TColor;
+function ParamToColor(A: string): TAnyColor;
 begin
   if A = EmptyStr then Exit(clNone);
 
@@ -743,7 +743,7 @@ end;
 constructor TDHVisualItem_ImageResource.Create;
 begin
   inherited;
-  Picture := TPicture.Create{$IFNDEF USE_NEW_ENV}(0, 0){$ENDIF};
+  Picture := TAnyPicture.Create{$IFNDEF USE_NEW_ENV}(0, 0){$ENDIF};
 end;
 
 destructor TDHVisualItem_ImageResource.Destroy;
@@ -1171,7 +1171,7 @@ end;
 {$ENDIF}
 
 {$IFDEF FMX}
-procedure TDzHTMLText.SetColor(const Value: TColor);
+procedure TDzHTMLText.SetColor(const Value: TAnyColor);
 begin
   if Value<>FColor then
   begin
@@ -1181,7 +1181,7 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.SetFontColor(const Value: TColor);
+procedure TDzHTMLText.SetFontColor(const Value: TAnyColor);
 begin
   if Value<>FFontColor then
   begin
@@ -1232,12 +1232,12 @@ end;
 procedure TDzHTMLText.DoPaint;
 {$IFDEF VCL}
 var
-  B: TBitmap;
+  B: TAnyBitmap;
 {$ENDIF}
 begin
   {$IFDEF VCL}
   //Using internal bitmap as a buffer to reduce flickering
-  B := TBitmap.Create;
+  B := TAnyBitmap.Create;
   try
     B.SetSize(Width, Height);
     CanvasProcess(B.Canvas);
@@ -2186,7 +2186,7 @@ type
 
     CurrentProps: record
       Offset: THTMLOffsetTag;
-      BackColor: TColor;
+      BackColor: TAnyColor;
       Align: TDHHorzAlign;
       VertAlign: TDHVertAlign;
       LineSpace: TPixels;
@@ -2199,8 +2199,8 @@ type
     LStrike: TListStack<Boolean>;
     LFontName: TListStack<string>;
     LFontHeightOrSize: TListStack<TFontPt>;
-    LFontColor: TListStack<TColor>;
-    LBackColor: TListStack<TColor>;
+    LFontColor: TListStack<TAnyColor>;
+    LBackColor: TListStack<TAnyColor>;
     LAlign: TListStack<TDHHorzAlign>;
     LVertAlign: TListStack<TDHVertAlign>;
     LLineSpace: TListStack<TPixels>;
@@ -2294,8 +2294,8 @@ begin
   LStrike := TListStack<Boolean>.Create;
   LFontName := TListStack<string>.Create;
   LFontHeightOrSize := TListStack<TFontPt>.Create;
-  LFontColor := TListStack<TColor>.Create;
-  LBackColor := TListStack<TColor>.Create;
+  LFontColor := TListStack<TAnyColor>.Create;
+  LBackColor := TListStack<TAnyColor>.Create;
   LAlign := TListStack<TDHHorzAlign>.Create;
   LVertAlign := TListStack<TDHVertAlign>.Create;
   LLineSpace := TListStack<TPixels>.Create;
@@ -3111,7 +3111,7 @@ begin
   Result := Lb;
 end;
 
-function TDHStyleLinkProp.GetDefaultFontColor: TColor;
+function TDHStyleLinkProp.GetDefaultFontColor: TAnyColor;
 begin
   Result := clNone;
   case Kind of
@@ -3125,7 +3125,7 @@ begin
   Result := FFontColor<>GetDefaultFontColor;
 end;
 
-procedure TDHStyleLinkProp.SetFontColor(const Value: TColor);
+procedure TDHStyleLinkProp.SetFontColor(const Value: TAnyColor);
 begin
   if Value <> FFontColor then
   begin
@@ -3135,7 +3135,7 @@ begin
   end;
 end;
 
-procedure TDHStyleLinkProp.SetBackColor(const Value: TColor);
+procedure TDHStyleLinkProp.SetBackColor(const Value: TAnyColor);
 begin
   if Value <> FBackColor then
   begin
