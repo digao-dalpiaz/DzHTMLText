@@ -22,6 +22,9 @@ Please, read the documentation at GitHub link.
   {$DEFINE VCL}
   {$DEFINE USE_NEW_ENV}
   {$DEFINE USE_IMGLST}
+  {$IFDEF MSWINDOWS}
+    {$DEFINE USE_SCALING}
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF FPC}
@@ -36,7 +39,7 @@ Please, read the documentation at GitHub link.
 interface
 
 uses
-{$IFDEF VCL}ScalingUtils, {$ENDIF}
+{$IFDEF USE_SCALING}ScalingUtils, {$ENDIF}
 {$IFDEF FPC}
   Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf, ImgList
 {$ELSE}
@@ -63,24 +66,22 @@ type
   {$IFDEF FPC}
   TObjectList<T: TObject> = class(TFPGObjectList<T>);
   TList<T> = class(TFPGList<T>);
+  {$ENDIF}
 
-  TBitmap = Graphics.TBitmap;
+  {$IFDEF FMX}
+  TAnyRect = TRectF;
+  TAnyPoint = TPointF;
+  TAnySize = TSizeF;
+  TAnyColor = TAlphaColor;
+  TAnyBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
+  TAnyPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
   {$ELSE}
-    {$IFDEF FMX}
-    TAnyRect = TRectF;
-    TAnyPoint = TPointF;
-    TAnySize = TSizeF;
-    TAnyColor = TAlphaColor;
-    TAnyBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
-    TAnyPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
-    {$ELSE}
-    TAnyRect = TRect;
-    TAnyPoint = TPoint;
-    TAnySize = TSize;
-    TAnyColor = TColor;
-    TAnyBitmap = Vcl.Graphics.TBitmap;
-    TAnyPicture = TPicture;
-    {$ENDIF}
+  TAnyRect = TRect;
+  TAnyPoint = TPoint;
+  TAnySize = TSize;
+  TAnyColor = TColor;
+  TAnyBitmap = {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap;
+  TAnyPicture = TPicture;
   {$ENDIF}
 
   TPixels = {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF};
@@ -225,7 +226,7 @@ type
   TDHScaling = class
   private
     Lb: TDzHTMLText;
-    {$IFDEF VCL}
+    {$IFDEF USE_SCALING}
     Ctrl: TDzFormScaling;
     {$ENDIF}
     procedure Update;
@@ -285,7 +286,7 @@ type
   private
     FAbout: string;
 
-    {$IFDEF VCL}
+    {$IFDEF USE_SCALING}
     FDesignDPI: Integer;
     {$ENDIF}
     Scaling: TDHScaling;
@@ -377,7 +378,7 @@ type
     procedure SetBorders(const Value: TDHBorders);
     procedure SetOffset(const Value: TDHOffset);
 
-    {$IFDEF VCL}
+    {$IFDEF USE_SCALING}
     function GetStoredDesignDPI: Boolean;
     procedure SetDesignDPI(const Value: Integer);
     function GetDesignDPIFromForm(aOwner: TComponent): Integer;
@@ -560,7 +561,7 @@ type
 
     property Borders: TDHBorders read FBorders write SetBorders stored GetStoredBorders;
 
-    {$IFDEF VCL}
+    {$IFDEF USE_SCALING}
     property DesignDPI: Integer read FDesignDPI write SetDesignDPI stored GetStoredDesignDPI;
     {$ENDIF}
 
@@ -801,28 +802,28 @@ constructor TDHScaling.Create(aOwner: TDzHTMLText);
 begin
   Lb := aOwner;
 
-  {$IFDEF VCL}
+  {$IFDEF USE_SCALING}
   Ctrl := TDzFormScaling.Create;
   {$ENDIF}
 end;
 
 destructor TDHScaling.Destroy;
 begin
-  {$IFDEF VCL}
+  {$IFDEF USE_SCALING}
   Ctrl.Free;
   {$ENDIF}
 end;
 
 procedure TDHScaling.Update;
 begin
-   {$IFDEF VCL}
+   {$IFDEF USE_SCALING}
    Ctrl.Update(GetParentForm(Lb), Lb.DesignDPI);
    {$ENDIF}
 end;
 
 function TDHScaling.Calc(Value: TPixels): TPixels;
 begin
-  {$IFDEF VCL}
+  {$IFDEF USE_SCALING}
   Result := Ctrl.Calc(Value);
   {$ELSE}
   Result := Value;
@@ -879,7 +880,9 @@ begin
   {$IFDEF VCL}
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
+  {$ENDIF}
 
+  {$IFDEF USE_SCALING}
   FDesignDPI := GetDesignDPIFromForm(AOwner);
   {$ENDIF}
 
@@ -985,7 +988,7 @@ begin
   Modified([mfBuild, mfPaint]);
 end;
 
-{$IFDEF VCL}
+{$IFDEF USE_SCALING}
 procedure TDzHTMLText.SetDesignDPI(const Value: Integer);
 begin
   if Value<>FDesignDPI then
@@ -2452,7 +2455,12 @@ begin
     {$IFDEF FMX}
       T.Value //font size
     {$ELSE}
-      Lb.Scaling.Calc(-MulDiv(T.Value, Lb.FDesignDPI, 72)) //font height
+      Lb.Scaling.Calc(
+        {$IFDEF USE_SCALING}
+        -MulDiv(T.Value, Lb.FDesignDPI, 72) //font height
+        {$ELSE}
+        T.Value
+        {$ENDIF})
     {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
