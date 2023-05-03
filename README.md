@@ -311,8 +311,8 @@ Here are all possible tags you can use in text:
 <L></L> - Align Left
 <C></C> - Align Center
 <R></R> - Align Right
-<T:123> - Tab
-<TF:123> - Tab with aligned break
+<T:nnn> - Tab alignment, where 'nnn' is text alignment from the left margin in pixels
+<TF:nnn> - Tab with aligned break, where 'nnn' is text alignment from the left margin in pixels
 <IMG:nnn> - Image from ImageList where 'nnn' is image index
 <IMGRES:name> - PNG image from Resource where 'name' is the resource name
 <UL></UL> - Unordered list
@@ -331,7 +331,7 @@ Here are all possible tags you can use in text:
     height = 1
     color = Current font color
     coloralt = No value (specify a color to draw dual color line, otherwise it will draw a single color line)
-<VALIGN:top|center|bottom></ALIGN> - Aligning content vertically to the line
+<VALIGN:top|center|bottom></VALIGN> - Aligning content vertically to the line
 <OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
   Offset margins are memorized if a new offset tag is specifyed without same parameter name
 
