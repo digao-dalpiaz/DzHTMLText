@@ -14,6 +14,7 @@
 
 - [What's New](#whats-new)
 - [Component Description](#component-description)
+- [Available tags](#available-tags)
 - [Installing](#installing)
 - [Component Properties](#component-properties)
 - [Events](#events)
@@ -294,7 +295,7 @@
 
 This visual component allows you to specify a formatted text in a label, using almost the same syntax used in HTML code.
 
-Here are all possible tags you can use in text:
+## Available Tags
 
 ```
 <A[:abc]></A> - Link
