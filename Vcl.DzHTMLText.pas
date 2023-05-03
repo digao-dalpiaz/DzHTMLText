@@ -2452,16 +2452,11 @@ begin
   FontVal := 0;
   if not T.TagClose then
     FontVal :=
-    {$IFDEF FMX}
+      {$IFDEF FMX}
       T.Value //font size
-    {$ELSE}
-      Lb.Scaling.Calc(
-        {$IFDEF USE_SCALING}
-        -MulDiv(T.Value, Lb.FDesignDPI, 72) //font height
-        {$ELSE}
-        T.Value
-        {$ENDIF})
-    {$ENDIF};
+      {$ELSE}
+      Lb.Scaling.Calc(-Round(T.Value * Lb.FDesignDPI / 72)) //font height
+      {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
   DefineFontPt(C.Font, LFontHeightOrSize.Last);
