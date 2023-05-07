@@ -568,6 +568,8 @@ type
     property About: string read FAbout;
   end;
 
+function CalcFontHeight(Size: Integer; MonitorPPI: Integer): Integer;
+
 procedure Register;
 
 implementation
@@ -597,10 +599,17 @@ uses
 
 const STR_VERSION = '4.2';
 
+const DEFAULT_PPI = 96;
+
 procedure Register;
 begin
   {$IFDEF FPC}{$I DzHTMLText.lrs}{$ENDIF}
   RegisterComponents('Digao', [TDzHTMLText]);
+end;
+
+function CalcFontHeight(Size: Integer; MonitorPPI: Integer): Integer;
+begin
+  Result := -Round(Size * MonitorPPI / 72);
 end;
 
 {$REGION 'EInternalExcept'}
@@ -2455,7 +2464,7 @@ begin
       {$IFDEF FMX}
       T.Value //font size
       {$ELSE}
-      -Round(T.Value * {$IFDEF USE_SCALING}Lb.Scaling.Ctrl.MonitorPPI{$ELSE}96{$ENDIF} / 72) //font height
+      CalcFontHeight(T.Value, {$IFDEF USE_SCALING}Lb.Scaling.Ctrl.MonitorPPI{$ELSE}DEFAULT_PPI{$ENDIF}) //font height
       {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
