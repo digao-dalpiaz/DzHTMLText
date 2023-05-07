@@ -817,7 +817,7 @@ end;
 procedure TDHScaling.Update;
 begin
    {$IFDEF USE_SCALING}
-   Ctrl.Update(GetParentForm(Lb), Lb.DesignDPI);
+   Ctrl.Update(GetParentForm(Lb), Lb.FDesignDPI);
    {$ENDIF}
 end;
 
@@ -2455,7 +2455,7 @@ begin
       {$IFDEF FMX}
       T.Value //font size
       {$ELSE}
-      Lb.Scaling.Calc(-Round(T.Value * Lb.FDesignDPI / 72)) //font height
+      -Round(T.Value * {$IFDEF USE_SCALING}Lb.Scaling.Ctrl.MonitorPPI{$ELSE}96{$ENDIF} / 72) //font height
       {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
