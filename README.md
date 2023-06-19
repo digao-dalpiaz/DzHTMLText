@@ -378,7 +378,7 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background. In VCL environment, transparency is not available.
 
-`DesignDPI: Integer` = Defines Pixels Per Inch that html syntax was formatted (auto assigned when component inserted in a Form). All measurements will be calculated based on the Design DPI, and applied to the current Monitor DPI. Example: if you specified a tab width as 60 pixels, at 96 DPI, when displaying the text on a 120 DPI monitor, the tab width will be larger (75 pixels).
+`DesignDPI: Integer` *(only in VCL+WINDOWS)* = Defines Pixels Per Inch that html syntax was formatted (auto assigned when component inserted in a Form). All measurements will be calculated based on the Design DPI, and applied to the current Monitor DPI. Example: if you specified a tab width as 60 pixels, at 96 DPI, when displaying the text on a 120 DPI monitor, the tab width will be larger (75 pixels).
 
 `Font: TFont` = Determines the base font. When no tag is specified on text, this base font is used.
 
