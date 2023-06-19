@@ -36,6 +36,7 @@
 - 06/19/2023 (Version 4.2)
 
    - DPI Scaling improvements
+   - New DesignDPI property (only in VCN + Windows environment)
    - Simplifyed VCL x FMX units (using INCLUDE directive)
    - Included ScalingUtils to VCL package
    - Removed GenUnit app
