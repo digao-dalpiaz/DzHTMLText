@@ -665,8 +665,12 @@ begin
    Result := F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF};
 end;
 
-procedure GenericFillRect(C: TCanvas; R: TAnyRect);
+procedure GenericFillRect(C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
 begin
+  {$IFDEF FMX}
+  if FixPrecisionFMX then R.Left := Trunc(R.Left);  
+  {$ENDIF}
+
   C.FillRect(
     {$IFDEF FMX}
     R, 0, 0, [], 1
@@ -1328,7 +1332,7 @@ begin
         FStyleLinkNormal.SetPropsToCanvas(C);
     end;
 
-    if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R);
+    if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R, True);
 
     R.Top := R.Top + W.OffsetTop;
     R.Bottom := R.Bottom - W.OffsetBottom;
