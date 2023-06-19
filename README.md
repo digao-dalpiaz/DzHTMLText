@@ -41,7 +41,8 @@
    - Removed GenUnit app
    - New Component DCR icons (transparency)
    - New alias for internal objects (TAnyRect, TAnyColor, TAnyPoint...) - avoid incorrect using in other units
-   
+   - Fixed FMX background size problem when bounds are not integer values
+
 <details>
   <summary>Click here to view the entire changelog</summary>
 
