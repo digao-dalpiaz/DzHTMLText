@@ -8,7 +8,7 @@ https://github.com/digao-dalpiaz/DzHTMLText
 Please, read the documentation at GitHub link.
 ------------------------------------------------------------------------------}
 
-unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
+{$IFNDEF FMX}unit Vcl.DzHTMLText;{$ENDIF}
 
 {$IFDEF FMX}
   {$IF CompilerVersion >= 26} //XE5
@@ -22,6 +22,9 @@ unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
   {$DEFINE VCL}
   {$DEFINE USE_NEW_ENV}
   {$DEFINE USE_IMGLST}
+  {$IFDEF MSWINDOWS}
+    {$DEFINE USE_SCALING}
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF FPC}
@@ -36,6 +39,7 @@ unit {$IFDEF FMX}FMX{$ELSE}Vcl{$ENDIF}.DzHTMLText;
 interface
 
 uses
+{$IFDEF USE_SCALING}ScalingUtils, {$ENDIF}
 {$IFDEF FPC}
   Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf, ImgList
 {$ELSE}
@@ -62,20 +66,22 @@ type
   {$IFDEF FPC}
   TObjectList<T: TObject> = class(TFPGObjectList<T>);
   TList<T> = class(TFPGList<T>);
+  {$ENDIF}
 
-  TBitmap = Graphics.TBitmap;
+  {$IFDEF FMX}
+  TAnyRect = TRectF;
+  TAnyPoint = TPointF;
+  TAnySize = TSizeF;
+  TAnyColor = TAlphaColor;
+  TAnyBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
+  TAnyPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
   {$ELSE}
-    {$IFDEF FMX}
-    TRect = TRectF;
-    TPoint = TPointF;
-    TSize = TSizeF;
-
-    TColor = TAlphaColor;
-    TBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
-    TPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
-    {$ELSE}
-    TBitmap = Vcl.Graphics.TBitmap;
-    {$ENDIF}
+  TAnyRect = TRect;
+  TAnyPoint = TPoint;
+  TAnySize = TSize;
+  TAnyColor = TColor;
+  TAnyBitmap = {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap;
+  TAnyPicture = TPicture;
   {$ENDIF}
 
   TPixels = {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF};
@@ -124,8 +130,8 @@ type
   TDHVisualItem = class //represents each visual item printed to then canvas
   private
     OffsetTop, OffsetBottom: TPixels;
-    Rect: TRect;
-    BColor: TColor; //background color
+    Rect: TAnyRect;
+    BColor: TAnyColor; //background color
     Link: TDHBaseLink;
     {The link number is created sequentially, when reading text links
     and works to know the link target, stored on a TStringList, because if
@@ -138,7 +144,7 @@ type
     Text: string;
     Font: TFont;
     {$IFDEF FMX}
-    FontColor: TColor;
+    FontColor: TAnyColor;
     {$ENDIF}
     YPos: TPixels;
   public
@@ -153,7 +159,7 @@ type
 
   TDHVisualItem_ImageResource = class(TDHVisualItem)
   private
-    Picture: TPicture;
+    Picture: TAnyPicture;
     procedure Load(Lb: TDzHTMLText; const ResourceName: string);
   public
     constructor Create;
@@ -164,8 +170,8 @@ type
 
   TDHVisualItem_Line = class(TDHVisualItem)
   private
-    Color: TColor;
-    ColorAlt: TColor;
+    Color: TAnyColor;
+    ColorAlt: TAnyColor;
     Full: Boolean;
   end;
 
@@ -196,13 +202,13 @@ type
     Lb: TDzHTMLText; //owner
     Kind: TDHKindStyleLinkProp;
 
-    FFontColor: TColor;
-    FBackColor: TColor;
+    FFontColor: TAnyColor;
+    FBackColor: TAnyColor;
     FUnderline: Boolean;
-    procedure SetFontColor(const Value: TColor);
-    procedure SetBackColor(const Value: TColor);
+    procedure SetFontColor(const Value: TAnyColor);
+    procedure SetBackColor(const Value: TAnyColor);
     procedure SetUnderline(const Value: Boolean);
-    function GetDefaultFontColor: TColor;
+    function GetDefaultFontColor: TAnyColor;
     function GetStoredFontColor: Boolean;
     procedure SetPropsToCanvas(C: TCanvas); //method to use at paint event
     function GetStored: Boolean; //GetStored general to use at owner
@@ -212,24 +218,22 @@ type
     constructor Create(Lb: TDzHTMLText; Kind: TDHKindStyleLinkProp);
     procedure Assign(Source: TPersistent); override;
   published
-    property FontColor: TColor read FFontColor write SetFontColor stored GetStoredFontColor;
-    property BackColor: TColor read FBackColor write SetBackColor default clNone;
+    property FontColor: TAnyColor read FFontColor write SetFontColor stored GetStoredFontColor;
+    property BackColor: TAnyColor read FBackColor write SetBackColor default clNone;
     property Underline: Boolean read FUnderline write SetUnderline default False;
   end;
 
   TDHScaling = class
   private
     Lb: TDzHTMLText;
-
-    {$IFDEF VCL}
-    Scaled: Boolean;
-    DesignerPPI, MonitorPPI: Integer;
+    {$IFDEF USE_SCALING}
+    Ctrl: TDzFormScaling;
     {$ENDIF}
-
     procedure Update;
     function Calc(Value: TPixels): TPixels;
   public
     constructor Create(aOwner: TDzHTMLText);
+    destructor Destroy; override;
   end;
 
   TDHBorders = class(TPersistent)
@@ -248,7 +252,7 @@ type
     procedure SetBottom(const Value: TPixels);
     function GetHorizontalScaled: TPixels;
     function GetVerticalScaled: TPixels;
-    function GetRealRect(R: TRect): TRect; inline;
+    function GetRealRect(R: TAnyRect): TAnyRect; inline;
   protected
     function GetOwner: TPersistent; override;
   public
@@ -268,7 +272,7 @@ type
   TDHVertAlign = (vaTop, vaCenter, vaBottom);
   TDHHorzAlign = (haLeft, haCenter, haRight);
 
-  TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: string; Picture: TPicture; var Handled: Boolean) of object;
+  TDHEvRetrieveImgRes = procedure(Sender: TObject; const ResourceName: string; Picture: TAnyPicture; var Handled: Boolean) of object;
 
   TDHModifiedFlag = (mfBuild, mfPaint);
   TDHModifiedFlags = set of TDHModifiedFlag;
@@ -282,6 +286,9 @@ type
   private
     FAbout: string;
 
+    {$IFDEF USE_SCALING}
+    FDesignDPI: Integer;
+    {$ENDIF}
     Scaling: TDHScaling;
 
     LVisualItem: TDHVisualItemList; //visual item list to paint event
@@ -303,8 +310,8 @@ type
     FStyleLinkNormal, FStyleLinkHover: TDHStyleLinkProp;
 
     {$IFDEF FMX}
-    FColor: TColor;
-    FFontColor: TColor;
+    FColor: TAnyColor;
+    FFontColor: TAnyColor;
     {$ENDIF}
 
     {$IFDEF USE_IMGLST}
@@ -349,10 +356,10 @@ type
 
     procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure CanvasProcess(C: TCanvas);
-    procedure Paint_Word(C: TCanvas; R: TRect; W: TDHVisualItem_Word);
-    procedure Paint_Image(C: TCanvas; R: TRect; W: TDHVisualItem_Image);
-    procedure Paint_ImageResource(C: TCanvas; R: TRect; W: TDHVisualItem_ImageResource);
-    procedure Paint_Line(C: TCanvas; R: TRect; W: TDHVisualItem_Line);
+    procedure Paint_Word(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Word);
+    procedure Paint_Image(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Image);
+    procedure Paint_ImageResource(C: TCanvas; R: TAnyRect; W: TDHVisualItem_ImageResource);
+    procedure Paint_Line(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Line);
     procedure BuildAndPaint; //rebuild and repaint
     procedure Modified(Flags: TDHModifiedFlags);
 
@@ -371,13 +378,19 @@ type
     procedure SetBorders(const Value: TDHBorders);
     procedure SetOffset(const Value: TDHOffset);
 
+    {$IFDEF USE_SCALING}
+    function GetStoredDesignDPI: Boolean;
+    procedure SetDesignDPI(const Value: Integer);
+    function GetDesignDPIFromForm(aOwner: TComponent): Integer;
+    {$ENDIF}
+
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
     {$ENDIF}
 
     {$IFDEF FMX}
-    procedure SetFontColor(const Value: TColor);
-    procedure SetColor(const Value: TColor);
+    procedure SetFontColor(const Value: TAnyColor);
+    procedure SetColor(const Value: TAnyColor);
 
     procedure OnFontChanged(Sender: TObject);
     {$ENDIF}
@@ -493,8 +506,8 @@ type
       property Size;
       {$ENDIF}
 
-    property Color: TColor read FColor write SetColor default clNone;
-    property FontColor: TColor read FFontColor write SetFontColor default TAlphaColors.Black;
+    property Color: TAnyColor read FColor write SetColor default clNone;
+    property FontColor: TAnyColor read FFontColor write SetFontColor default TAlphaColors.Black;
     {$ELSE}//VCL
     property Color;
     property ParentColor;
@@ -548,15 +561,20 @@ type
 
     property Borders: TDHBorders read FBorders write SetBorders stored GetStoredBorders;
 
+    {$IFDEF USE_SCALING}
+    property DesignDPI: Integer read FDesignDPI write SetDesignDPI stored GetStoredDesignDPI;
+    {$ENDIF}
+
     property About: string read FAbout;
   end;
+
+function CalcFontHeight(Size: Integer; MonitorPPI: Integer): Integer;
 
 procedure Register;
 
 implementation
 
 uses
-{$IFDEF VCL}ScalingUtils, {$ENDIF}
 {$IFDEF FPC}
   {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources, Forms
 {$ELSE}
@@ -579,12 +597,19 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '4.1';
+const STR_VERSION = '4.2';
+
+const DEFAULT_PPI = 96;
 
 procedure Register;
 begin
   {$IFDEF FPC}{$I DzHTMLText.lrs}{$ENDIF}
   RegisterComponents('Digao', [TDzHTMLText]);
+end;
+
+function CalcFontHeight(Size: Integer; MonitorPPI: Integer): Integer;
+begin
+  Result := -Round(Size * MonitorPPI / 72);
 end;
 
 {$REGION 'EInternalExcept'}
@@ -600,22 +625,22 @@ end;
 {$ENDREGION}
 
 {$REGION 'General Functions'}
-procedure DefineFillColor(C: TCanvas; Color: TColor);
+procedure DefineFillColor(C: TCanvas; Color: TAnyColor);
 begin
   C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := Color;
 end;
 
-function GetGenericFillColor(C: TCanvas): TColor;
+function GetGenericFillColor(C: TCanvas): TAnyColor;
 begin
   Result := C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color;
 end;
 
-procedure DefineFontColor(C: TCanvas; Color: TColor);
+procedure DefineFontColor(C: TCanvas; Color: TAnyColor);
 begin
   C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := Color;
 end;
 
-function GetGenericFontColor(C: TCanvas): TColor;
+function GetGenericFontColor(C: TCanvas): TAnyColor;
 begin
   Result := C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color;
 end;
@@ -640,8 +665,12 @@ begin
    Result := F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF};
 end;
 
-procedure GenericFillRect(C: TCanvas; R: TRect);
+procedure GenericFillRect(C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
 begin
+  {$IFDEF FMX}
+  if FixPrecisionFMX then R.Left := Trunc(R.Left);  
+  {$ENDIF}
+
   C.FillRect(
     {$IFDEF FMX}
     R, 0, 0, [], 1
@@ -650,7 +679,7 @@ begin
     {$ENDIF});
 end;
 
-function ParamToColor(A: string): TColor;
+function ParamToColor(A: string): TAnyColor;
 begin
   if A = EmptyStr then Exit(clNone);
 
@@ -728,7 +757,7 @@ end;
 constructor TDHVisualItem_ImageResource.Create;
 begin
   inherited;
-  Picture := TPicture.Create{$IFNDEF USE_NEW_ENV}(0, 0){$ENDIF};
+  Picture := TAnyPicture.Create{$IFNDEF USE_NEW_ENV}(0, 0){$ENDIF};
 end;
 
 destructor TDHVisualItem_ImageResource.Destroy;
@@ -785,58 +814,33 @@ end;
 constructor TDHScaling.Create(aOwner: TDzHTMLText);
 begin
   Lb := aOwner;
+
+  {$IFDEF USE_SCALING}
+  Ctrl := TDzFormScaling.Create;
+  {$ENDIF}
 end;
 
-{$IFDEF VCL}
-type
-  TFormScaleHack = class(TCustomForm);
-
-function GetDesignerPPI(F: TCustomForm): Integer;
+destructor TDHScaling.Destroy;
 begin
-  Result :=
-    {$IFDEF FPC}
-    F.PixelsPerInch
-    {$ELSE}
-      {$IF CompilerVersion >= 31} //D10.1 Berlin
-      TFormScaleHack(F).GetDesignDpi
-      {$ELSE}
-      TFormScaleHack(F).PixelsPerInch
-      {$ENDIF}
-    {$ENDIF};
+  {$IFDEF USE_SCALING}
+  Ctrl.Free;
+  {$ENDIF}
 end;
-{$ENDIF}
 
 procedure TDHScaling.Update;
-{$IFDEF VCL}
-const DEFAULT_PPI = 96;
-var
-  F: TCustomForm;
-{$ENDIF}
 begin
-  {$IFDEF VCL}
-  F := GetParentForm(Lb);
-  if F<>nil then
-  begin
-    Scaled := TFormScaleHack(F).Scaled;
-    DesignerPPI := GetDesignerPPI(F);
-    MonitorPPI := GetMonitorPPI(F.Monitor.Handle);
-  end else
-  begin
-    Scaled := False;
-    DesignerPPI := DEFAULT_PPI;
-    MonitorPPI := DEFAULT_PPI;
-  end;
+  {$IFDEF USE_SCALING}
+  Ctrl.Update(GetParentForm(Lb), Lb.FDesignDPI);
   {$ENDIF}
 end;
 
 function TDHScaling.Calc(Value: TPixels): TPixels;
 begin
-  {$IFDEF VCL}
-  if Scaled then
-    Result := MulDiv(Value, MonitorPPI, DesignerPPI) //{$IFDEF FPC}ScaleDesignToForm(Value){$ELSE}ScaleValue(Value){$ENDIF} - only supported in Delphi 10.4 (Monitor.PixelsPerInch supported too)
-  else
-  {$ENDIF}
+  {$IFDEF USE_SCALING}
+  Result := Ctrl.Calc(Value);
+  {$ELSE}
   Result := Value;
+  {$ENDIF}
 end;
 {$ENDREGION}
 
@@ -889,6 +893,10 @@ begin
   {$IFDEF VCL}
   ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
+  {$ENDIF}
+
+  {$IFDEF USE_SCALING}
+  FDesignDPI := GetDesignDPIFromForm(AOwner);
   {$ENDIF}
 
   FAbout := 'Digao Dalpiaz / Version '+STR_VERSION;
@@ -992,6 +1000,31 @@ begin
   //Rebuild words and repaint
   Modified([mfBuild, mfPaint]);
 end;
+
+{$IFDEF USE_SCALING}
+procedure TDzHTMLText.SetDesignDPI(const Value: Integer);
+begin
+  if Value<>FDesignDPI then
+  begin
+    FDesignDPI := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+function TDzHTMLText.GetDesignDPIFromForm(aOwner: TComponent): Integer;
+begin
+  if aOwner is TCustomForm then
+    Result := RetrieveDesignerPPI(TCustomForm(aOwner))
+  else
+    Result := 0;
+end;
+
+function TDzHTMLText.GetStoredDesignDPI: Boolean;
+begin
+  Result := FDesignDPI <> GetDesignDPIFromForm(Owner);
+end;
+{$ENDIF}
 
 procedure TDzHTMLText.SetAutoHeight(const Value: Boolean);
 begin
@@ -1154,7 +1187,7 @@ end;
 {$ENDIF}
 
 {$IFDEF FMX}
-procedure TDzHTMLText.SetColor(const Value: TColor);
+procedure TDzHTMLText.SetColor(const Value: TAnyColor);
 begin
   if Value<>FColor then
   begin
@@ -1164,7 +1197,7 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.SetFontColor(const Value: TColor);
+procedure TDzHTMLText.SetFontColor(const Value: TAnyColor);
 begin
   if Value<>FFontColor then
   begin
@@ -1215,12 +1248,12 @@ end;
 procedure TDzHTMLText.DoPaint;
 {$IFDEF VCL}
 var
-  B: TBitmap;
+  B: TAnyBitmap;
 {$ENDIF}
 begin
   {$IFDEF VCL}
   //Using internal bitmap as a buffer to reduce flickering
-  B := TBitmap.Create;
+  B := TAnyBitmap.Create;
   try
     B.SetSize(Width, Height);
     CanvasProcess(B.Canvas);
@@ -1237,7 +1270,7 @@ end;
 
 procedure TDzHTMLText.CanvasProcess(C: TCanvas);
 var
-  R: TRect;
+  R: TAnyRect;
   W: TDHVisualItem;
 begin
   //draw background color
@@ -1299,7 +1332,7 @@ begin
         FStyleLinkNormal.SetPropsToCanvas(C);
     end;
 
-    if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R);
+    if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R, True);
 
     R.Top := R.Top + W.OffsetTop;
     R.Bottom := R.Bottom - W.OffsetBottom;
@@ -1320,7 +1353,7 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.Paint_Word(C: TCanvas; R: TRect; W: TDHVisualItem_Word);
+procedure TDzHTMLText.Paint_Word(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Word);
 begin
   R.Top := R.Top + W.YPos;
 
@@ -1344,8 +1377,8 @@ begin
   {$ENDIF}
 end;
 
-procedure TDzHTMLText.Paint_Image(C: TCanvas; R: TRect; W: TDHVisualItem_Image);
-{$IFDEF VCL}
+procedure TDzHTMLText.Paint_Image(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Image);
+{$IF Defined(VCL) and Defined(DCC)}
 var
   Icon: TIcon;
 {$ENDIF}
@@ -1372,16 +1405,16 @@ begin
   {$ENDIF}
 end;
 
-procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TRect; W: TDHVisualItem_ImageResource);
+procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TAnyRect; W: TDHVisualItem_ImageResource);
 begin
   {$IFDEF FMX}
-  C.DrawBitmap(W.Picture, TRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1); //FMX scaling?
+  C.DrawBitmap(W.Picture, TAnyRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1); //FMX scaling?
   {$ELSE}
   C.StretchDraw(R, W.Picture.Graphic);
   {$ENDIF}
 end;
 
-procedure TDzHTMLText.Paint_Line(C: TCanvas; R: TRect; W: TDHVisualItem_Line);
+procedure TDzHTMLText.Paint_Line(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Line);
 begin
   if W.ColorAlt <> clNone then
     R.Height := R.Height
@@ -1421,11 +1454,11 @@ procedure TDzHTMLText.CheckMouse(X, Y: TPixels);
 var
   Link: TDHBaseLink;
   W: TDHVisualItem;
-  P: TPoint;
+  P: TAnyPoint;
 begin
   Link := nil;
 
-  P := TPoint.Create(X, Y);
+  P := TAnyPoint.Create(X, Y);
 
   //find the first word, if there is any
   for W in LVisualItem do
@@ -1667,7 +1700,7 @@ end;
 procedure TDzHTMLText.Rebuild;
 var
   B: TBuilder;
-  P: TPoint;
+  P: TAnyPoint;
 begin
   if csLoading in ComponentState then Exit;
 
@@ -2049,7 +2082,7 @@ type
   end;
 
   TPreObj_Float = class(TPreObj)
-    Rect: TRect;
+    Rect: TAnyRect;
     Close: Boolean;
   end;
 
@@ -2060,7 +2093,7 @@ type
   end;
 
   TPreObj_Visual = class(TPreObj)
-    Size: TSize;
+    Size: TAnySize;
     Line: Integer; //line number
     Group: Integer; //group number
     {The group is isolated at each line or tabulation to delimit text horizontal align area}
@@ -2169,7 +2202,7 @@ type
 
     CurrentProps: record
       Offset: THTMLOffsetTag;
-      BackColor: TColor;
+      BackColor: TAnyColor;
       Align: TDHHorzAlign;
       VertAlign: TDHVertAlign;
       LineSpace: TPixels;
@@ -2182,8 +2215,8 @@ type
     LStrike: TListStack<Boolean>;
     LFontName: TListStack<string>;
     LFontHeightOrSize: TListStack<TFontPt>;
-    LFontColor: TListStack<TColor>;
-    LBackColor: TListStack<TColor>;
+    LFontColor: TListStack<TAnyColor>;
+    LBackColor: TListStack<TAnyColor>;
     LAlign: TListStack<TDHHorzAlign>;
     LVertAlign: TListStack<TDHVertAlign>;
     LLineSpace: TListStack<TPixels>;
@@ -2216,9 +2249,9 @@ type
     procedure DoTab(T: TToken);
     procedure DoBreak;
 
-    procedure CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
+    procedure CheckSupSubScript(W: TDHVisualItem_Word; var Size: TAnySize);
 
-    procedure ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TSize);
+    procedure ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TAnySize);
 
     procedure DefineVisualRect;
     procedure Publish;
@@ -2277,8 +2310,8 @@ begin
   LStrike := TListStack<Boolean>.Create;
   LFontName := TListStack<string>.Create;
   LFontHeightOrSize := TListStack<TFontPt>.Create;
-  LFontColor := TListStack<TColor>.Create;
-  LBackColor := TListStack<TColor>.Create;
+  LFontColor := TListStack<TAnyColor>.Create;
+  LBackColor := TListStack<TAnyColor>.Create;
   LAlign := TListStack<TDHHorzAlign>.Create;
   LVertAlign := TListStack<TDHVertAlign>.Create;
   LLineSpace := TListStack<TPixels>.Create;
@@ -2432,11 +2465,11 @@ begin
   FontVal := 0;
   if not T.TagClose then
     FontVal :=
-    {$IFDEF FMX}
+      {$IFDEF FMX}
       T.Value //font size
-    {$ELSE}
-      Lb.Scaling.Calc(-MulDiv(T.Value, Lb.Scaling.DesignerPPI, 72)) //font height
-    {$ENDIF};
+      {$ELSE}
+      CalcFontHeight(T.Value, {$IFDEF USE_SCALING}Lb.Scaling.Ctrl.MonitorPPI{$ELSE}DEFAULT_PPI{$ENDIF}) //font height
+      {$ENDIF};
 
   LFontHeightOrSize.AddOrDel(T, FontVal);
   DefineFontPt(C.Font, LFontHeightOrSize.Last);
@@ -2489,12 +2522,12 @@ end;
 
 procedure TTokensProcess.DoTextAndRelated(T: TToken);
 var
-  Ex: TSize;
+  Ex: TAnySize;
   Z: TPreObj_Visual;
   W: TDHVisualItem;
   FixedPos: TFixedPosition;
 begin
-  Ex := TSize.Create(0, 0);
+  Ex := TAnySize.Create(0, 0);
   FixedPos := Default(TFixedPosition);
 
   case T.Kind of
@@ -2530,9 +2563,9 @@ begin
       begin
         {$IFDEF FMX}
         with Lb.FImages.Destination[T.Value].Layers[0].SourceRect do
-          Ex := TSize.Create(Width, Height);
+          Ex := TAnySize.Create(Width, Height);
         {$ELSE}
-        Ex := TSize.Create(Lb.FImages.Width, Lb.FImages.Height);
+        Ex := TAnySize.Create(Lb.FImages.Width, Lb.FImages.Height);
         {$ENDIF}
       end;
       {$ENDIF}
@@ -2545,7 +2578,7 @@ begin
       begin
         Load(Lb, T.Text);
 
-        Ex := TSize.Create(Picture.Width, Picture.Height);
+        Ex := TAnySize.Create(Picture.Width, Picture.Height);
       end;
     end;
 
@@ -2566,7 +2599,7 @@ begin
         FontColor := C.Stroke.Color;
         {$ENDIF}
 
-        Ex := TSize.Create(C.TextWidth(Text), C.TextHeight(Text));
+        Ex := TAnySize.Create(C.TextWidth(Text), C.TextHeight(Text));
 
         CheckSupSubScript(TDHVisualItem_Word(W), Ex);
       end;
@@ -2603,7 +2636,7 @@ begin
   Items.Add(Z);
 end;
 
-procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TSize);
+procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TAnySize);
 var
   OriginalFontPt, OriginalFontSize: TFontPt;
   I: Integer;
@@ -2684,7 +2717,7 @@ begin
   LSupAndSubScript.AddOrDel(T, &Class);
 end;
 
-procedure TTokensProcess.ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TSize);
+procedure TTokensProcess.ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TAnySize);
 var
   P: THTMLTokenParams;
 begin
@@ -2789,8 +2822,8 @@ var
   X, Y: TPixels;
   Max, OldMax: TSizes;
   LastTabX: TPixels; LastTabF: Boolean;
-  PrevPos: TPoint; PrevLine, CurLine, LineCount: Integer;
-  FloatRect: TRect; InFloat: Boolean;
+  PrevPos: TAnyPoint; PrevLine, CurLine, LineCount: Integer;
+  FloatRect: TAnyRect; InFloat: Boolean;
 
   procedure IncPreviousGroup(Right, Limit: TPixels);
   var
@@ -2850,7 +2883,7 @@ var
     end;
   end;
 
-  procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TPoint);
+  procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TAnyPoint);
   var
     GrpLim: TPixels;
     LI: TLineInfo;
@@ -2886,8 +2919,8 @@ begin
   LineCount := 0;
   CurLine := 0;
   PrevLine := -1;
-  PrevPos := TPoint.Create(0, 0);
-  FloatRect := TRect.Empty;
+  PrevPos := TAnyPoint.Create(0, 0);
+  FloatRect := TAnyRect.Empty;
   LastTabX := 0;
   LastTabF := False;
   InFloat := False;
@@ -2905,12 +2938,12 @@ begin
       if TPreObj_Float(Z).Close then
       begin
         BreakGroupAndLineCtrl(False, PrevPos);
-        FloatRect := TRect.Empty;
+        FloatRect := TAnyRect.Empty;
         InFloat := False;
       end else
       begin
         PrevLine := CurLine; //save current line
-        PrevPos := TPoint.Create(X, Y); //save current position
+        PrevPos := TAnyPoint.Create(X, Y); //save current position
         BreakGroupAndLineCtrl(True, TPreObj_Float(Z).Rect.Location);
         FloatRect := TPreObj_Float(Z).Rect;
         InFloat := True;
@@ -2939,7 +2972,7 @@ begin
         CheckPriorSpace; //remove space at previous line if is the last obj
 
       if not InFloat then Inc(LineCount);
-      BreakGroupAndLineCtrl(True, TPoint.Create(FloatRect.Left, Y+Max.LineHeight+Max.LineSpace));
+      BreakGroupAndLineCtrl(True, TAnyPoint.Create(FloatRect.Left, Y+Max.LineHeight+Max.LineSpace));
       //if line is empty, there is no visual item to check overall height
       if Y>Max.OverallHeight then Max.OverallHeight := Y;
 
@@ -2963,7 +2996,7 @@ begin
     if (V.Visual is TDHVisualItem_Line) and TDHVisualItem_Line(V.Visual).Full and not Lb.FAutoWidth then
       V.Size.Width := Lb.GetAreaWidth - X;
 
-    V.Visual.Rect := TRect.Create(X, Y, X+V.Size.Width, Y+V.Size.Height);
+    V.Visual.Rect := TAnyRect.Create(X, Y, X+V.Size.Width, Y+V.Size.Height);
     V.Line := CurLine;
     V.Group := LGroupBound.Count;
     V.Print := True;
@@ -3027,7 +3060,7 @@ type
   procedure Check(fnIndex: Byte; horz: Boolean; prop: Variant);
   var
     R: TFuncAlignResult;
-    P: TPoint;
+    P: TAnyPoint;
     Offset: TPixels;
   begin
     if prop>0 then //center or right
@@ -3042,7 +3075,7 @@ type
       Offset := R.Outside - R.Inside;
       if prop=1 then Offset := {$IFDEF VCL}Round{$ENDIF}(Offset / 2); //center
 
-      P := TPoint.Create(0, 0);
+      P := TAnyPoint.Create(0, 0);
       if horz then
         P.X := Offset
       else
@@ -3094,7 +3127,7 @@ begin
   Result := Lb;
 end;
 
-function TDHStyleLinkProp.GetDefaultFontColor: TColor;
+function TDHStyleLinkProp.GetDefaultFontColor: TAnyColor;
 begin
   Result := clNone;
   case Kind of
@@ -3108,7 +3141,7 @@ begin
   Result := FFontColor<>GetDefaultFontColor;
 end;
 
-procedure TDHStyleLinkProp.SetFontColor(const Value: TColor);
+procedure TDHStyleLinkProp.SetFontColor(const Value: TAnyColor);
 begin
   if Value <> FFontColor then
   begin
@@ -3118,7 +3151,7 @@ begin
   end;
 end;
 
-procedure TDHStyleLinkProp.SetBackColor(const Value: TColor);
+procedure TDHStyleLinkProp.SetBackColor(const Value: TAnyColor);
 begin
   if Value <> FBackColor then
   begin
@@ -3293,7 +3326,7 @@ begin
   Result := Lb.Scaling.Calc(FTop + FBottom);
 end;
 
-function TDHBorders.GetRealRect(R: TRect): TRect;
+function TDHBorders.GetRealRect(R: TAnyRect): TAnyRect;
 begin
   Result := R;
   Result.Offset(Lb.Scaling.Calc(FLeft), Lb.Scaling.Calc(FTop));
