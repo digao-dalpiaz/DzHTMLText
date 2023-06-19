@@ -33,7 +33,7 @@
 
 ## What's New
 
-- 05/01/2023 (Version 4.2)
+- 06/19/2023 (Version 4.2)
 
    - DPI Scaling improvements
    - Simplifyed VCL x FMX units (using INCLUDE directive)
