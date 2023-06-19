@@ -54,7 +54,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 707; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 706; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -829,9 +829,9 @@ end;
 
 procedure TDHScaling.Update;
 begin
-   {$IFDEF USE_SCALING}
-   Ctrl.Update(GetParentForm(Lb), Lb.FDesignDPI);
-   {$ENDIF}
+  {$IFDEF USE_SCALING}
+  Ctrl.Update(GetParentForm(Lb), Lb.FDesignDPI);
+  {$ENDIF}
 end;
 
 function TDHScaling.Calc(Value: TPixels): TPixels;

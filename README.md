@@ -36,7 +36,6 @@
 - 05/01/2023 (Version 4.2)
 
    - DPI Scaling improvements
-   - Supporting for new Dam 6.0 (FMX supporting)
    - Simplifyed VCL x FMX units (using INCLUDE directive)
    - Included ScalingUtils to VCL package
    - Removed GenUnit app
