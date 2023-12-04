@@ -33,6 +33,13 @@
 
 ## What's New
 
+- 12/04/2023 (Version 4.3)
+
+   - Fixed RetrieveMonitorPPI when using non DLL delayed platform (Lazarus). This caused an error when trying to use the component on Windows versions below 8.1, as it tried to load the SHCORE.DLL dll, even though it was not used. 
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 06/19/2023 (Version 4.2)
 
    - DPI Scaling improvements
@@ -43,9 +50,6 @@
    - New Component DCR icons (transparency)
    - New alias for internal objects (TAnyRect, TAnyColor, TAnyPoint...) - avoid incorrect using in other units
    - Fixed FMX background size problem when bounds are not integer values
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 04/26/2023 (Version 4.1)
 
