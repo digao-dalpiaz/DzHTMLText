@@ -597,7 +597,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '4.2';
+const STR_VERSION = '4.3';
 
 const DEFAULT_PPI = 96;
 
