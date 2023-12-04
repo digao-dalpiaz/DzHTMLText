@@ -33,45 +33,26 @@ uses
   {$IFDEF FPC}
   SysUtils, Windows
   {$ELSE}
-  System.SysUtils, Winapi.Windows, Winapi.MultiMon
+  System.SysUtils, Winapi.Windows
   {$ENDIF};
 
-type
-  TMonitorDpiType = (
-    MDT_EFFECTIVE_DPI = 0,
-    MDT_ANGULAR_DPI = 1,
-    MDT_RAW_DPI = 2,
-    MDT_DEFAULT = MDT_EFFECTIVE_DPI
-  );
-
-{$WARN SYMBOL_PLATFORM OFF}
-function GetDpiForMonitor(
-  hmonitor: HMONITOR;
-  dpiType: TMonitorDpiType;
-  out dpiX: UINT;
-  out dpiY: UINT
-  ): HRESULT; stdcall; external 'Shcore.dll' {$IFDEF DCC}delayed{$ENDIF};
-{$WARN SYMBOL_PLATFORM ON}
+{$IF (CompilerVersion >= 30) or Defined(FPC)} //D10 Seattle or Lazarus
+  {$DEFINE NEW_MONITOR}
+{$ENDIF}
 
 function RetrieveMonitorPPI(F: TCustomForm): Integer;
+{$IFNDEF NEW_MONITOR}
 var
-  Ydpi: Cardinal;
-  Xdpi: Cardinal;
   DC: HDC;
+{$ENDIF}
 begin
-  if CheckWin32Version(6,3) then
-  begin
-    if GetDpiForMonitor(F.Monitor.Handle, TMonitorDpiType.MDT_EFFECTIVE_DPI, Ydpi, Xdpi) = S_OK then
-      Result := Ydpi
-    else
-      Result := 0;
-  end
-  else
-  begin
-    DC := GetDC(0);
-    Result := GetDeviceCaps(DC, LOGPIXELSY);
-    ReleaseDC(0, DC);
-  end;
+  {$IFDEF NEW_MONITOR}
+  Result := F.Monitor.PixelsPerInch;
+  {$ELSE}
+  DC := GetDC(0);
+  Result := GetDeviceCaps(DC, LOGPIXELSY);
+  ReleaseDC(0, DC);
+  {$ENDIF}
 end;
 
 //
