@@ -33,12 +33,16 @@
 
 ## What's New
 
-- 12/04/2023 (Version 4.3)
+- 12/05/2023 (Version 4.4)
 
-   - Fixed RetrieveMonitorPPI when using non DLL delayed platform (Lazarus). This caused an error when trying to use the component on Windows versions below 8.1, as it tried to load the SHCORE.DLL dll, even though it was not used. 
+   - Fixed Lazarus compilation (ScalingUtils directive).
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 12/04/2023 (Version 4.3)
+
+   - Fixed RetrieveMonitorPPI when using non DLL delayed platform (Lazarus). This caused an error when trying to use the component on Windows versions below 8.1, as it tried to load the SHCORE.DLL dll, even though it was not used. 
 
 - 06/19/2023 (Version 4.2)
 

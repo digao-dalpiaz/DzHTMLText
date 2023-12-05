@@ -36,7 +36,7 @@ uses
   System.SysUtils, Winapi.Windows
   {$ENDIF};
 
-{$IF (CompilerVersion >= 30) or Defined(FPC)} //D10 Seattle or Lazarus
+{$IF (Defined(DCC) and (CompilerVersion >= 30)) or Defined(FPC)} //D10 Seattle or Lazarus
   {$DEFINE NEW_MONITOR}
 {$ENDIF}
 
