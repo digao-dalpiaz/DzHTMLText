@@ -599,7 +599,9 @@ uses
 
 const STR_VERSION = '4.4';
 
+{$IFDEF USE_SCALING}
 const DEFAULT_PPI = 96;
+{$ENDIF}
 
 procedure Register;
 begin
