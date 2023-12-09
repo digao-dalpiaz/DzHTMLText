@@ -389,6 +389,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `DesignDPI: Integer` *(only in VCL+WINDOWS)* = Defines Pixels Per Inch that html syntax was formatted (auto assigned when component inserted in a Form). All measurements will be calculated based on the Design DPI, and applied to the current Monitor DPI. Example: if you specified a tab width as 60 pixels, at 96 DPI, when displaying the text on a 120 DPI monitor, the tab width will be larger (75 pixels).
 
+> For automatic scaling by DPI to work correctly, it is necessary to use Delphi 10 or higher, or Lazarus, as for previous versions of Delphi, the scaling will be based on the DPI of the main monitor, which is not always the monitor where the component is being displayed.
+
 `Font: TFont` = Determines the base font. When no tag is specified on text, this base font is used.
 
 `Images: TCustomImageList` = When using `<img>` tag, you should set this property to specify the ImageList where the images are stored. In FMX environment, this property is only available using Delphi XE8 or higher.
