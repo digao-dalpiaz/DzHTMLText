@@ -33,6 +33,8 @@ requires
   fmx;
 
 contains
-  FMX.DzHTMLText in 'FMX.DzHTMLText.pas';
+  FMX.DzHTMLText in 'FMX.DzHTMLText.pas',
+  FMX.DHCommon in 'FMX.DHCommon.pas',
+  FMX.DHTokenEngine in 'FMX.DHTokenEngine.pas';
 
 end.

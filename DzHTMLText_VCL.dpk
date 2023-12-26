@@ -36,6 +36,7 @@ requires
 
 contains
   Vcl.DzHTMLText in 'Vcl.DzHTMLText.pas',
-  ScalingUtils in 'ScalingUtils.pas';
+  Vcl.DHTokenEngine in 'Vcl.DHTokenEngine.pas',
+  Vcl.DHCommon in 'Vcl.DHCommon.pas';
 
 end.
