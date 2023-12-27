@@ -1091,8 +1091,8 @@ begin
 
   InternalResizing := True;
   try
-    if FAutoWidth then Width := W;
-    if FAutoHeight then Height := H;
+    if FAutoWidth then Width := W + FBorders.FLeft + FBorders.FRight;
+    if FAutoHeight then Height := H + FBorders.FTop + FBorders.FBottom;
   finally
     InternalResizing := False;
   end;

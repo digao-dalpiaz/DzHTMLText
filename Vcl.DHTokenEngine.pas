@@ -242,14 +242,16 @@ type
   {$ENDREGION}
 
   TDHPreVisualItem = class;
+  TDHPreVisualItemList = class;
   TDHDivAreaLine = class
   private
     Continuous: Boolean; //when this line is a continuation of the previous one
-    Items: TObjectList<TDHPreVisualItem>;
+    Items: TDHPreVisualItemList;
 
     LonelyHeight: TPixels; //when line does not contains any object
 
-    function GetTextSize: TAnySize;
+    TextSize: TAnySize;
+    procedure CalcTextSize;
   public
     constructor Create;
     destructor Destroy; override;
@@ -276,12 +278,12 @@ type
 
     PreVisualItem: TDHPreVisualItem;
 
-    FixedSize: TAnySize;
+    FixedSize, TextSize: TAnySize;
 
-    function GetTextSize: TAnySize;
+    procedure CalcTextSize;
 
     function AddNewLineObject: TDHDivAreaLine;
-    function CheckForLinesInitialization: Boolean;
+    procedure CheckForLinesInitialization;
 
     function GetHorzBorder: TPixels;
     function GetVertBorder: TPixels;
@@ -329,7 +331,7 @@ type
   end;
   TDHPreVisualItemList = class(TObjectList<TDHPreVisualItem>)
   private
-    function GetWidthSum: TPixels;
+    function GetSumWidth: TPixels;
   end;
 
   TDHProcBoundsAndLines = procedure(Size: TAnySize; Count: Integer) of object;
@@ -353,9 +355,9 @@ type
     QueueVisualItems: TDHPreVisualItemList;
 
     function AddToken<T: TDHToken, constructor>: T;
-    procedure AddInvalidToken;
+    procedure AddInvalidToken(const Motive: string);
 
-    procedure NewLine(Continuous: Boolean);
+    function NewLine(Continuous: Boolean): TDHDivAreaLine;
 
     procedure ReadTokens;
     procedure ReadTokensOfLine(const Text: string; From: Integer);
@@ -996,7 +998,8 @@ end;
 
 function TDHPreVisualItem.IsSpace: Boolean;
 begin
-  Result := (VisualObject is TDHVisualItem_Word) and (TDHVisualItem_Word(VisualObject).Text = STR_SPACE);
+  Result := (VisualObject is TDHVisualItem_Word)
+    and (TDHVisualItem_Word(VisualObject).Text = STR_SPACE);
 end;
 
 { TDHDivArea }
@@ -1017,14 +1020,10 @@ begin
   inherited;
 end;
 
-function TDHDivArea.CheckForLinesInitialization: Boolean;
+procedure TDHDivArea.CheckForLinesInitialization;
 begin
   if Lines.Count=0 then
-  begin
     AddNewLineObject;
-    Exit(True);
-  end;
-  Result := False;
 end;
 
 function TDHDivArea.AddNewLineObject: TDHDivAreaLine;
@@ -1046,14 +1045,15 @@ function TDHDivArea.GetAreaSize: TAnySize;
 var
   W, H: TPixels;
 begin
-  if AutoWidth then W := GetTextSize.Width + GetHorzBorder else W := FixedSize.Width;
-  if AutoHeight then H := GetTextSize.Height + GetVertBorder else H := FixedSize.Height;
+  if AutoWidth then W := TextSize.Width + GetHorzBorder else W := FixedSize.Width;
+  if AutoHeight then H := TextSize.Height + GetVertBorder else H := FixedSize.Height;
 
   Result := TAnySize.Create(W, H);
 end;
 
 function TDHDivArea.GetAreaSizeWOB: TAnySize;
 begin
+  //area size without borders
   Result := GetAreaSize;
   Result.Width := Result.Width - GetHorzBorder;
   Result.Height := Result.Height - GetVertBorder;
@@ -1069,10 +1069,9 @@ begin
   Result := Borders.Top + Borders.Bottom;
 end;
 
-function TDHDivArea.GetTextSize: TAnySize;
+procedure TDHDivArea.CalcTextSize;
 var
   Line: TDHDivAreaLine;
-  Size: TAnySize;
   W, H: TPixels;
 begin
   W := 0;
@@ -1080,33 +1079,19 @@ begin
 
   for Line in Lines do
   begin
-    Size := Line.GetTextSize;
-    if Size.Width > W then W := Size.Width;
-    H := H + Size.Height;
+    if Line.TextSize.Width > W then W := Line.TextSize.Width;
+    H := H + Line.TextSize.Height;
   end;
 
-  Result := TAnySize.Create(W, H);
+  TextSize := TAnySize.Create(W, H);
 end;
-
-{procedure TDHDivArea.IncTextSizeIfHigher(Size: TAnySize);
-
-  procedure IncreaseSizeIfHigher(var Size: TAnySize; W, H: TPixels);
-  begin
-    if W > Size.Width then Size.Width := W;
-    if H > Size.Height then Size.Height := H;
-  end;
-
-begin
-  IncreaseSizeIfHigher(Lines.Last.TextSize, Point.X+Size.Width, Size.Height);
-  IncreaseSizeIfHigher(TextSize, Point.X+Size.Width, Point.Y+Size.Height);
-end;}
 
 { TDHDivAreaLine }
 
 constructor TDHDivAreaLine.Create;
 begin
   inherited;
-  Items := TObjectList<TDHPreVisualItem>.Create;
+  Items := TDHPreVisualItemList.Create;
 end;
 
 destructor TDHDivAreaLine.Destroy;
@@ -1115,7 +1100,7 @@ begin
   inherited;
 end;
 
-function TDHDivAreaLine.GetTextSize: TAnySize;
+procedure TDHDivAreaLine.CalcTextSize;
 var
   W, H: TPixels;
   Item: TDHPreVisualItem;
@@ -1129,7 +1114,7 @@ begin
     if Item.Size.Height > H then H := Item.Size.Height;
   end;
 
-  Result := TAnySize.Create(W, H);
+  TextSize := TAnySize.Create(W, H);
 end;
 
 { TDHPropsStore }
@@ -1150,9 +1135,9 @@ begin
   SS_YPos := Source.SS_YPos;
 end;
 
-{ TDHPendingVisualItemList }
+{ TDHPreVisualItemList }
 
-function TDHPreVisualItemList.GetWidthSum: TPixels;
+function TDHPreVisualItemList.GetSumWidth: TPixels;
 var
   Item: TDHPreVisualItem;
 begin
@@ -1163,12 +1148,12 @@ end;
 
 { TDHBuilder }
 
-procedure TDHBuilder.AddInvalidToken;
+procedure TDHBuilder.AddInvalidToken(const Motive: string);
 var
   Token: TDHToken_Word;
 begin
   Token := AddToken<TDHToken_Word>;
-  Token.Word := '<?>';
+  Token.Word := '<#'+Motive+'#>';
   Token.Breakable := True;
 end;
 
@@ -1256,11 +1241,10 @@ begin
 end;
 
 procedure TDHBuilder.Execute;
-var
-  Size: TAnySize;
 begin
   CurrentBlock := MainToken;
   ReadTokens;
+  if CurrentBlock<>MainToken then AddInvalidToken('MISSING CLOSINGS');
   CurrentBlock := nil;
 
   CurrentDiv := MainDiv;
@@ -1269,11 +1253,8 @@ begin
   EndOfLine;
   CurrentDiv := nil;
 
-  Size := MainDiv.GetTextSize;
-  Size.Width := Size.Width + MainDiv.GetHorzBorder;
-  Size.Height := Size.Height + MainDiv.GetVertBorder;
-
-  ProcBoundsAndLines(Size, MainDiv.Lines.Count);
+  MainDiv.CalcTextSize;
+  ProcBoundsAndLines(MainDiv.TextSize, MainDiv.Lines.Count);
 
   SendObjectsToComponent(MainDiv);
 end;
@@ -1317,19 +1298,19 @@ begin
       I := PosEx('>', Text, CurPos+1); //find tag closing
       if I>0 then
       begin
-        if not ProcessTag(Copy(Text, CurPos+1, I-CurPos-1)) then AddInvalidToken;
+        if not ProcessTag(Copy(Text, CurPos+1, I-CurPos-1)) then AddInvalidToken('');
         CurPos := I+1;
       end else
       begin
         //losted tag opening
-        AddInvalidToken;
+        AddInvalidToken('MISSING >');
         Inc(CurPos);
       end;
     end else
     if CharIni = '>' then
     begin
       //losted tag closing
-      AddInvalidToken;
+      AddInvalidToken('MISSING <');
       Inc(CurPos);
     end else
     begin //all the rest is text
@@ -1388,7 +1369,7 @@ begin
   if CloseTag then
   begin
     if not Block then Exit; //close-tag on single tag
-    if not (CurrentBlock is TokenClass) then Exit; //closing different tag
+    if CurrentBlock.ClassType <> TokenClass then Exit; //closing different tag
 
     CurrentBlock := CurrentBlock.Parent;
   end else
@@ -1461,6 +1442,7 @@ begin
         DivArea := CurrentDiv;
         CurrentDiv := CurrentDiv.Parent;
 
+        DivArea.CalcTextSize;
         DivArea.PreVisualItem.Size := DivArea.GetAreaSize; //update visual item size
         ProcessOneObject(DivArea.PreVisualItem);
       end else
@@ -1481,18 +1463,18 @@ begin
   if Line.Items.Count=0 then //line without visual items
     Line.LonelyHeight := CalcTextHeight(STR_SPACE);
 
+  Line.CalcTextSize;
+
   CurrentDiv.Point.X := 0;
-  CurrentDiv.Point.Offset(0, Line.GetTextSize.Height);
+  CurrentDiv.Point.Offset(0, Line.TextSize.Height);
 end;
 
-procedure TDHBuilder.NewLine(Continuous: Boolean);
-var
-  Line: TDHDivAreaLine;
+function TDHBuilder.NewLine(Continuous: Boolean): TDHDivAreaLine;
 begin
   EndOfLine;
 
-  Line := CurrentDiv.AddNewLineObject;
-  Line.Continuous := Continuous;
+  Result := CurrentDiv.AddNewLineObject;
+  Result.Continuous := Continuous;
 end;
 
 function TDHBuilder.CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
@@ -1546,8 +1528,14 @@ var
   MaxW: TPixels;
   Line: TDHDivAreaLine;
   Item: TDHPreVisualItem;
+  PrevSpaceRemoved: Boolean;
 begin
-  if not CurrentDiv.CheckForLinesInitialization then
+  PrevSpaceRemoved := False;
+
+  CurrentDiv.CheckForLinesInitialization;
+
+  Line := CurrentDiv.Lines.Last;
+  if Line.Items.Count>0 then
   begin
     if CurrentDiv.AutoWidth then
       MaxW := CurrentDiv.MaxWidth
@@ -1557,27 +1545,24 @@ begin
     if MaxW > 0 then
     begin
       MaxW := MaxW - CurrentDiv.GetHorzBorder;
-      if CurrentDiv.Point.X + List.GetWidthSum > MaxW then //out of width bound
+      if CurrentDiv.Point.X + List.GetSumWidth > MaxW then //out of width bound
       begin
-        Line := CurrentDiv.Lines.Last;
-        if Line.Items.Count>0 then
+        Item := Line.Items.Last;
+        if Item.IsSpace then //remove previous SPACE if is the last item in the line
         begin
-          Item := Line.Items.Last;
-          if Item.IsSpace then //remove previous SPACE if is the last item in the line
-            Line.Items.Remove(Item);
+          Line.Items.Remove(Item);
+          PrevSpaceRemoved := True;
         end;
-        NewLine(True);
+        Line := NewLine(True);
       end;
     end;
   end;
-
-  Line := CurrentDiv.Lines.Last;
 
   while List.Count>0 do
   begin
     Item := List.ExtractAt(0);
 
-    if Item.IsSpace and (Line.Items.Count=0) then
+    if not PrevSpaceRemoved and Item.IsSpace and (Line.Items.Count=0) then
     begin
       //skip SPACE if is the first item in the line
       Item.Free;
@@ -1610,7 +1595,7 @@ begin
     begin
       if (Item.SelfDiv<>nil) and Item.SelfDiv.HeightByLine then
       begin
-        Item.Size.Height := Item.Line.GetTextSize.Height; //size of div rectangle
+        Item.Size.Height := Item.Line.TextSize.Height; //size of div rectangle
 
         Item.SelfDiv.AutoHeight := False;
         Item.SelfDiv.FixedSize.Height := Item.Size.Height; //size of div area for align children
@@ -1627,8 +1612,8 @@ begin
     end;
   end;
 
-   for SubDiv in DivArea.SubDivs do
-     SendObjectsToComponent(SubDiv);
+  for SubDiv in DivArea.SubDivs do
+    SendObjectsToComponent(SubDiv);
 end;
 
 procedure TDHBuilder.CheckAlign(Item: TDHPreVisualItem);
@@ -1642,30 +1627,30 @@ type
     DivLim: TPixels;
   begin
     if Item.DivArea.HorzAlign in [haCenter, haRight] then
-      DivLim := Item.DivArea.GetTextSize.Width
+      DivLim := Item.DivArea.TextSize.Width
     else
       DivLim := Item.DivArea.GetAreaSizeWOB.Width;
 
     Result.Outside := DivLim;
-    Result.Inside := Item.Line.GetTextSize.Width;
+    Result.Inside := Item.Line.TextSize.Width;
   end;
 
   function FuncAlignVert: TFuncAlignResult;
   begin
-    Result.Outside := Item.Line.GetTextSize.Height;
+    Result.Outside := Item.Line.TextSize.Height;
     Result.Inside := Item.Size.Height;
   end;
 
   function FuncDivAlignHorz: TFuncAlignResult;
   begin
     Result.Outside := Item.DivArea.GetAreaSizeWOB.Width;
-    Result.Inside := Item.DivArea.GetTextSize.Width;
+    Result.Inside := Item.DivArea.TextSize.Width;
   end;
 
   function FuncDivAlignVert: TFuncAlignResult;
   begin
     Result.Outside := Item.DivArea.GetAreaSizeWOB.Height;
-    Result.Inside := Item.DivArea.GetTextSize.Height;
+    Result.Inside := Item.DivArea.TextSize.Height;
   end;
 
   procedure Check(FnIndex: Byte; Horz: Boolean; Prop: Variant);
