@@ -3,7 +3,7 @@
 # DzHTMLText
 ## Delphi and Lazarus HTML Label component
 
-![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE3..11-blue.svg)
+![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE3..12-blue.svg)
 ![Platforms](https://img.shields.io/badge/Platforms-Win32,Win64,Android,iOS,Mac,Linux-red.svg)
 ![Auto Install](https://img.shields.io/badge/-Auto%20Install%20App-orange.svg)
 ![VCL and FMX](https://img.shields.io/badge/-VCL%20and%20FMX-lightgrey.svg)
@@ -28,17 +28,31 @@
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Transparency (why not in VCL?)](#transparency-why-not-in-vcl)
+- [Auto Scaling](#auto-scaling)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 - [Donate](#donate)
 
 ## What's New
 
-- 12/05/2023 (Version 4.4)
+- 01/01/2024 (Version 5.0)
 
-   - Fixed Lazarus compilation (ScalingUtils directive).
+   - New Header Tag (`<H>`)
+   - New Custom Style Tag (`<STYLE>`)
+   - Fixed Linux (in Lazarus) compilation (DEFAULT_DPI const)
+   - Improved token processing performance
+   - FmxLinux supporting
+   - Refactoring Scaling in VCL
+   - Removed DesignDPI property (**WARNING!!! If you defined a value other than the default in this property, when opening the form, this value will be removed, but that's okay, because the design of forms in Delphi is always based on 96 pixels per inch**)
+   - Linux auto scaling supporting on Lazarus
+   - Fixed supporting decimal values in all TPixels and TFontPt parameters in FMX
+   - Fixed decimal values in tags parameters to use "." as decimal separator in FMX environment (TPixels and TFontPt)
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 12/05/2023 (Version 4.4)
+
+   - Fixed Lazarus compilation (ScalingUtils directive).
 
 - 12/04/2023 (Version 4.3)
 
@@ -316,6 +330,8 @@ This visual component allows you to specify a formatted text in a label, using a
 <FS:123></FS> - Font Size
 <FC:{COLOR_VALUE}></FC> - Font Color
 <BC:{COLOR_VALUE}></BC> - Background Color
+<H:1..6></H> - Header predefined style - font size (calculated according to component main font size) and bold style
+<STYLE:name></STYLE> - Custom style, according to CustomStyles collection property (name must be the same as Custom Style "Ident" property - case insensitive)
 <BR> - Line Break
 <NBR> - Prevent line break after #13#10 sequence
 <L></L> - Align Left
@@ -346,6 +362,7 @@ This visual component allows you to specify a formatted text in a label, using a
   Offset margins are memorized if a new offset tag is specifyed without same parameter name
 
 * {COLOR_VALUE} - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
+* When FMX, all sizes (TPixels) use the "." notation as a decimal separator
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
@@ -370,7 +387,7 @@ This visual component allows you to specify a formatted text in a label, using a
 4. If you want to use Win64 platform, select this platform and Build again.
 5. Add sub-path Win32\Release to the Library paths at Tools\Options using 32-bit option, and if you have compiled to 64 bit platform, add sub-path Win64\Release using 64-bit option.
 
-Supports Delphi XE3..Delphi 11
+Supports Delphi XE3..Delphi 12
 
 ## Component Properties
 
@@ -387,9 +404,7 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background. In VCL environment, transparency is not available.
 
-`DesignDPI: Integer` *(only in VCL+WINDOWS)* = Defines Pixels Per Inch that html syntax was formatted (auto assigned when component inserted in a Form). All measurements will be calculated based on the Design DPI, and applied to the current Monitor DPI. Example: if you specified a tab width as 60 pixels, at 96 DPI, when displaying the text on a 120 DPI monitor, the tab width will be larger (75 pixels).
-
-> For automatic scaling by DPI to work correctly, it is necessary to use Delphi 10 or higher, or Lazarus, as for previous versions of Delphi, the scaling will be based on the DPI of the main monitor, which is not always the monitor where the component is being displayed.
+`CustomStyles: TDHHeaderStyles` = Collection of header styles to use with tag `<H:ident>`, where `ident` is Ident property of a header style in collection list.
 
 `Font: TFont` = Determines the base font. When no tag is specified on text, this base font is used.
 
@@ -408,6 +423,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 `ListLevelPadding: TPixels` = Determines the width of each list level in pixels, when using HTML list tags.
 
 `MaxWidth: TPixels` = Specify the maximum width of text, when using AutoWidth property.
+
+`Offset: TDHOffset` = Sets Top and Bottom offset (spacing in Pixels) for each line. When using `<offset>` tag, it will replace this setting, according to the specified attribute (top and/or bottom).
 
 `OverallHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Determines overall text horizontal alignment. This property only take effects if `AutoWidth` is false.
 
@@ -446,7 +463,7 @@ procedure OnLinkRightClick(Sender: TObject; Link: TDHBaseLink; var Handled: Bool
 This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
 ```delphi
-procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: String; Picture: TPicture; var Handled: Boolean);
+procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: String; Picture: TAnyPicture; var Handled: Boolean);
 ```
 If you are using `<imgres>` tag, this event will fire on every image tag, allowing you to manually load a image from anywhere, in any image format, assigning it to Picture object. Be sure to set `Handled := True` when you manually load an image.
 *Not using this event causes the component to automatically load the image from application resources by name, and must be in PNG format when using VCL environment. In FMX environment you can use any image format supported by Delphi.*
@@ -455,7 +472,7 @@ Example:
 
 ```delphi
 procedure TForm1.DzHTMLText1RetrieveImgRes(Sender: TObject; const ResourceName: string;
-  Picture: TPicture; var Handled: Boolean);
+  Picture: TAnyPicture; var Handled: Boolean);
 var JPG: TJpegImage;
 begin
   if ResourceName='TEST' then
@@ -637,6 +654,20 @@ When you type Chinese, Japanese or Korean characters, this behavior is quite dif
 ## Transparency (why not in VCL?)
 
 The transparency option is not available for this component when using VCL, because the text painted on canvas is not static. This means the canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
+
+## Auto Scaling
+
+### VCL (Delphi and Lazarus)
+
+All measurements will be calculated based on the Design DPI (always 96 pixels per inch), and applied to the current Monitor DPI. Example: if you specified a tab width as 60 pixels, at 96 DPI, when displaying the text on a 120 DPI monitor, the tab width will be larger (75 pixels).
+
+For automatic scaling by DPI to work correctly, it is necessary to use Windows 8.1 or higher, and Delphi 10 or higher, or Lazarus.
+If using Delphi previous version, the scaling will be based on default DPI (96).
+If using Windows previous version, the scaling will be based on the default monitor DPI.
+
+### FMX
+
+In FMX environment, auto scaling is controled by Fire Monkey framework, automatically scaling the entire form layout and its components.
 
 ## Formatted Message Dialog Component
 
