@@ -348,8 +348,8 @@ This visual component allows you to specify a formatted text in a label, using a
 >
 </DIV> - Div Area
   size = Fixed External Size
-  full = Remaining size of current line
-  perc = Percent size of current line
+  full = Remaining size of current line (only works when AutoWidth/AutoHeight of parent div is disabled)
+  perc = Percent size of current line (only works when AutoWidth/AutoHeight of parent div is disabled)
   int = Fixed Internal Size
   line = Current line height
   
