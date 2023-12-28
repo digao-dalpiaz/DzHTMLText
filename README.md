@@ -36,16 +36,25 @@
 
 - 01/01/2024 (Version 5.0)
 
-   - New Header Tag (`<H>`)
-   - New Custom Style Tag (`<STYLE>`)
-   - Fixed Linux (in Lazarus) compilation (DEFAULT_DPI const)
+   - **NEW COMPONENT ENGINE!!!**
    - Improved token processing performance
    - FmxLinux supporting
    - Refactoring Scaling in VCL
+   - New Div Tag (`<DIV>`)
+   - Removed Tab and Float Tags (`<T>`, `<TF>`, `<FLOAT>`) - please use new Div tag
+   - New Header Tag (`<H>`)
+   - New Custom Style Tag (`<STYLE>`)
+   - Font Style tags (Bold, Italic, Underline and Strikeout) now supports "turn off" parameter
+   - Spoler tag now supports display already expanded
+   - Fixed Offset tag to not extend background color in the offset area
+   - Fixed Linux (in Lazarus) compilation (DEFAULT_DPI const)  
    - Removed DesignDPI property (**WARNING!!! If you defined a value other than the default in this property, when opening the form, this value will be removed, but that's okay, because the design of forms in Delphi is always based on 96 pixels per inch**)
    - Linux auto scaling supporting on Lazarus
    - Fixed supporting decimal values in all TPixels and TFontPt parameters in FMX
    - Fixed decimal values in tags parameters to use "." as decimal separator in FMX environment (TPixels and TFontPt)
+   - New ParagraphCount property (read-only)
+   - New LineHorzAlign property
+   - New ParagraphSpacing property
 
 <details>
   <summary>Click here to view the entire changelog</summary>
@@ -321,11 +330,34 @@ This visual component allows you to specify a formatted text in a label, using a
 ## Available Tags
 
 ```
-<A[:abc]></A> - Link
-<B></B> - Bold
-<I></I> - Italic
-<U></U> - Underline
-<S></S> - Strike out
+<DIV:
+  [x=nnn] --> when defined, div will be floating
+  [y=nnn] --> when defined, div will be floating
+  [width=size|full|perc%|int#]
+  [height=size|full|perc%|int#|line]
+  [maxwidth=nnn]
+  [margin[_left|_top|_right|_bottom]=nnn] --> Spacing between border line and text
+  [thick[_left|_top|_right|_bottom]=nnn] --> Border line size
+  [pad[_left|_top|_right|_bottom]=nnn] --> Spacing between outter limit and border line
+  [lncol[_left|_top|_right|_bottom]={COLOR_VALUE}]
+  [align=left|center|right] --> Horizontal overall alignment
+  [valign=top|center|bottom] --> Vertival overall alignment
+  [color={COLOR_VALUE}] --> Color inside the border line
+  [outcolor={COLOR_VALUE}] --> Color outside the border line
+  [keep]
+>
+</DIV> - Div Area
+  size = Fixed External Size
+  full = Remaining size of current line
+  perc = Percent size of current line
+  int = Fixed Internal Size
+  line = Current line height
+  
+<A[:target]></A> - Link
+<B[:off]></B> - Bold
+<I[:off]></I> - Italic
+<U[:off]></U> - Underline
+<S[:off]></S> - Strike out
 <FN:abc></FN> - Font Name
 <FS:123></FS> - Font Size
 <FC:{COLOR_VALUE}></FC> - Font Color
@@ -337,21 +369,18 @@ This visual component allows you to specify a formatted text in a label, using a
 <L></L> - Align Left
 <C></C> - Align Center
 <R></R> - Align Right
-<T:nnn> - Tab alignment, where 'nnn' is text alignment from the left margin in pixels
-<TF:nnn> - Tab with aligned break, where 'nnn' is text alignment from the left margin in pixels
 <IMG:nnn> - Image from ImageList where 'nnn' is image index
 <IMGRES:name> - PNG image from Resource where 'name' is the resource name
 <UL></UL> - Unordered list
 <OL></OL> - Ordered list
 <LI></LI> - List item
-<FLOAT:X,Y[,Width]></FLOAT> - Floating area
-<SPOILER:name></SPOILER> - Spoiler Title
+<SPOILER:name[,exp]></SPOILER> - Spoiler Title (use "exp" param to show spoiler already expanded)
 <SDETAIL:name></SDETAIL> - Spoiler Detail
-<LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
+<LS:aaa[,par=bbb]></LS> - Line spacing where 'aaa' is the height in pixels, and 'bbb' is the height when a new paragraph
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
 <LINE:[width=123|full],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
-  "full" option only works when AutoWidth is disabled
+  "full" option only works when AutoWidth of parent div is disabled
   Default values:
     width = 100
     height = 1
