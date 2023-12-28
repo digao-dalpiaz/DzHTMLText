@@ -83,13 +83,21 @@ type
   TDHVisualItem = class //represents each visual item printed to then canvas
   public
     Rect: TAnyRect;
-    OffsetTop, OffsetBottom: TPixels;
     BColor: TAnyColor; //background color
     Link: TDHBaseLink;
   end;
   TDHVisualItemList = class(TObjectList<TDHVisualItem>);
 
-  TDHVisualItem_Div = class(TDHVisualItem);
+  TDHDivBorderLineAttrRec = record
+  public
+    Thick, Pad: TPixels;
+    Color: TAnyColor;
+  end;
+  TDHVisualItem_Div = class(TDHVisualItem)
+  public
+    OutterColor, InnerColor: TAnyColor;
+    Left, Top, Right, Bottom: TDHDivBorderLineAttrRec;
+  end;
 
   TDHVisualItem_Word = class(TDHVisualItem)
   public
@@ -215,6 +223,7 @@ type
     FHorzAlign: TDHCustomStyleHorzAlignValue;
     FVertAlign: TDHCustomStyleVertAlignValue;
     FOffsetTop, FOffsetBottom: TPixels;
+    FLineSpace, FParagraphSpace: TPixels;
 
     procedure Modified;
 
@@ -231,6 +240,13 @@ type
     procedure SetVertAlign(const Value: TDHCustomStyleVertAlignValue);
     procedure SetOffsetTop(const Value: TPixels);
     procedure SetOffsetBottom(const Value: TPixels);
+    procedure SetLineSpace(const Value: TPixels);
+    procedure SetParagraphSpace(const Value: TPixels);
+
+    function GetStoredOffsetTop: Boolean;
+    function GetStoredOffsetBottom: Boolean;
+    function GetStoredLineSpace: Boolean;
+    function GetStoredParagraphSpace: Boolean;
   protected
     function GetDisplayName: string; override;
   public
@@ -247,8 +263,10 @@ type
     property BackColor: TAnyColor read FBackColor write SetBackColor default clNone;
     property HorzAlign: TDHCustomStyleHorzAlignValue read FHorzAlign write SetHorzAlign default TDHCustomStyleHorzAlignValue.Undefined;
     property VertAlign: TDHCustomStyleVertAlignValue read FVertAlign write SetVertAlign default TDHCustomStyleVertAlignValue.Undefined;
-    property OffsetTop: TPixels read FOffsetTop write SetOffsetTop {$IFDEF VCL}default 0{$ENDIF};
-    property OffsetBottom: TPixels read FOffsetBottom write SetOffsetBottom {$IFDEF VCL}default 0{$ENDIF};
+    property OffsetTop: TPixels read FOffsetTop write SetOffsetTop stored GetStoredOffsetTop;
+    property OffsetBottom: TPixels read FOffsetBottom write SetOffsetBottom stored GetStoredOffsetBottom;
+    property LineSpace: TPixels read FLineSpace write SetLineSpace stored GetStoredLineSpace;
+    property ParagraphSpace: TPixels read FParagraphSpace write SetParagraphSpace stored GetStoredParagraphSpace;
   end;
 
   TDHCustomStyles = class(TCollection)
@@ -292,6 +310,7 @@ type
     FAutoOpenLink: Boolean;
 
     FLineCount: Integer; //read-only
+    FParagraphCount: Integer; //read-only
     FTextWidth: TPixels; //read-only
     FTextHeight: TPixels; //read-only
 
@@ -318,6 +337,8 @@ type
     FListLevelPadding: TPixels;
 
     FBorders: TDHBorders;
+
+    FLineSpace, FParagraphSpace: TPixels;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
@@ -375,6 +396,8 @@ type
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
     procedure SetBorders(const Value: TDHBorders);
     procedure SetOffset(const Value: TDHOffset);
+    procedure SetLineSpace(const Value: TPixels);
+    procedure SetParagraphSpace(const Value: TPixels);
     procedure SetCustomStyles(const Value: TDHCustomStyles);
 
     {$IFDEF USE_IMGLST}
@@ -390,7 +413,7 @@ type
 
     procedure SetTextSize(W, H: TPixels);
 
-    procedure SetTextSizeAndLineCount(Size: TAnySize; Count: Integer);
+    procedure SetTextSizeAndLineCount(Size: TAnySize; LineCount, ParagraphCount: Integer);
   protected
     procedure Loaded; override;
     procedure Paint; override;
@@ -544,6 +567,7 @@ type
     {$ENDIF}
 
     property LineCount: Integer read FLineCount;
+    property ParagraphCount: Integer read FParagraphCount;
     property TextWidth: TPixels read FTextWidth;
     property TextHeight: TPixels read FTextHeight;
 
@@ -564,6 +588,9 @@ type
 
     property Borders: TDHBorders read FBorders write SetBorders stored GetStoredBorders;
 
+    property LineSpace: TPixels read FLineSpace write SetLineSpace {$IFDEF VCL}default 0{$ENDIF};
+    property ParagraphSpace: TPixels read FParagraphSpace write SetParagraphSpace {$IFDEF VCL}default 0{$ENDIF};
+
     property About: string read FAbout;
   end;
 
@@ -577,13 +604,17 @@ procedure Register;
 implementation
 
 uses
-{$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}StrUtils, Math, LResources, Variants
+{$IFDEF FMX}
+  FMX.DHTokenEngine, FMX.DHCommon
 {$ELSE}
-  System.StrUtils, System.Math, System.Variants
+  Vcl.DHTokenEngine, Vcl.DHCommon
+{$ENDIF}
+{$IFDEF FPC}
+  {$IFDEF MSWINDOWS}, Windows{$ENDIF}, StrUtils, Math, LResources, Variants
+{$ELSE}
+  , System.StrUtils, System.Math, System.Variants
   {$IFDEF FMX}
-  , FMX.DHTokenEngine, FMX.DHCommon,
-    System.UIConsts
+    , System.UIConsts
     {$IF Defined(ANDROID)}
     , Androidapi.JNI.GraphicsContentViewText
     , Androidapi.Helpers
@@ -593,8 +624,7 @@ uses
     , Posix.Stdlib
     {$ENDIF}
   {$ELSE}
-  , Vcl.DHTokenEngine, Vcl.DHCommon,
-    System.UITypes, Vcl.Themes
+    , System.UITypes, Vcl.Themes
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   , Winapi.Windows, Winapi.ShellAPI
@@ -611,26 +641,10 @@ begin
   RegisterComponents('Digao', [TDzHTMLText]);
 end;
 
+{$REGION 'EDHInternalExcept'}
 constructor EDHInternalExcept.Create(const Msg: string);
 begin
   inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
-end;
-
-{$REGION 'General Functions'}
-
-
-procedure GenericFillRect(C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
-begin
-  {$IFDEF FMX}
-  if FixPrecisionFMX then R.Left := Trunc(R.Left);  
-  {$ENDIF}
-
-  C.FillRect(
-    {$IFDEF FMX}
-    R, 0, 0, [], 1
-    {$ELSE}
-    R
-    {$ENDIF});
 end;
 {$ENDREGION}
 
@@ -994,6 +1008,26 @@ begin
   end;
 end;
 
+procedure TDzHTMLText.SetLineSpace(const Value: TPixels);
+begin
+  if Value<>FLineSpace then
+  begin
+    FLineSpace := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetParagraphSpace(const Value: TPixels);
+begin
+  if Value<>FParagraphSpace then
+  begin
+    FParagraphSpace := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
 procedure TDzHTMLText.SetListLevelPadding(const Value: TPixels);
 begin
   if Value<>FListLevelPadding then
@@ -1098,10 +1132,11 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.SetTextSizeAndLineCount(Size: TAnySize; Count: Integer);
+procedure TDzHTMLText.SetTextSizeAndLineCount(Size: TAnySize; LineCount, ParagraphCount: Integer);
 begin
   SetTextSize(Size.Width, Size.Height);
-  FLineCount := Count;
+  FLineCount := LineCount;
+  FParagraphCount := ParagraphCount;
 end;
 
 procedure TDzHTMLText.Resize;
@@ -1216,9 +1251,6 @@ begin
 
   if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R, True);
 
-  R.Top := R.Top + W.OffsetTop;
-  R.Bottom := R.Bottom - W.OffsetBottom;
-
   if W is TDHVisualItem_Div then
     Paint_Div(C, R, TDHVisualItem_Div(W))
   else
@@ -1238,8 +1270,37 @@ begin
 end;
 
 procedure TDzHTMLText.Paint_Div(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Div);
+
+  procedure PaintSide(var Side: TDHDivBorderLineAttrRec; X, Y, W, H: TPixels);
+  begin
+    if (Side.Thick=0) or (Side.Color=clNone) then Exit;
+
+    DefineFillColor(C, Side.Color);
+    GenericFillRect(C, TAnyRect.Create(TAnyPoint.Create(R.Left+X, R.Top+Y), W, H));
+  end;
+
 begin
-  
+  if W.OutterColor<>clNone then
+  begin
+    DefineFillColor(C, W.OutterColor);
+    GenericFillRect(C, R);
+  end;
+
+  R.Left := R.Left + W.Left.Pad;
+  R.Top := R.Top + W.Top.Pad;
+  R.Right := R.Right - W.Right.Pad;
+  R.Bottom := R.Bottom - W.Bottom.Pad;
+
+  if W.InnerColor<>clNone then
+  begin
+    DefineFillColor(C, W.InnerColor);
+    GenericFillRect(C, R);
+  end;
+
+  PaintSide(W.Left, 0, 0, W.Left.Thick, R.Height);
+  PaintSide(W.Top, 0, 0, R.Width, W.Top.Thick);
+  PaintSide(W.Right, R.Width-W.Right.Thick, 0, W.Right.Thick, R.Height);
+  PaintSide(W.Bottom, 0, R.Height-W.Bottom.Thick, R.Width, W.Bottom.Thick);
 end;
 
 procedure TDzHTMLText.Paint_Word(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Word);
@@ -1879,6 +1940,12 @@ begin
 
   FFontColor := clNone;
   FBackColor := clNone;
+
+  FOffsetTop := -1;
+  FOffsetBottom := -1;
+
+  FLineSpace := -1;
+  FParagraphSpace := -1;
 end;
 
 function TDHCustomStyle.GetDisplayName: string;
@@ -2021,8 +2088,49 @@ begin
     Modified;
   end;
 end;
+
+procedure TDHCustomStyle.SetLineSpace(const Value: TPixels);
+begin
+  if Value <> FLineSpace then
+  begin
+    FLineSpace := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetParagraphSpace(const Value: TPixels);
+begin
+  if Value <> FParagraphSpace then
+  begin
+    FParagraphSpace := Value;
+
+    Modified;
+  end;
+end;
+
+function TDHCustomStyle.GetStoredOffsetTop: Boolean;
+begin
+  Result := FOffsetTop<>-1;
+end;
+
+function TDHCustomStyle.GetStoredOffsetBottom: Boolean;
+begin
+  Result := FOffsetBottom<>-1;
+end;
+
+function TDHCustomStyle.GetStoredLineSpace: Boolean;
+begin
+  Result := FLineSpace<>-1;
+end;
+
+function TDHCustomStyle.GetStoredParagraphSpace: Boolean;
+begin
+  Result := FParagraphSpace<>-1;
+end;
 {$ENDREGION}
 
+{$REGION 'TDHLinkRef'}
 constructor TDHLinkRef.Create(const Target: string);
 begin
   FTarget := Target;
@@ -2033,11 +2141,14 @@ destructor TDHLinkRef.Destroy;
 begin
   FText.Free;
 end;
+{$ENDREGION}
 
+{$REGION 'TDHSpoiler'}
 constructor TDHSpoiler.Create(const Name: string; Expanded: Boolean);
 begin
   FName := Name;
   FExpanded := Expanded;
 end;
+{$ENDREGION}
 
 end.

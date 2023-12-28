@@ -4,14 +4,30 @@
 
 interface
 
-uses System.Classes, System.Generics.Collections, System.Types, System.UITypes,
+uses
+{$IFDEF FMX}FMX.DzHTMLText{$ELSE}Vcl.DzHTMLText{$ENDIF},
+{$IFDEF FPC}
+  Classes, Types
+{$ELSE}
+  System.Classes, System.Generics.Collections, System.Types, System.UITypes,
   {$IFDEF FMX}
-    {$IFDEF USE_NEW_UNITS}FMX.Graphics, {$ENDIF}System.UIConsts, FMX.DzHTMLText
+    {$IFDEF USE_NEW_UNITS}FMX.Graphics, {$ENDIF}System.UIConsts
   {$ELSE}
-    Vcl.Graphics, Vcl.DzHTMLText
-  {$ENDIF};
+    Vcl.Graphics
+  {$ENDIF}
+{$ENDIF};
 
 type
+  TDHBorderRec = record
+  private
+    Margin, Thick, Pad: TPixels;
+    LnColor: TAnyColor;
+  end;
+  TDHBordersRec = record
+  private
+    Left, Top, Right, Bottom: TDHBorderRec;
+  end;
+
   {$REGION 'Token base classes'}
   TDHBuilder = class;
   TDHTokenBlock = class;
@@ -43,6 +59,8 @@ type
   TDHTokenBlock = class abstract(TDHToken)
   private
     Children: TObjectList<TDHToken>;
+
+    function IsBypassProps: Boolean; virtual;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -220,16 +238,39 @@ type
   TDHToken_Superscript = class(TDHToken_SuperOrSubScript);
   TDHToken_Subscript = class(TDHToken_SuperOrSubScript);
 
+  TDHToken_List = class(TDHTokenBlock)
+  private
+    procedure Process; override;
+  end;
+  TDHToken_OrderedList = class(TDHToken_List);
+  TDHToken_UnorderedList = class(TDHToken_List);
+  TDHToken_ListItem = class(TDHTokenBlock)
+  private
+    procedure Process; override;
+
+    function IsBypassProps: Boolean; override;
+  end;
+
+  TDHToken_LineSpace = class(TDHTokenBlock)
+  private
+    Space, ParagraphSpace: TPixels;
+
+    procedure ReadParam; override;
+    procedure Process; override;
+  end;
+
   TDHToken_Div = class(TDHTokenBlock)
   private
-    Borders: TAnyRect;
-    BackColor: TAnyColor;
+    Borders: TDHBordersRec;
+    BackColor, BorderColor: TAnyColor;
     Size: TAnySize;
     FloatPos: TAnyPoint;
     MaxWidth: TPixels;
     HorzAlign: TDHHorzAlign;
     VertAlign: TDHVertAlign;
     HeightByLine: Boolean;
+    KeepProps: Boolean;
+    PercentWidth, PercentHeight, FullWidth, FullHeight: Boolean;
 
     AutoWidth: Boolean;
     AutoHeight: Boolean;
@@ -247,6 +288,7 @@ type
   private
     Continuous: Boolean; //when this line is a continuation of the previous one
     Items: TDHPreVisualItemList;
+    Space: TPixels;
 
     LonelyHeight: TPixels; //when line does not contains any object
 
@@ -268,7 +310,7 @@ type
 
     HorzAlign: TDHHorzAlign;
     VertAlign: TDHVertAlign;
-    Borders: TAnyRect;
+    Borders: TDHBordersRec;
 
     Lines: TObjectList<TDHDivAreaLine>;
     SubDivs: TObjectList<TDHDivArea>;
@@ -281,6 +323,7 @@ type
     FixedSize, TextSize: TAnySize;
 
     procedure CalcTextSize;
+    function GetParagraphCount: Integer;
 
     function AddNewLineObject: TDHDivAreaLine;
     procedure CheckForLinesInitialization;
@@ -296,11 +339,16 @@ type
     destructor Destroy; override;
   end;
 
+  TDHOffsetRec = record
+  private
+    Top, Bottom: TPixels;
+    function GetHeight: TPixels;
+  end;
   TDHPropsStore = class
   private
     FontColor: TAnyColor;
     BackColor: TAnyColor;
-    OffsetTop, OffsetBottom: TPixels;
+    Offset: TDHOffsetRec;
     HorzAlign: TDHHorzAlign;
     VertAlign: TDHVertAlign;
 
@@ -309,6 +357,12 @@ type
     SS_FullHeight: TPixels;
     SS_YPos: TPixels;
     //--
+
+    List_Level: Byte;
+    List_Number: Word;
+    List_Bullet: Boolean;
+
+    LineSpace, ParagraphSpace: TPixels;
 
     procedure AssignProps(Source: TDHPropsStore);
   end;
@@ -322,9 +376,11 @@ type
     Line: TDHDivAreaLine;
     HorzAlign: TDHHorzAlign;
     VertAlign: TDHVertAlign;
+    Offset: TDHOffsetRec;
 
     SelfDiv: TDHDivArea;
 
+    function GetFullHeight: TPixels;
     function IsSpace: Boolean;
   public
     destructor Destroy; override;
@@ -334,7 +390,7 @@ type
     function GetSumWidth: TPixels;
   end;
 
-  TDHProcBoundsAndLines = procedure(Size: TAnySize; Count: Integer) of object;
+  TDHProcBoundsAndLines = procedure(Size: TAnySize; LineCount, ParagraphCount: Integer) of object;
 
   TDHBuilder = class
   private
@@ -355,7 +411,7 @@ type
     QueueVisualItems: TDHPreVisualItemList;
 
     function AddToken<T: TDHToken, constructor>: T;
-    procedure AddInvalidToken(const Motive: string);
+    procedure AddInvalidToken;
 
     function NewLine(Continuous: Boolean): TDHDivAreaLine;
 
@@ -384,14 +440,18 @@ type
 
 implementation
 
-uses System.Variants, System.SysUtils, System.StrUtils, System.Math,
+uses
+{$IFDEF FMX}FMX.DHCommon{$ELSE}Vcl.DHCommon{$ENDIF},
+{$IFDEF FPC}
+  Variants, SysUtils, StrUtils, Math,
+{$ELSE}
+  System.Variants, System.SysUtils, System.StrUtils, System.Math,
   {$IFDEF FMX}
-  FMX.Controls,
-  FMX.DHCommon
+  FMX.Controls
   {$ELSE}
-  Vcl.Themes, Vcl.Controls,
-  Vcl.DHCommon
-  {$ENDIF};
+  Vcl.Themes, Vcl.Controls
+  {$ENDIF}
+{$ENDIF};
 
 type
   TDHTokenObjectDef = record
@@ -402,7 +462,7 @@ type
   end;
 
 const
-  TOKENS_OBJECTS: array[0..24] of TDHTokenObjectDef = (
+  TOKENS_OBJECTS: array[0..28] of TDHTokenObjectDef = (
     //single
     (Ident: 'BR'; Clazz: TDHToken_Break), //breakable!
     (Ident: 'LINE'; Clazz: TDHToken_Line; AllowPar: True; OptionalPar: True),
@@ -419,7 +479,7 @@ const
     (Ident: 'FS'; Clazz: TDHToken_FontSize; AllowPar: True),
     (Ident: 'BC'; Clazz: TDHToken_BackColor; AllowPar: True),
     (Ident: 'OFFSET'; Clazz: TDHToken_Offset; AllowPar: True),
-    (Ident: 'DIV'; Clazz: TDHToken_Div; AllowPar: True), //breakable!
+    (Ident: 'DIV'; Clazz: TDHToken_Div; AllowPar: True), //breakable!  //optional par ???
     (Ident: 'A'; Clazz: TDHToken_Link; AllowPar: True; OptionalPar: True),
     (Ident: 'L'; Clazz: TDHToken_AlignLeft),
     (Ident: 'C'; Clazz: TDHToken_AlignCenter),
@@ -430,13 +490,11 @@ const
     (Ident: 'STYLE'; Clazz: TDHToken_CustomStyle; AllowPar: True),
     (Ident: 'H'; Clazz: TDHToken_Header; AllowPar: True),
     (Ident: 'SUP'; Clazz: TDHToken_Superscript),
-    (Ident: 'SUB'; Clazz: TDHToken_Subscript)
-    //(Ident: 'UL'; Kind: ttBulletList), //Unordered HTML List
-    //(Ident: 'OL'; Kind: ttNumberList), //Ordered HTML List
-    //(Ident: 'LI'; Kind: ttListItem), //HTML List Item
-
-    // line spacing: top bottom / paragraph spacing: top bottom / paragraph offset????
-    //
+    (Ident: 'SUB'; Clazz: TDHToken_Subscript),
+    (Ident: 'UL'; Clazz: TDHToken_UnorderedList),
+    (Ident: 'OL'; Clazz: TDHToken_OrderedList),
+    (Ident: 'LI'; Clazz: TDHToken_ListItem),
+    (Ident: 'LS'; Clazz: TDHToken_LineSpace; AllowPar: True)
   );
 
 function GetTokenObjectDefIndexFromIdent(const Ident: string): Integer;
@@ -498,6 +556,11 @@ destructor TDHTokenBlock.Destroy;
 begin
   Children.Free;
   inherited;
+end;
+
+function TDHTokenBlock.IsBypassProps: Boolean;
+begin
+  Result := False;
 end;
 
 { TDHToken_FontStyleItem }
@@ -635,8 +698,11 @@ begin
     end;
   end;
 
-  if Style.OffsetTop>0 then Builder.Props.OffsetTop := Style.OffsetTop;
-  if Style.OffsetBottom>0 then Builder.Props.OffsetBottom := Style.OffsetBottom;
+  if Style.OffsetTop>=0 then Builder.Props.Offset.Top := Style.OffsetTop;
+  if Style.OffsetBottom>=0 then Builder.Props.Offset.Bottom := Style.OffsetBottom;
+
+  if Style.LineSpace>=0 then Builder.Props.LineSpace := Style.LineSpace;
+  if Style.ParagraphSpace>=0 then Builder.Props.ParagraphSpace := Style.ParagraphSpace;
 end;
 
 procedure TDHToken_CustomStyle.ApplyFontStyle(Value: TDHCustomStyleBoolValue; FontStyle: TFontStyle);
@@ -686,8 +752,8 @@ end;
 
 procedure TDHToken_Offset.Process;
 begin
-  if Top>=0 then Builder.Props.OffsetTop := Top;
-  if Bottom>=0 then Builder.Props.OffsetBottom := Bottom;
+  if Top>=0 then Builder.Props.Offset.Top := Top;
+  if Bottom>=0 then Builder.Props.Offset.Bottom := Bottom;
 end;
 
 { TDHToken_Word }
@@ -807,7 +873,7 @@ begin
   V.ColorAlt := ColorAlt;
 
   if Full and not Builder.CurrentDiv.AutoWidth then
-    Width := Builder.CurrentDiv.FixedSize.Width;
+    Width := Builder.CurrentDiv.GetAreaSizeWOB.Width - Builder.CurrentDiv.Point.X;
 
   Size := TAnySize.Create(Width, Height);
 
@@ -914,6 +980,66 @@ begin
   Builder.Props.SS_YPos := Builder.Props.SS_YPos + Delta;
 end;
 
+{ TDHToken_List }
+
+procedure TDHToken_List.Process;
+begin
+  Inc(Builder.Props.List_Level);
+  Builder.Props.List_Number := 0;
+  Builder.Props.List_Bullet := Self is TDHToken_UnorderedList;
+end;
+
+{ TDHToken_ListItem }
+
+function TDHToken_ListItem.IsBypassProps: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TDHToken_ListItem.Process;
+var
+  Token: TDHToken_Word;
+begin
+  Inc(Builder.Props.List_Number);
+
+  Token := TDHToken_Word.Create;
+  try
+    Token.Builder := Builder;
+
+    if Builder.Props.List_Bullet then
+      Token.Word := '• '
+    else
+      Token.Word := IntToStr(Builder.Props.List_Number)+'. ';
+
+    Builder.CurrentDiv.Point.X := Builder.Props.List_Level * Builder.Lb.ListLevelPadding;
+    Token.Breakable := True;
+    Token.Process;
+  finally
+    Token.Free;
+  end;
+end;
+
+{ TDHToken_LineSpace }
+
+procedure TDHToken_LineSpace.ReadParam;
+var
+  P: TDHMultipleTokenParams;
+begin
+  P := TDHMultipleTokenParams.Create(Param);
+  try
+    Space := StrToPixels(P.GetFirstParam, 0);
+    ParagraphSpace := P.GetParamAsPixels('par', 0);
+  finally
+    P.Free;
+  end;
+end;
+
+procedure TDHToken_LineSpace.Process;
+begin
+  Builder.Props.LineSpace := Space;
+  Builder.Props.ParagraphSpace := ParagraphSpace;
+end;
+
 { TDHToken_Div }
 
 function TDHToken_Div.IsBreakableToken: Boolean;
@@ -924,43 +1050,122 @@ end;
 procedure TDHToken_Div.ReadParam;
 var
   P: TDHMultipleTokenParams;
+  AllMargin, AllThick, AllPad: TPixels;
+  AllLnCol: TAnyColor;
+
+  procedure UpdVar(var &Var: TPixels; All, Value: TPixels);
+  begin
+    if Value >= 0 then
+      &Var := Value
+    else
+      &Var := All;
+  end;
+
+  procedure ReadBorder(var B: TDHBorderRec; const Ident: string);
+  var
+    LnCol: TAnyColor;
+  begin
+    UpdVar(B.Margin, AllMargin, P.GetParamAsPixels('margin_'+Ident, -1));
+    UpdVar(B.Thick, AllThick, P.GetParamAsPixels('thick_'+Ident, -1));
+    UpdVar(B.Pad, AllPad, P.GetParamAsPixels('pad_'+Ident, -1));
+
+    LnCol := ParamToColor(P.GetParam('lncol_'+Ident));
+    if LnCol<>clNone then
+      B.LnColor := LnCol
+    else
+      B.LnColor := AllLnCol;
+
+    B.Margin := B.Margin + B.Thick + B.Pad;
+  end;
+
+  procedure DetectSizeParams(var Value: string; var Percent: Boolean; var Internal: Boolean);
+  begin
+    //only one attribute allowed
+    Percent := Value.EndsWith('%');
+    Internal := Value.EndsWith('#');
+    if Percent or Internal then Delete(Value, Value.Length, 1);
+  end;
+
+var
+  ParW, ParH: string;
+  WInt, HInt: Boolean;
 begin
   P := TDHMultipleTokenParams.Create(Param);
   try
+    ParW := P.GetParam('width');
+    ParH := P.GetParam('height');
+
+    DetectSizeParams(ParW, PercentWidth, WInt);
+    DetectSizeParams(ParH, PercentHeight, HInt);
+
+    Size := TAnySize.Create(StrToPixels(ParW, 0), StrToPixels(ParH, 0));
+    //if size in percent, here size contains percent value already
+
+    FullWidth := SameText(ParW, 'full');
+    FullHeight := SameText(ParH, 'full');
+
+    AutoWidth := (Size.Width <= 0) and not FullWidth;
+    AutoHeight := (Size.Height <= 0) and not FullHeight;
+
+    HeightByLine := SameText(ParH, 'line');
+
+    //--Borders
+    AllMargin := P.GetParamAsPixels('margin', 0);
+    AllThick := P.GetParamAsPixels('thick', 0);
+    AllPad := P.GetParamAsPixels('pad', 0);
+    AllLnCol := ParamToColor(P.GetParam('lncol'));
+
+    ReadBorder(Borders.Left, 'left');
+    ReadBorder(Borders.Top, 'top');
+    ReadBorder(Borders.Right, 'right');
+    ReadBorder(Borders.Bottom, 'bottom');
+
+    //
+
+    if WInt then Size.Width := Size.Width + Borders.Left.Margin + Borders.Right.Margin;
+    if HInt then Size.Height := Size.Height + Borders.Top.Margin + Borders.Bottom.Margin;
+
+    //--
+
     FloatPos := TAnyPoint.Create(P.GetParamAsPixels('x', -1), P.GetParamAsPixels('y', -1));
     Floating := (FloatPos.X>=0) and (FloatPos.Y>=0);
 
-    Size := TAnySize.Create(P.GetParamAsPixels('width', 0), P.GetParamAsPixels('height', 0));
-    //*** percent support please!!! (when parent div has fixed size only)
-
-    AutoWidth := Size.Width <= 0;
-    AutoHeight := Size.Height <= 0;
-
-    MaxWidth := P.GetParamAsPixels('maxwidth', 0);
-    HeightByLine := SameText(P.GetParam('height'), 'line');
-
     HorzAlign := ParamToHorzAlign(P.GetParam('align'));
     VertAlign := ParamToVertAlign(P.GetParam('valign'));
-
-    Borders := TAnyRect.Create(
-      P.GetParamAsPixels('left', 0),
-      P.GetParamAsPixels('top', 0),
-      P.GetParamAsPixels('right', 0),
-      P.GetParamAsPixels('bottom', 0));
-
+    MaxWidth := P.GetParamAsPixels('maxwidth', 0);
     BackColor := ParamToColor(P.GetParam('color'));
-
+    BorderColor := ParamToColor(P.GetParam('outcolor'));
+    KeepProps := P.ParamExists('keep');
   finally
     P.Free;
   end;
 end;
 
 procedure TDHToken_Div.Process;
+
+  procedure ToDivLineAttr(var A: TDHBorderRec; var Attr: TDHDivBorderLineAttrRec);
+  begin
+    Attr.Thick := A.Thick;
+    Attr.Pad := A.Pad;
+    Attr.Color := A.LnColor;
+  end;
+
 var
   D: TDHDivArea;
   V: TDHVisualItem_Div;
   Item: TDHPreVisualItem;
 begin
+  if not Builder.CurrentDiv.AutoWidth then
+  begin
+    if PercentWidth then Size.Width := RoundIfVCL(Builder.CurrentDiv.GetAreaSizeWOB.Width * Size.Width/100) else
+      if FullWidth then Size.Width := Builder.CurrentDiv.GetAreaSizeWOB.Width - Builder.CurrentDiv.Point.X;
+  end;
+  if not Builder.CurrentDiv.AutoHeight then
+  begin
+    if PercentHeight then Size.Height := RoundIfVCL(Builder.CurrentDiv.GetAreaSizeWOB.Height * Size.Height/100) else
+      if FullHeight then Size.Height := Builder.CurrentDiv.GetAreaSizeWOB.Height - Builder.CurrentDiv.Point.Y;
+  end;
+
   D := TDHDivArea.Create(Builder.CurrentDiv);
   D.FixedSize := Size;
   D.AutoWidth := AutoWidth;
@@ -973,7 +1178,13 @@ begin
   D.HeightByLine := HeightByLine;
 
   V := TDHVisualItem_Div.Create;
-  V.BColor := BackColor;
+  V.InnerColor := BackColor;
+  V.OutterColor := BorderColor;
+
+  ToDivLineAttr(Borders.Left, V.Left);
+  ToDivLineAttr(Borders.Top, V.Top);
+  ToDivLineAttr(Borders.Right, V.Right);
+  ToDivLineAttr(Borders.Bottom, V.Bottom);
 
   Item := Builder.CreatePreVisualItem(V, TAnySize.Create(0, 0)); //we don't know the size yet
   if Floating then Item.Position := FloatPos;
@@ -981,11 +1192,29 @@ begin
 
   D.PreVisualItem := Item;
 
+  if not KeepProps then
+  begin
+    Builder.Props.Offset.Top := 0;
+    Builder.Props.Offset.Bottom := 0;
+    Builder.Props.BackColor := clNone;
+    Builder.Props.HorzAlign := haLeft;
+    Builder.Props.VertAlign := vaTop;
+    Builder.Props.LineSpace := 0;
+    Builder.Props.ParagraphSpace := 0;
+  end;
+
   Builder.CurrentDiv.SubDivs.Add(D);
   Builder.CurrentDiv := D; //change current div!
 end;
 
 {$ENDREGION}
+
+{ TDHOffsetRec }
+
+function TDHOffsetRec.GetHeight: TPixels;
+begin
+  Result := Top + Bottom;
+end;
 
 { TDHPreVisualItem }
 
@@ -994,6 +1223,11 @@ begin
   if VisualObject<>nil then VisualObject.Free;
 
   inherited;
+end;
+
+function TDHPreVisualItem.GetFullHeight: TPixels;
+begin
+  Result := Size.Height + Offset.GetHeight;
 end;
 
 function TDHPreVisualItem.IsSpace: Boolean;
@@ -1034,7 +1268,7 @@ end;
 
 function TDHDivArea.GetAbsoluteStartingPos: TAnyPoint;
 begin
-  Result := Borders.TopLeft;
+  Result := TAnyPoint.Create(Borders.Left.Margin, Borders.Top.Margin);
   if Main then Exit;
 
   Result.Offset(PreVisualItem.Position);
@@ -1061,12 +1295,12 @@ end;
 
 function TDHDivArea.GetHorzBorder: TPixels;
 begin
-  Result := Borders.Left + Borders.Right;
+  Result := Borders.Left.Margin + Borders.Right.Margin;
 end;
 
 function TDHDivArea.GetVertBorder: TPixels;
 begin
-  Result := Borders.Top + Borders.Bottom;
+  Result := Borders.Top.Margin + Borders.Bottom.Margin;
 end;
 
 procedure TDHDivArea.CalcTextSize;
@@ -1080,10 +1314,19 @@ begin
   for Line in Lines do
   begin
     if Line.TextSize.Width > W then W := Line.TextSize.Width;
-    H := H + Line.TextSize.Height;
+    H := H + Line.TextSize.Height + Line.Space;
   end;
 
   TextSize := TAnySize.Create(W, H);
+end;
+
+function TDHDivArea.GetParagraphCount: Integer;
+var
+  Line: TDHDivAreaLine;
+begin
+  Result := 0;
+  for Line in Lines do
+    if not Line.Continuous then Inc(Result);
 end;
 
 { TDHDivAreaLine }
@@ -1102,7 +1345,7 @@ end;
 
 procedure TDHDivAreaLine.CalcTextSize;
 var
-  W, H: TPixels;
+  W, H, FullH: TPixels;
   Item: TDHPreVisualItem;
 begin
   W := 0;
@@ -1111,7 +1354,9 @@ begin
   for Item in Items do
   begin
     W := W + Item.Size.Width;
-    if Item.Size.Height > H then H := Item.Size.Height;
+
+    FullH := Item.GetFullHeight;
+    if FullH > H then H := FullH;
   end;
 
   TextSize := TAnySize.Create(W, H);
@@ -1124,8 +1369,7 @@ begin
   FontColor := Source.FontColor;
   BackColor := Source.BackColor;
 
-  OffsetTop := Source.OffsetTop;
-  OffsetBottom := Source.OffsetBottom;
+  Offset := Source.Offset;
 
   HorzAlign := Source.HorzAlign;
   VertAlign := Source.VertAlign;
@@ -1133,6 +1377,13 @@ begin
   SS_Inside := Source.SS_Inside;
   SS_FullHeight := Source.SS_FullHeight;
   SS_YPos := Source.SS_YPos;
+
+  List_Level := Source.List_Level;
+  List_Number := Source.List_Number;
+  List_Bullet := Source.List_Bullet;
+
+  LineSpace := Source.LineSpace;
+  ParagraphSpace := Source.ParagraphSpace;
 end;
 
 { TDHPreVisualItemList }
@@ -1147,33 +1398,6 @@ begin
 end;
 
 { TDHBuilder }
-
-procedure TDHBuilder.AddInvalidToken(const Motive: string);
-var
-  Token: TDHToken_Word;
-begin
-  Token := AddToken<TDHToken_Word>;
-  Token.Word := '<#'+Motive+'#>';
-  Token.Breakable := True;
-end;
-
-function TDHBuilder.AddToken<T>: T;
-begin
-  Result := T.Create;
-  Result.Init(Self);
-end;
-
-function TDHBuilder.CalcTextHeight(const Text: string): TPixels;
-var
-  H: TPixels;
-begin
-  if Props.SS_Inside then
-    H := Props.SS_FullHeight
-  else
-    H := Canvas.TextHeight(Text);
-
-  Result := H + Props.OffsetTop + Props.OffsetBottom;
-end;
 
 constructor TDHBuilder.Create(Lb: TDzHTMLText; Canvas: TCanvas;
   VisualItems: TDHVisualItemList; ProcBoundsAndLines: TDHProcBoundsAndLines);
@@ -1202,11 +1426,14 @@ begin
   {$ENDIF}
   Props.BackColor := clNone;
 
-  Props.OffsetTop := Lb.Offset.Top;
-  Props.OffsetBottom := Lb.Offset.Bottom;
+  Props.Offset.Top := Lb.Offset.Top;
+  Props.Offset.Bottom := Lb.Offset.Bottom;
 
   Props.VertAlign := Lb.LineVertAlign;
   Props.HorzAlign := Lb.LineHorzAlign;
+
+  Props.LineSpace := Lb.LineSpace;
+  Props.ParagraphSpace := Lb.ParagraphSpace;
   //--
 
   //--MainDiv
@@ -1223,10 +1450,10 @@ begin
   MainDiv.HorzAlign := Lb.OverallHorzAlign;
   MainDiv.VertAlign := Lb.OverallVertAlign;
 
-  MainDiv.Borders.Left := Lb.Borders.Left;
-  MainDiv.Borders.Top := Lb.Borders.Top;
-  MainDiv.Borders.Right := Lb.Borders.Right;
-  MainDiv.Borders.Bottom := Lb.Borders.Bottom;
+  MainDiv.Borders.Left.Margin := Lb.Borders.Left;
+  MainDiv.Borders.Top.Margin := Lb.Borders.Top;
+  MainDiv.Borders.Right.Margin := Lb.Borders.Right;
+  MainDiv.Borders.Bottom.Margin := Lb.Borders.Bottom;
   //--
 end;
 
@@ -1244,7 +1471,7 @@ procedure TDHBuilder.Execute;
 begin
   CurrentBlock := MainToken;
   ReadTokens;
-  if CurrentBlock<>MainToken then AddInvalidToken('MISSING CLOSINGS');
+  if CurrentBlock<>MainToken then AddInvalidToken; //missing some tag closing
   CurrentBlock := nil;
 
   CurrentDiv := MainDiv;
@@ -1254,9 +1481,24 @@ begin
   CurrentDiv := nil;
 
   MainDiv.CalcTextSize;
-  ProcBoundsAndLines(MainDiv.TextSize, MainDiv.Lines.Count);
+  ProcBoundsAndLines(MainDiv.TextSize, MainDiv.Lines.Count, MainDiv.GetParagraphCount);
 
   SendObjectsToComponent(MainDiv);
+end;
+
+procedure TDHBuilder.AddInvalidToken;
+var
+  Token: TDHToken_Word;
+begin
+  Token := AddToken<TDHToken_Word>;
+  Token.Word := '<?>';
+  Token.Breakable := True;
+end;
+
+function TDHBuilder.AddToken<T>: T;
+begin
+  Result := T.Create;
+  Result.Init(Self);
 end;
 
 {$REGION 'Token reading'}
@@ -1298,19 +1540,19 @@ begin
       I := PosEx('>', Text, CurPos+1); //find tag closing
       if I>0 then
       begin
-        if not ProcessTag(Copy(Text, CurPos+1, I-CurPos-1)) then AddInvalidToken('');
+        if not ProcessTag(Copy(Text, CurPos+1, I-CurPos-1)) then AddInvalidToken;
         CurPos := I+1;
       end else
       begin
         //losted tag opening
-        AddInvalidToken('MISSING >');
+        AddInvalidToken;
         Inc(CurPos);
       end;
     end else
     if CharIni = '>' then
     begin
       //losted tag closing
-      AddInvalidToken('MISSING <');
+      AddInvalidToken;
       Inc(CurPos);
     end else
     begin //all the rest is text
@@ -1341,7 +1583,6 @@ var
   TokenClass: TDHTokenClass;
   Token: TDHToken;
 begin
-  //Result=True means valid tag
   Result := False;
   A := Tag;
 
@@ -1358,6 +1599,8 @@ begin
     if Par.IsEmpty then Exit; //blank parameter specified
     if CloseTag then Exit; //tag closing with parameter
   end;
+
+  if A.IsEmpty then Exit; //blank tag
 
   I := GetTokenObjectDefIndexFromIdent(UpperCase(A));
   if I = -1 then Exit; //invalid tag
@@ -1428,8 +1671,11 @@ begin
 
         if Token.IsBreakableToken then ProcessPendingObjects;
 
-        Props.AssignProps(Original);
-        Canvas.Font.Assign(OriginalFont);
+        if not TDHTokenBlock(Token).IsBypassProps then
+        begin
+          Props.AssignProps(Original);
+          Canvas.Font.Assign(OriginalFont);
+        end;
       finally
         Original.Free;
         OriginalFont.Free;
@@ -1444,6 +1690,7 @@ begin
 
         DivArea.CalcTextSize;
         DivArea.PreVisualItem.Size := DivArea.GetAreaSize; //update visual item size
+
         ProcessOneObject(DivArea.PreVisualItem);
       end else
       if (Token is TDHToken_Link) or (Token is TDHToken_SpoilerTitle) then CurrentLink := nil; //closing Link or Spoiler Title token
@@ -1451,6 +1698,14 @@ begin
     else
       Token.Process;
   end;
+end;
+
+function TDHBuilder.CalcTextHeight(const Text: string): TPixels;
+begin
+  if Props.SS_Inside then
+    Result := Props.SS_FullHeight
+  else
+    Result := Canvas.TextHeight(Text);
 end;
 
 procedure TDHBuilder.EndOfLine;
@@ -1461,38 +1716,48 @@ begin
   
   Line := CurrentDiv.Lines.Last;
   if Line.Items.Count=0 then //line without visual items
-    Line.LonelyHeight := CalcTextHeight(STR_SPACE);
+    Line.LonelyHeight := CalcTextHeight(STR_SPACE) + Props.Offset.GetHeight;
 
   Line.CalcTextSize;
-
-  CurrentDiv.Point.X := 0;
-  CurrentDiv.Point.Offset(0, Line.TextSize.Height);
 end;
 
 function TDHBuilder.NewLine(Continuous: Boolean): TDHDivAreaLine;
+var
+  Line: TDHDivAreaLine;
+  Space: TPixels;
 begin
-  EndOfLine;
+  EndOfLine; //must always contain lines here
+
+  Line := CurrentDiv.Lines.Last;
+
+  if Continuous then
+    Space := Props.LineSpace
+  else
+    Space := Props.ParagraphSpace;
+
+  CurrentDiv.Point.X := 0;
+  CurrentDiv.Point.Offset(0, Line.TextSize.Height + Space);
 
   Result := CurrentDiv.AddNewLineObject;
   Result.Continuous := Continuous;
+  Result.Space := Space;
 end;
 
 function TDHBuilder.CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
 begin
   V.Link := CurrentLink;
 
-  if not (V is TDHVisualItem_Div) then
+  if V is TDHVisualItem_Div then
+    V.BColor := clNone //div handles background color using specific method
+  else
     V.BColor := Props.BackColor;
-
-  V.OffsetTop := Props.OffsetTop;
-  V.OffsetBottom := Props.OffsetBottom;
 
   Result := TDHPreVisualItem.Create;
   Result.VisualObject := V;
-
   Result.Size := Size;
   Result.HorzAlign := Props.HorzAlign;
   Result.VertAlign := Props.VertAlign;
+  Result.Offset := Props.Offset;
 end;
 
 procedure TDHBuilder.AddVisualItemToQueue(V: TDHVisualItem; Size: TAnySize; Breakable: Boolean);
@@ -1562,7 +1827,7 @@ begin
   begin
     Item := List.ExtractAt(0);
 
-    if not PrevSpaceRemoved and Item.IsSpace and (Line.Items.Count=0) then
+    if not PrevSpaceRemoved and Line.Continuous and Item.IsSpace and (Line.Items.Count=0) then
     begin
       //skip SPACE if is the first item in the line
       Item.Free;
@@ -1574,9 +1839,10 @@ begin
 
     Line.Items.Add(Item);
 
-    if (Item.SelfDiv=nil) or not Item.SelfDiv.Floating then
+    if not ((Item.SelfDiv<>nil) and Item.SelfDiv.Floating) then
     begin
       Item.Position := CurrentDiv.Point;
+      Item.Position.Offset(0, Item.Offset.Top);
       CurrentDiv.Point.Offset(Item.Size.Width, 0);
     end;
   end;
@@ -1595,7 +1861,7 @@ begin
     begin
       if (Item.SelfDiv<>nil) and Item.SelfDiv.HeightByLine then
       begin
-        Item.Size.Height := Item.Line.TextSize.Height; //size of div rectangle
+        Item.Size.Height := Item.Line.TextSize.Height - Item.Offset.GetHeight; //size of div rectangle
 
         Item.SelfDiv.AutoHeight := False;
         Item.SelfDiv.FixedSize.Height := Item.Size.Height; //size of div area for align children
