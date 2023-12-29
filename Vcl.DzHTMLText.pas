@@ -1370,7 +1370,7 @@ end;
 procedure TDzHTMLText.Paint_Line(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Line);
 begin
   if W.ColorAlt <> clNone then
-    R.Height := RoundIfVCL(R.Height / 2);
+    R.Height := RoundIfVCL(R.Height / 2); //half height when double color
 
   DefineFillColor(C, W.Color);
   GenericFillRect(C, R);

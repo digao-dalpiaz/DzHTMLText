@@ -36,12 +36,17 @@
 
 - 01/01/2024 (Version 5.0)
 
+   | :exclamation: Component breaking changes           |
+   |----------------------------------------------------|
+   | Tags `<T>`, `<TF>` and `<FLOAT>` have been removed |
+   | Please use new tag `<DIV>`                         |
+
    - **NEW COMPONENT ENGINE!!!**
    - Improved token processing performance
    - FmxLinux supporting
    - Refactoring Scaling in VCL
    - New Div Tag (`<DIV>`)
-   - Removed Tab and Float Tags (`<T>`, `<TF>`, `<FLOAT>`) - please use new Div tag
+   - Removed Tab and Float Tags (`<T>`, `<TF>`, `<FLOAT>`) - *please use new Div tag*
    - New Header Tag (`<H>`)
    - New Custom Style Tag (`<STYLE>`)
    - Font Style tags (Bold, Italic, Underline and Strikeout) now supports "turn off" parameter
@@ -57,6 +62,7 @@
    - New ParagraphCount property (read-only)
    - New LineHorzAlign property
    - New ParagraphSpacing property
+   - Supporting spaces in tag parameters (auto trim)
 
 <details>
   <summary>Click here to view the entire changelog</summary>
@@ -332,29 +338,31 @@ This visual component allows you to specify a formatted text in a label, using a
 ## Available Tags
 
 ```
-<DIV:
-  [x=nnn] --> when defined, div will be floating
-  [y=nnn] --> when defined, div will be floating
-  [width=size|full|perc%|int#] - when not specified, will be AutoWidth
-  [height=size|full|perc%|int#|line] - when not specified, will be AutoHeight
-  [maxwidth=nnn]
-  [margin[_left|_top|_right|_bottom]=nnn] --> Spacing between border line and text
-  [thick[_left|_top|_right|_bottom]=nnn] --> Border line size
-  [pad[_left|_top|_right|_bottom]=nnn] --> Spacing between outter limit and border line
-  [lncol[_left|_top|_right|_bottom]={COLOR_VALUE}] --> Border line color
-  [align=left|center|right] --> Horizontal overall alignment
-  [valign=top|center|bottom] --> Vertival overall alignment
-  [color={COLOR_VALUE}] --> Color inside the border line
-  [outcolor={COLOR_VALUE}] --> Color outside the border line
-  [keep]
->
-</DIV> - Div Area
-  size = Fixed External Size
-  full = Remaining size of current line (only works when AutoWidth/AutoHeight of parent div is disabled)
-  perc = Percent size of current line (only works when AutoWidth/AutoHeight of parent div is disabled)
-  int = Fixed Internal Size
-  line = Current line height
-  
+<DIV:{DIV_PARAMS}></DIV> - Div Area
+  DIV_PARAMS: (split by ",")
+    [x=nnn] --> when defined, div will be floating
+    [y=nnn] --> when defined, div will be floating
+    [width=size|size#|size-|perc%|full] - when not specified, will be AutoWidth
+    [height=size|size#|size-|perc%|full|line] - when not specified, will be AutoHeight
+      Width and Height params:
+        size = Fixed External Size
+        size# = Fixed Internal Size
+        size- = Remaining parent div size minus this size (only works when AutoWidth/AutoHeight of parent div is disabled)
+        perc% = Percent size of parent div (only works when AutoWidth/AutoHeight of parent div is disabled)
+        "full" = Remaining size of current line (only works when AutoWidth/AutoHeight of parent div is disabled)
+        "line" = Current line height (only in Height param)
+    [maxwidth=nnn] --> Max width when using auto width (when width not specified)
+    [margin[_left|_top|_right|_bottom]=nnn] --> Spacing between border line and text
+    [thick[_left|_top|_right|_bottom]=nnn] --> Border line size
+    [pad[_left|_top|_right|_bottom]=nnn] --> Spacing between outter limit and border line
+    [lncolor[_left|_top|_right|_bottom]={COLOR_VALUE}] --> Border line color
+    [color={COLOR_VALUE}] --> Color inside the border line
+    [outcolor={COLOR_VALUE}] --> Color outside the border line
+    [align=left|center|right] --> Horizontal overall alignment
+    [valign=top|center|bottom] --> Vertival overall alignment
+    [holdprops] --> When entering a div, some text properties are reseted. Use "holdprops" param to keep these properties.
+      Reseted properties: Offset, Background color, Horizontal and Vertical text alignment, line and paragraph spacing.
+
 <A[:target]></A> - Link
 <B[:off]></B> - Bold
 <I[:off]></I> - Italic
@@ -371,14 +379,14 @@ This visual component allows you to specify a formatted text in a label, using a
 <L></L> - Align Left
 <C></C> - Align Center
 <R></R> - Align Right
-<IMG:nnn> - Image from ImageList where 'nnn' is image index
+<IMG:index> - Image from ImageList where 'index' is image index
 <IMGRES:name> - PNG image from Resource where 'name' is the resource name
 <UL></UL> - Unordered list
 <OL></OL> - Ordered list
 <LI></LI> - List item
 <SPOILER:name[,exp]></SPOILER> - Spoiler Title (use "exp" param to show spoiler already expanded)
 <SDETAIL:name></SDETAIL> - Spoiler Detail
-<LS:aaa[,par=bbb]></LS> - Line spacing where 'aaa' is the height in pixels, and 'bbb' is the height when a new paragraph
+<LS:aaa[,par=bbb]></LS> - Line spacing where 'aaa' is the height in pixels, and 'bbb' is the height when a new paragraph (plus original line space)
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
 <LINE:[width=123|full],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
@@ -392,7 +400,7 @@ This visual component allows you to specify a formatted text in a label, using a
 <OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
   Offset margins are memorized if a new offset tag is specifyed without same parameter name
 
-* {COLOR_VALUE} - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
+* COLOR_VALUE - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
 * When FMX, all sizes (TPixels) use the "." notation as a decimal separator
 ```
 
@@ -465,7 +473,7 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `ParagraphCount: Integer` = Returns the total paragraphs of text. This property is read-only.
 
-`ParagraphSpacing: TPixels` = Specify the default paragraph spacing in overall text. You can use `<LS>` tag to determine paragraph spacing at specific lines.
+`ParagraphSpacing: TPixels` = Specify the default paragraph spacing in overall text. The paragraph spacing is added to original line spacing. You can use `<LS>` tag to determine paragraph spacing at specific lines.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 

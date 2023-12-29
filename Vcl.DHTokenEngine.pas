@@ -293,6 +293,9 @@ type
     procedure Process; override;
   end;
 
+  {$SCOPEDENUMS ON}
+  TDHDivSizeType = (Auto, Outer, Inner, Full, Percent, Reverse, Line);
+  {$SCOPEDENUMS OFF}
   TDHToken_Div = class(TDHTokenBlock)
   private
     Borders: TDHBordersRec;
@@ -302,12 +305,9 @@ type
     MaxWidth: TPixels;
     HorzAlign: TDHHorzAlign;
     VertAlign: TDHVertAlign;
-    HeightByLine: Boolean;
+    WidthType, HeightType: TDHDivSizeType;
     KeepProps: Boolean;
-    PercentWidth, PercentHeight, FullWidth, FullHeight: Boolean;
 
-    AutoWidth: Boolean;
-    AutoHeight: Boolean;
     Floating: Boolean;
 
     procedure ReadParam; override;
@@ -396,7 +396,8 @@ type
     function GetSumWidth: TPixels;
   end;
 
-  TDHProcBoundsAndLines = procedure(InnerSize, OuterSize: TAnySize; LineCount, ParagraphCount: Integer) of object;
+  TDHProcBoundsAndLines = procedure(InnerSize, OuterSize: TAnySize;
+    LineCount, ParagraphCount: Integer) of object;
 
   TDHBuilder = class
   private
@@ -1067,7 +1068,7 @@ procedure TDHToken_Div.ReadParam;
 var
   P: TDHMultipleTokenParams;
   AllMargin, AllThick, AllPad: TPixels;
-  AllLnCol: TAnyColor;
+  AllLnColor: TAnyColor;
 
   procedure UpdVar(var &Var: TPixels; All, Value: TPixels);
   begin
@@ -1081,59 +1082,61 @@ var
 
   procedure ReadBorder(var B: TDHBorderRec; const Ident: string);
   var
-    LnCol: TAnyColor;
+    LnColor: TAnyColor;
   begin
     UpdVar(B.Margin, AllMargin, P.GetParamAsPixels('margin_'+Ident, -1));
     UpdVar(B.Thick, AllThick, P.GetParamAsPixels('thick_'+Ident, -1));
     UpdVar(B.Pad, AllPad, P.GetParamAsPixels('pad_'+Ident, -1));
 
-    LnCol := P.GetParamAsColor('lncol_'+Ident);
-    if LnCol<>clNone then
-      B.LnColor := LnCol
+    LnColor := P.GetParamAsColor('lncolor_'+Ident);
+    if LnColor<>clNone then
+      B.LnColor := LnColor
     else
-      B.LnColor := AllLnCol;
+      B.LnColor := AllLnColor;
 
     B.Margin := B.Margin + B.Thick + B.Pad;
   end;
 
-  procedure DetectSizeParams(var Value: string; var Percent: Boolean; var Internal: Boolean);
+  function DetectSizeType(const Value: string; var SizeType: TDHDivSizeType; AllowLine: Boolean): TPixels;
+  var
+    A: string;
+    Px: TPixels;
   begin
-    //only one attribute allowed
-    Percent := Value.EndsWith('%');
-    Internal := Value.EndsWith('#');
-    if Percent or Internal then Delete(Value, Value.Length, 1);
+    Result := 0;
+
+    if SameText(Value, 'full') then SizeType := TDHDivSizeType.Full else
+    if AllowLine and SameText(Value, 'line') then SizeType := TDHDivSizeType.Line else
+    begin
+      if Value.EndsWith('%') then SizeType := TDHDivSizeType.Percent else
+      if Value.EndsWith('#') then SizeType := TDHDivSizeType.Inner else
+      if Value.EndsWith('-') then SizeType := TDHDivSizeType.Reverse else
+        SizeType := TDHDivSizeType.Outer;
+
+      A := Value;
+      if SizeType <> TDHDivSizeType.Outer then Delete(A, A.Length, 1);
+
+      Px := StrToPixels(A, 0);
+      if Px>0 then
+      begin
+        if SizeType <> TDHDivSizeType.Percent then Px := Lb.CalcScale(Px);
+        Result := Px
+      end
+      else
+        SizeType := TDHDivSizeType.Auto;
+    end;
   end;
 
-var
-  ParW, ParH: string;
-  WInt, HInt: Boolean;
 begin
   P := TDHMultipleTokenParams.Create(Param);
   try
-    ParW := P.GetParam('width');
-    ParH := P.GetParam('height');
-
-    DetectSizeParams(ParW, PercentWidth, WInt);
-    DetectSizeParams(ParH, PercentHeight, HInt);
-
-    Size := TAnySize.Create(StrToPixels(ParW, 0), StrToPixels(ParH, 0));
-    //if size in percent, here size contains percent value already
-    if not PercentWidth then Size.Width := Lb.CalcScale(Size.Width);
-    if not PercentHeight then Size.Height := Lb.CalcScale(Size.Height);
-
-    FullWidth := SameText(ParW, 'full');
-    FullHeight := SameText(ParH, 'full');
-
-    AutoWidth := (Size.Width <= 0) and not FullWidth;
-    AutoHeight := (Size.Height <= 0) and not FullHeight;
-
-    HeightByLine := SameText(ParH, 'line');
+    Size.Width := DetectSizeType(P.GetParam('width'), WidthType, False);
+    Size.Height := DetectSizeType(P.GetParam('height'), HeightType, True);
 
     //--Borders
     AllMargin := P.GetParamAsPixels('margin', 0);
     AllThick := P.GetParamAsPixels('thick', 0);
     AllPad := P.GetParamAsPixels('pad', 0);
-    AllLnCol := P.GetParamAsColor('lncol');
+    AllLnColor := P.GetParamAsColor('lncolor');
 
     ReadBorder(Borders.Left, 'left');
     ReadBorder(Borders.Top, 'top');
@@ -1142,8 +1145,8 @@ begin
 
     //
 
-    if WInt then Size.Width := Size.Width + Borders.Left.Margin + Borders.Right.Margin;
-    if HInt then Size.Height := Size.Height + Borders.Top.Margin + Borders.Bottom.Margin;
+    if WidthType=TDHDivSizeType.Inner then Size.Width := Size.Width + Borders.Left.Margin + Borders.Right.Margin;
+    if HeightType=TDHDivSizeType.Inner then Size.Height := Size.Height + Borders.Top.Margin + Borders.Bottom.Margin;
 
     //--
 
@@ -1155,7 +1158,7 @@ begin
     MaxWidth := Lb.CalcScale(P.GetParamAsPixels('maxwidth', 0));
     BackColor := P.GetParamAsColor('color');
     BorderColor := P.GetParamAsColor('outcolor');
-    KeepProps := P.ParamExists('keep');
+    KeepProps := P.ParamExists('holdprops');
   finally
     P.Free;
   end;
@@ -1177,25 +1180,31 @@ var
 begin
   if not Builder.CurrentDiv.AutoWidth then
   begin
-    if PercentWidth then Size.Width := RoundIfVCL(Builder.CurrentDiv.GetAreaSizeWOB.Width * Size.Width/100) else
-      if FullWidth then Size.Width := Builder.CurrentDiv.GetAreaSizeWOB.Width - Builder.CurrentDiv.Point.X;
+    case WidthType of
+      TDHDivSizeType.Full: Size.Width := Builder.CurrentDiv.GetAreaSizeWOB.Width - Builder.CurrentDiv.Point.X;
+      TDHDivSizeType.Reverse: Size.Width := Builder.CurrentDiv.GetAreaSizeWOB.Width - Builder.CurrentDiv.Point.X - Size.Width;
+      TDHDivSizeType.Percent: Size.Width := RoundIfVCL(Builder.CurrentDiv.GetAreaSizeWOB.Width * Size.Width/100);
+    end;
   end;
   if not Builder.CurrentDiv.AutoHeight then
   begin
-    if PercentHeight then Size.Height := RoundIfVCL(Builder.CurrentDiv.GetAreaSizeWOB.Height * Size.Height/100) else
-      if FullHeight then Size.Height := Builder.CurrentDiv.GetAreaSizeWOB.Height - Builder.CurrentDiv.Point.Y;
+    case HeightType of
+      TDHDivSizeType.Full: Size.Height := Builder.CurrentDiv.GetAreaSizeWOB.Height - Builder.CurrentDiv.Point.Y;
+      TDHDivSizeType.Reverse: Size.Height := Builder.CurrentDiv.GetAreaSizeWOB.Height - Builder.CurrentDiv.Point.Y - Size.Height;
+      TDHDivSizeType.Percent: Size.Height := RoundIfVCL(Builder.CurrentDiv.GetAreaSizeWOB.Height * Size.Height/100);
+    end;
   end;
 
   D := TDHDivArea.Create(Builder.CurrentDiv);
   D.FixedSize := Size;
-  D.AutoWidth := AutoWidth;
-  D.AutoHeight := AutoHeight;
+  D.AutoWidth := WidthType=TDHDivSizeType.Auto;
+  D.AutoHeight := (HeightType=TDHDivSizeType.Auto) or (HeightType=TDHDivSizeType.Line);
   D.MaxWidth := MaxWidth;
   D.Floating := Floating;
   D.Borders := Borders;
   D.VertAlign := VertAlign;
   D.HorzAlign := HorzAlign;
-  D.HeightByLine := HeightByLine;
+  D.HeightByLine := HeightType=TDHDivSizeType.Line;
 
   V := TDHVisualItem_Div.Create;
   V.InnerColor := BackColor;
@@ -1465,7 +1474,7 @@ begin
 
   MainDiv.MaxWidth := Lb.CalcScale(Lb.MaxWidth);
 
-  MainDiv.FixedSize := TAnySize.Create(Lb.Width, Lb.Height);
+  MainDiv.FixedSize := TAnySize.Create(Lb.Width, Lb.Height); //control size is auto scaled
 
   MainDiv.HorzAlign := Lb.OverallHorzAlign;
   MainDiv.VertAlign := Lb.OverallVertAlign;
@@ -1611,13 +1620,9 @@ begin
   CloseTag := A.StartsWith('/');
   if CloseTag then Delete(A, 1, 1);
 
-  I := Pos(':', A); //find parameter
-  HasPar := I>0;
+  HasPar := SplitStr(A, ':', A, Par);
   if HasPar then
   begin
-    Par := A.Substring(I); //zero-based
-    A := Copy(A, 1, I-1);
-
     if Par.IsEmpty then Exit; //blank parameter specified
     if CloseTag then Exit; //tag closing with parameter
   end;
@@ -1644,7 +1649,7 @@ begin
 
     Token := TokenClass.Create;
     Token.Init(Self);
-    if HasPar then
+    if Def.AllowPar then
     begin
       Token.Param := Par;
       Token.ValidParam := True;
@@ -1752,10 +1757,9 @@ begin
 
   Line := CurrentDiv.Lines.Last;
 
-  if Continuous then
-    Space := Props.LineSpace
-  else
-    Space := Props.ParagraphSpace;
+  Space := Props.LineSpace;
+  if not Continuous then
+    Space := Space + Props.ParagraphSpace;
 
   CurrentDiv.Point.X := 0;
   CurrentDiv.Point.Offset(0, Line.TextSize.Height + Space);
@@ -1926,7 +1930,7 @@ type
   function FuncAlignVert: TFuncAlignResult;
   begin
     Result.Outside := Item.Line.TextSize.Height;
-    Result.Inside := Item.Size.Height;
+    Result.Inside := Item.GetFullHeight;
   end;
 
   function FuncDivAlignHorz: TFuncAlignResult;

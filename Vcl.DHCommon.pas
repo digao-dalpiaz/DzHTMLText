@@ -41,6 +41,8 @@ type
     class function FindNextWordBreakChar(const A: string; From: Integer): Integer; inline;
   end;
 
+function SplitStr(const Str, Separator: string; var Left: string; var Right: string): Boolean;
+
 procedure DefineFontColor(C: TCanvas; Color: TAnyColor);
 function GetGenericFontColor(C: TCanvas): TAnyColor;
 procedure DefineFontPt(F: TFont; Pt: TPixels; Lb: TDzHTMLText);
@@ -74,15 +76,14 @@ end;
 function TDHMultipleTokenParams.GetParam(const Name: string): string;
 var
   Param: string;
-  Ar: TArray<string>;
+  Left, Right: string;
 begin
   for Param in Params do
   begin
-    Ar := Param.Split(['=']);
-    if Length(Ar) < 2 then Continue;
+    if not SplitStr(Param, '=', Left, Right) then Continue;
 
-    if SameText(Ar[0], Name) then
-      Exit(Ar[1]);
+    if SameText(Left, Name) then
+      Exit(Right);
   end;
 
   Result := EmptyStr;
@@ -164,6 +165,19 @@ CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
   Result := False;
 end;
 {$ENDREGION}
+
+function SplitStr(const Str, Separator: string; var Left: string; var Right: string): Boolean;
+var
+  I: Integer;
+begin
+  I := Str.IndexOf(Separator);
+  Result := I>-1;
+  if Result then
+  begin
+    Left := Str.Substring(0, I).Trim;
+    Right := Str.Substring(I+Separator.Length).Trim;
+  end;
+end;
 
 function GetDecimalSettings: TFormatSettings;
 begin
