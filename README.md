@@ -53,6 +53,7 @@
    - Removed TFontPt class (now using TPixels for Font Size)
    - Fixed supporting decimal values in all TPixels parameters in FMX
    - Fixed decimal values in tags parameters to use "." as decimal separator in FMX environment (TPixels)
+   - Fixed Spoiler name as case-insensitive
    - New ParagraphCount property (read-only)
    - New LineHorzAlign property
    - New ParagraphSpacing property
@@ -595,7 +596,7 @@ To create the spoiler link: `<spoiler:name>This is the spoiler link text</spoile
 
 To create the detail div: `<sdetail:name>This is the detail div that will be expanded when the spoiler link is clicked.</sdetail>`
 
-Caution! The spoiler name is **case sensitive**.
+The spoiler name is **case insensitive**.
 
 > You can handle spoiler link at *link events*. It's possible to bypass expand/collapse behavior using `Handled` property.
 
