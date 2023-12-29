@@ -23,8 +23,6 @@
 - [Spoiler Tag](#spoiler-tag)
 - [Link object](#link-object)
 - [Image Tag](#image-tag)
-- [Tab Tag](#tab-tag)
-- [Float Tag](#float-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Transparency (why not in VCL?)](#transparency-why-not-in-vcl)
@@ -653,24 +651,6 @@ Example:
 ![App Resources Dialog](images/app_resources_dialog.png)
 
 In this example, the image tag should be `<imgres:test>`
-
-## Tab Tag
-
-There are two **tab** tags you can use:
-
-- `<t:nnn>` = Allow you to positioning text exactly on "nnn" position in pixels starting on the left border of component. If the text wraps to a new line, it will be return aligned at left border of component.
-
-- `<tf:nnn>` = The same as above, but if the text wraps to a new line, it will be aligned in the same position as the first line which the tab started. This tag will produce a better visual text alignment.
-
-## Float Tag
-
-Use float tag to create an area at specific X and Y position. Optionally you can specify the area width.
-
-Syntax: `<float:x,y[,width]>...</float>`
-
-Example: `<float:100,20,150>My text <b>floating</b> area.</float>`
-
-> You must not use a floating tag inside another floating tag!
 
 ## Literal tag character
 
