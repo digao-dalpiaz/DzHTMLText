@@ -682,7 +682,7 @@ var
   DHSpoiler: TDHSpoiler;
 begin
   for DHSpoiler in Self do
-    if DHSpoiler.FName = Name then Exit(DHSpoiler);
+    if SameText(DHSpoiler.FName, Name) then Exit(DHSpoiler);
 
   Result := nil;
 end;
