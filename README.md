@@ -447,6 +447,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `LineSpacing: TPixels` = Specify the default line spacing in overall text. You can use `<LS>` tag to determine line spacing at specific lines.
 
+`LineHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Allows you to specify the horizontal alignment of each element in the line. Default is `haLeft`.
+
 `LineVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights at same line. Default is `vaTop`.
 
 `ListLevelPadding: TPixels` = Determines the width of each list level in pixels, when using HTML list tags.
