@@ -333,13 +333,13 @@ This visual component allows you to specify a formatted text in a label, using a
 <DIV:
   [x=nnn] --> when defined, div will be floating
   [y=nnn] --> when defined, div will be floating
-  [width=size|full|perc%|int#]
-  [height=size|full|perc%|int#|line]
+  [width=size|full|perc%|int#] - when not specified, will be AutoWidth
+  [height=size|full|perc%|int#|line] - when not specified, will be AutoHeight
   [maxwidth=nnn]
   [margin[_left|_top|_right|_bottom]=nnn] --> Spacing between border line and text
   [thick[_left|_top|_right|_bottom]=nnn] --> Border line size
   [pad[_left|_top|_right|_bottom]=nnn] --> Spacing between outter limit and border line
-  [lncol[_left|_top|_right|_bottom]={COLOR_VALUE}]
+  [lncol[_left|_top|_right|_bottom]={COLOR_VALUE}] --> Border line color
   [align=left|center|right] --> Horizontal overall alignment
   [valign=top|center|bottom] --> Vertival overall alignment
   [color={COLOR_VALUE}] --> Color inside the border line
@@ -458,6 +458,10 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 `OverallHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Determines overall text horizontal alignment. This property only take effects if `AutoWidth` is false.
 
 `OverallVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Determines overall text vertical alignment. This property only take effects if `AutoHeight` is false.
+
+`ParagraphCount: Integer` = Returns the total paragraphs of text. This property is read-only.
+
+`ParagraphSpacing: TPixels` = Specify the default paragraph spacing in overall text. You can use `<LS>` tag to determine paragraph spacing at specific lines.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 
