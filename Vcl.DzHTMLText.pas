@@ -95,7 +95,7 @@ type
   end;
   TDHVisualItem_Div = class(TDHVisualItem)
   public
-    OutterColor, InnerColor: TAnyColor;
+    OuterColor, InnerColor: TAnyColor;
     Left, Top, Right, Bottom: TDHDivBorderLineAttrRec;
   end;
 
@@ -223,7 +223,7 @@ type
     FHorzAlign: TDHCustomStyleHorzAlignValue;
     FVertAlign: TDHCustomStyleVertAlignValue;
     FOffsetTop, FOffsetBottom: TPixels;
-    FLineSpace, FParagraphSpace: TPixels;
+    FLineSpacing, FParagraphSpacing: TPixels;
 
     procedure Modified;
 
@@ -240,13 +240,13 @@ type
     procedure SetVertAlign(const Value: TDHCustomStyleVertAlignValue);
     procedure SetOffsetTop(const Value: TPixels);
     procedure SetOffsetBottom(const Value: TPixels);
-    procedure SetLineSpace(const Value: TPixels);
-    procedure SetParagraphSpace(const Value: TPixels);
+    procedure SetLineSpacing(const Value: TPixels);
+    procedure SetParagraphSpacing(const Value: TPixels);
 
     function GetStoredOffsetTop: Boolean;
     function GetStoredOffsetBottom: Boolean;
-    function GetStoredLineSpace: Boolean;
-    function GetStoredParagraphSpace: Boolean;
+    function GetStoredLineSpacing: Boolean;
+    function GetStoredParagraphSpacing: Boolean;
   protected
     function GetDisplayName: string; override;
   public
@@ -265,8 +265,8 @@ type
     property VertAlign: TDHCustomStyleVertAlignValue read FVertAlign write SetVertAlign default TDHCustomStyleVertAlignValue.Undefined;
     property OffsetTop: TPixels read FOffsetTop write SetOffsetTop stored GetStoredOffsetTop;
     property OffsetBottom: TPixels read FOffsetBottom write SetOffsetBottom stored GetStoredOffsetBottom;
-    property LineSpace: TPixels read FLineSpace write SetLineSpace stored GetStoredLineSpace;
-    property ParagraphSpace: TPixels read FParagraphSpace write SetParagraphSpace stored GetStoredParagraphSpace;
+    property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
+    property ParagraphSpacing: TPixels read FParagraphSpacing write SetParagraphSpacing stored GetStoredParagraphSpacing;
   end;
 
   TDHCustomStyles = class(TCollection)
@@ -303,6 +303,9 @@ type
 
     VisualItems: TDHVisualItemList;
 
+    LSpoiler: TDHSpoilerList;
+    LLinkRef: TDHLinkRefList;
+
     FLines: TStrings;
     FAutoWidth: Boolean;
     FAutoHeight: Boolean;
@@ -338,7 +341,7 @@ type
 
     FBorders: TDHBorders;
 
-    FLineSpace, FParagraphSpace: TPixels;
+    FLineSpacing, FParagraphSpacing: TPixels;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
@@ -396,8 +399,8 @@ type
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
     procedure SetBorders(const Value: TDHBorders);
     procedure SetOffset(const Value: TDHOffset);
-    procedure SetLineSpace(const Value: TPixels);
-    procedure SetParagraphSpace(const Value: TPixels);
+    procedure SetLineSpacing(const Value: TPixels);
+    procedure SetParagraphSpacing(const Value: TPixels);
     procedure SetCustomStyles(const Value: TDHCustomStyles);
 
     {$IFDEF USE_IMGLST}
@@ -411,9 +414,9 @@ type
     procedure OnFontChanged(Sender: TObject);
     {$ENDIF}
 
-    procedure SetTextSize(W, H: TPixels);
+    procedure SetTextSize(Inner, Outer: TAnySize);
 
-    procedure SetTextSizeAndLineCount(Size: TAnySize; LineCount, ParagraphCount: Integer);
+    procedure SetTextSizeAndLineCount(InnerSize, OuterSize: TAnySize; LineCount, ParagraphCount: Integer);
   protected
     procedure Loaded; override;
     procedure Paint; override;
@@ -439,8 +442,8 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
   public
-    Spoilers: TDHSpoilerList;
-    LinkRefs: TDHLinkRefList;
+    property Spoilers: TDHSpoilerList read LSpoiler;
+    property LinkRefs: TDHLinkRefList read LLinkRef;
 
     {$IFDEF VCL}
     function CalcMulDiv(Size, Fator: Integer): Integer;
@@ -588,8 +591,8 @@ type
 
     property Borders: TDHBorders read FBorders write SetBorders stored GetStoredBorders;
 
-    property LineSpace: TPixels read FLineSpace write SetLineSpace {$IFDEF VCL}default 0{$ENDIF};
-    property ParagraphSpace: TPixels read FParagraphSpace write SetParagraphSpace {$IFDEF VCL}default 0{$ENDIF};
+    property LineSpacing: TPixels read FLineSpacing write SetLineSpacing {$IFDEF VCL}default 0{$ENDIF};
+    property ParagraphSpacing: TPixels read FParagraphSpacing write SetParagraphSpacing {$IFDEF VCL}default 0{$ENDIF};
 
     property About: string read FAbout;
   end;
@@ -681,7 +684,7 @@ begin
   for DHSpoiler in Self do
     if DHSpoiler.FName = Name then Exit(DHSpoiler);
 
-  Exit(nil);
+  Result := nil;
 end;
 {$ENDREGION}
 
@@ -816,8 +819,8 @@ begin
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
   VisualItems := TDHVisualItemList.Create;
-  LinkRefs := TDHLinkRefList.Create;
-  Spoilers := TDHSpoilerList.Create;
+  LLinkRef := TDHLinkRefList.Create;
+  LSpoiler := TDHSpoilerList.Create;
 
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
@@ -853,8 +856,8 @@ begin
   FOffset.Free;
   FCustomStyles.Free;
   VisualItems.Free;
-  LinkRefs.Free;
-  Spoilers.Free;
+  LLinkRef.Free;
+  LSpoiler.Free;
   inherited;
 end;
 
@@ -948,7 +951,7 @@ end;
 
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
 begin
-  Spoilers.Clear;
+  LSpoiler.Clear;
   BuildAndPaint;
 end;
 
@@ -1008,21 +1011,21 @@ begin
   end;
 end;
 
-procedure TDzHTMLText.SetLineSpace(const Value: TPixels);
+procedure TDzHTMLText.SetLineSpacing(const Value: TPixels);
 begin
-  if Value<>FLineSpace then
+  if Value<>FLineSpacing then
   begin
-    FLineSpace := Value;
+    FLineSpacing := Value;
 
     BuildAndPaint;
   end;
 end;
 
-procedure TDzHTMLText.SetParagraphSpace(const Value: TPixels);
+procedure TDzHTMLText.SetParagraphSpacing(const Value: TPixels);
 begin
-  if Value<>FParagraphSpace then
+  if Value<>FParagraphSpacing then
   begin
-    FParagraphSpace := Value;
+    FParagraphSpacing := Value;
 
     BuildAndPaint;
   end;
@@ -1118,23 +1121,23 @@ begin
 end;
 {$ENDIF}
 
-procedure TDzHTMLText.SetTextSize(W, H: TPixels);
+procedure TDzHTMLText.SetTextSize(Inner, Outer: TAnySize);
 begin
-  FTextWidth := W;
-  FTextHeight := H;
+  FTextWidth := Inner.Width;
+  FTextHeight := Inner.Height;
 
   InternalResizing := True;
   try
-    if FAutoWidth then Width := W + FBorders.FLeft + FBorders.FRight;
-    if FAutoHeight then Height := H + FBorders.FTop + FBorders.FBottom;
+    if FAutoWidth then Width := Outer.Width;
+    if FAutoHeight then Height := Outer.Height;
   finally
     InternalResizing := False;
   end;
 end;
 
-procedure TDzHTMLText.SetTextSizeAndLineCount(Size: TAnySize; LineCount, ParagraphCount: Integer);
+procedure TDzHTMLText.SetTextSizeAndLineCount(InnerSize, OuterSize: TAnySize; LineCount, ParagraphCount: Integer);
 begin
-  SetTextSize(Size.Width, Size.Height);
+  SetTextSize(InnerSize, OuterSize);
   FLineCount := LineCount;
   FParagraphCount := ParagraphCount;
 end;
@@ -1280,9 +1283,9 @@ procedure TDzHTMLText.Paint_Div(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Div);
   end;
 
 begin
-  if W.OutterColor<>clNone then
+  if W.OuterColor<>clNone then
   begin
-    DefineFillColor(C, W.OutterColor);
+    DefineFillColor(C, W.OuterColor);
     GenericFillRect(C, R);
   end;
 
@@ -1626,7 +1629,7 @@ begin
   if csLoading in ComponentState then Exit;
 
   VisualItems.Clear; //clean visual items
-  LinkRefs.Clear; //clean old links
+  LLinkRef.Clear; //clean old links
 
   B := TDHBuilder.Create(Self,
     {$IFDEF FMX}TCanvasManager.MeasureCanvas{$ELSE}Canvas{$ENDIF},
@@ -1929,7 +1932,8 @@ begin
     Style := TDHCustomStyle(Item);
     if SameText(Style.FIdent, Ident) then Exit(Style);
   end;
-  Exit(nil);
+
+  Result := nil;
 end;
 {$ENDREGION}
 
@@ -1944,8 +1948,8 @@ begin
   FOffsetTop := -1;
   FOffsetBottom := -1;
 
-  FLineSpace := -1;
-  FParagraphSpace := -1;
+  FLineSpacing := -1;
+  FParagraphSpacing := -1;
 end;
 
 function TDHCustomStyle.GetDisplayName: string;
@@ -2089,21 +2093,21 @@ begin
   end;
 end;
 
-procedure TDHCustomStyle.SetLineSpace(const Value: TPixels);
+procedure TDHCustomStyle.SetLineSpacing(const Value: TPixels);
 begin
-  if Value <> FLineSpace then
+  if Value <> FLineSpacing then
   begin
-    FLineSpace := Value;
+    FLineSpacing := Value;
 
     Modified;
   end;
 end;
 
-procedure TDHCustomStyle.SetParagraphSpace(const Value: TPixels);
+procedure TDHCustomStyle.SetParagraphSpacing(const Value: TPixels);
 begin
-  if Value <> FParagraphSpace then
+  if Value <> FParagraphSpacing then
   begin
-    FParagraphSpace := Value;
+    FParagraphSpacing := Value;
 
     Modified;
   end;
@@ -2119,14 +2123,14 @@ begin
   Result := FOffsetBottom<>-1;
 end;
 
-function TDHCustomStyle.GetStoredLineSpace: Boolean;
+function TDHCustomStyle.GetStoredLineSpacing: Boolean;
 begin
-  Result := FLineSpace<>-1;
+  Result := FLineSpacing<>-1;
 end;
 
-function TDHCustomStyle.GetStoredParagraphSpace: Boolean;
+function TDHCustomStyle.GetStoredParagraphSpacing: Boolean;
 begin
-  Result := FParagraphSpace<>-1;
+  Result := FParagraphSpacing<>-1;
 end;
 {$ENDREGION}
 

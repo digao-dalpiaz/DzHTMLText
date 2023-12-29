@@ -29,6 +29,7 @@ type
 
     function GetParam(const Name: string): string;
     function GetParamAsPixels(const Name: string; Def: TPixels): TPixels;
+    function GetParamAsColor(const Name: string): TAnyColor;
     function GetFirstParam: string;
     function ParamExists(const Name: string): Boolean;
   end;
@@ -90,6 +91,11 @@ end;
 function TDHMultipleTokenParams.GetParamAsPixels(const Name: string; Def: TPixels): TPixels;
 begin
   Result := StrToPixels(GetParam(Name), Def)
+end;
+
+function TDHMultipleTokenParams.GetParamAsColor(const Name: string): TAnyColor;
+begin
+  Result := ParamToColor(GetParam(Name));
 end;
 
 function TDHMultipleTokenParams.ParamExists(const Name: string): Boolean;
@@ -178,6 +184,11 @@ begin
   {$ELSE}
     StrToIntDef(StrValue, Def)
   {$ENDIF};
+end;
+
+function StrToPixelsScaled(const StrValue: string; Def: TPixels; Lb: TDzHTMLText): TPixels;
+begin
+  Result := Lb.CalcScale(StrToPixels(StrValue, Def)); //********************
 end;
 
 function ParamToColor(const Param: string): TAnyColor;

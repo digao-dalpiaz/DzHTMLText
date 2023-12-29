@@ -28,6 +28,34 @@ type
     Left, Top, Right, Bottom: TDHBorderRec;
   end;
 
+  TDHOffsetRec = record
+  private
+    Top, Bottom: TPixels;
+    function GetHeight: TPixels;
+  end;
+  TDHPropsStore = class
+  private
+    FontColor: TAnyColor;
+    BackColor: TAnyColor;
+    Offset: TDHOffsetRec;
+    HorzAlign: TDHHorzAlign;
+    VertAlign: TDHVertAlign;
+
+    //--Superscript and Subscript  ***************
+    SS_Inside: Boolean;
+    SS_FullHeight: TPixels;
+    SS_YPos: TPixels;
+    //--
+
+    List_Level: Byte;
+    List_Number: Word;
+    List_Bullet: Boolean;
+
+    LineSpace, ParagraphSpace: TPixels;
+
+    procedure AssignProps(Source: TDHPropsStore);
+  end;
+
   {$REGION 'Token base classes'}
   TDHBuilder = class;
   TDHTokenBlock = class;
@@ -47,6 +75,12 @@ type
 
     function GetCanvas: TCanvas;
     property Canvas: TCanvas read GetCanvas;
+
+    function GetProps: TDHPropsStore;
+    property Props: TDHPropsStore read GetProps;
+
+    function GetLb: TDzHTMLText;
+    property Lb: TDzHTMLText read GetLb;
 
     function IsBreakableToken: Boolean; virtual;
   public
@@ -339,34 +373,6 @@ type
     destructor Destroy; override;
   end;
 
-  TDHOffsetRec = record
-  private
-    Top, Bottom: TPixels;
-    function GetHeight: TPixels;
-  end;
-  TDHPropsStore = class
-  private
-    FontColor: TAnyColor;
-    BackColor: TAnyColor;
-    Offset: TDHOffsetRec;
-    HorzAlign: TDHHorzAlign;
-    VertAlign: TDHVertAlign;
-
-    //--Superscript and Subscript  ***************
-    SS_Inside: Boolean;
-    SS_FullHeight: TPixels;
-    SS_YPos: TPixels;
-    //--
-
-    List_Level: Byte;
-    List_Number: Word;
-    List_Bullet: Boolean;
-
-    LineSpace, ParagraphSpace: TPixels;
-
-    procedure AssignProps(Source: TDHPropsStore);
-  end;
-
   TDHPreVisualItem = class
   private
     VisualObject: TDHVisualItem;
@@ -390,7 +396,7 @@ type
     function GetSumWidth: TPixels;
   end;
 
-  TDHProcBoundsAndLines = procedure(Size: TAnySize; LineCount, ParagraphCount: Integer) of object;
+  TDHProcBoundsAndLines = procedure(InnerSize, OuterSize: TAnySize; LineCount, ParagraphCount: Integer) of object;
 
   TDHBuilder = class
   private
@@ -479,7 +485,7 @@ const
     (Ident: 'FS'; Clazz: TDHToken_FontSize; AllowPar: True),
     (Ident: 'BC'; Clazz: TDHToken_BackColor; AllowPar: True),
     (Ident: 'OFFSET'; Clazz: TDHToken_Offset; AllowPar: True),
-    (Ident: 'DIV'; Clazz: TDHToken_Div; AllowPar: True), //breakable!  //optional par ???
+    (Ident: 'DIV'; Clazz: TDHToken_Div; AllowPar: True; OptionalPar: True), //breakable!
     (Ident: 'A'; Clazz: TDHToken_Link; AllowPar: True; OptionalPar: True),
     (Ident: 'L'; Clazz: TDHToken_AlignLeft),
     (Ident: 'C'; Clazz: TDHToken_AlignCenter),
@@ -504,7 +510,7 @@ begin
   for I := Low(TOKENS_OBJECTS) to High(TOKENS_OBJECTS) do
     if TOKENS_OBJECTS[I].Ident = Ident then Exit(I);
 
-  Exit(-1);
+  Result := -1;
 end;
 
 {$REGION 'Token types'}
@@ -519,6 +525,16 @@ end;
 function TDHToken.GetCanvas: TCanvas;
 begin
   Result := Builder.Canvas;
+end;
+
+function TDHToken.GetLb: TDzHTMLText;
+begin
+  Result := Builder.Lb;
+end;
+
+function TDHToken.GetProps: TDHPropsStore;
+begin
+  Result := Builder.Props;
 end;
 
 procedure TDHToken.Init(Builder: TDHBuilder);
@@ -613,7 +629,7 @@ end;
 
 procedure TDHToken_FontSize.Process;
 begin
-  DefineFontPt(Canvas.Font, Size, Builder.Lb);
+  DefineFontPt(Canvas.Font, Size, Lb); //scaled
 end;
 
 { TDHToken_Color }
@@ -628,14 +644,14 @@ end;
 
 procedure TDHToken_FontColor.Process;
 begin
-  Builder.Props.FontColor := Color;
+  Props.FontColor := Color;
 end;
 
 { TDHToken_BackColor }
 
 procedure TDHToken_BackColor.Process;
 begin
-  Builder.Props.BackColor := Color;
+  Props.BackColor := Color;
 end;
 
 { TDHToken_Link }
@@ -650,7 +666,7 @@ var
   Link: TDHLinkRef;
 begin
   Link := TDHLinkRef.Create(Target);
-  Builder.Lb.LinkRefs.Add(Link);
+  Lb.LinkRefs.Add(Link);
 
   Builder.CurrentLink := Link;
 end;
@@ -666,7 +682,7 @@ procedure TDHToken_CustomStyle.Process;
 var
   Style: TDHCustomStyle;
 begin
-  Style := Builder.Lb.CustomStyles.FindByIdent(Ident);
+  Style := Lb.CustomStyles.FindByIdent(Ident);
   if Style=nil then Exit; //style not found
 
   ApplyFontStyle(Style.StyleBold, TFontStyle.fsBold);
@@ -674,16 +690,16 @@ begin
   ApplyFontStyle(Style.StyleUnderline, TFontStyle.fsUnderline);
   ApplyFontStyle(Style.StyleStrikeout, TFontStyle.fsStrikeOut);
   if Style.FontName<>EmptyStr then DefineFontName(Canvas.Font, Style.FontName);
-  if Style.FontSize>0 then DefineFontPt(Canvas.Font, Style.FontSize, Builder.Lb);
-  if Style.FontColor<>clNone then Builder.Props.FontColor := Style.FontColor;
-  if Style.BackColor<>clNone then Builder.Props.BackColor := Style.BackColor;
+  if Style.FontSize>0 then DefineFontPt(Canvas.Font, Style.FontSize, Lb); //scaled
+  if Style.FontColor<>clNone then Props.FontColor := Style.FontColor;
+  if Style.BackColor<>clNone then Props.BackColor := Style.BackColor;
 
   if Style.HorzAlign<>TDHCustomStyleHorzAlignValue.Undefined then
   begin
     case Style.HorzAlign of
-      TDHCustomStyleHorzAlignValue.Left: Builder.Props.HorzAlign := haLeft;
-      TDHCustomStyleHorzAlignValue.Center: Builder.Props.HorzAlign := haCenter;
-      TDHCustomStyleHorzAlignValue.Right: Builder.Props.HorzAlign := haRight;
+      TDHCustomStyleHorzAlignValue.Left: Props.HorzAlign := haLeft;
+      TDHCustomStyleHorzAlignValue.Center: Props.HorzAlign := haCenter;
+      TDHCustomStyleHorzAlignValue.Right: Props.HorzAlign := haRight;
       else raise EDHInternalExcept.Create('Invalid horizontal align style');
     end;
   end;
@@ -691,18 +707,18 @@ begin
   if Style.VertAlign<>TDHCustomStyleVertAlignValue.Undefined then
   begin
     case Style.VertAlign of
-      TDHCustomStyleVertAlignValue.Top: Builder.Props.VertAlign := vaTop;
-      TDHCustomStyleVertAlignValue.Center: Builder.Props.VertAlign := vaCenter;
-      TDHCustomStyleVertAlignValue.Bottom: Builder.Props.VertAlign := vaBottom;
+      TDHCustomStyleVertAlignValue.Top: Props.VertAlign := vaTop;
+      TDHCustomStyleVertAlignValue.Center: Props.VertAlign := vaCenter;
+      TDHCustomStyleVertAlignValue.Bottom: Props.VertAlign := vaBottom;
       else raise EDHInternalExcept.Create('Invalid vertical align style');
     end;
   end;
 
-  if Style.OffsetTop>=0 then Builder.Props.Offset.Top := Style.OffsetTop;
-  if Style.OffsetBottom>=0 then Builder.Props.Offset.Bottom := Style.OffsetBottom;
+  if Style.OffsetTop>=0 then Props.Offset.Top := Lb.CalcScale(Style.OffsetTop);
+  if Style.OffsetBottom>=0 then Props.Offset.Bottom := Lb.CalcScale(Style.OffsetBottom);
 
-  if Style.LineSpace>=0 then Builder.Props.LineSpace := Style.LineSpace;
-  if Style.ParagraphSpace>=0 then Builder.Props.ParagraphSpace := Style.ParagraphSpace;
+  if Style.LineSpacing>=0 then Props.LineSpace := Lb.CalcScale(Style.LineSpacing);
+  if Style.ParagraphSpacing>=0 then Props.ParagraphSpace := Lb.CalcScale(Style.ParagraphSpacing);
 end;
 
 procedure TDHToken_CustomStyle.ApplyFontStyle(Value: TDHCustomStyleBoolValue; FontStyle: TFontStyle);
@@ -731,7 +747,7 @@ end;
 
 procedure TDHToken_Header.Process;
 begin
-  DefineFontPt(Canvas.Font, RoundIfVCL(Builder.Lb.Font.Size * ((6-Level+2)/2)), Builder.Lb);
+  Canvas.Font.Size := RoundIfVCL(Lb.Font.Size * ((6-Level+2)/2)); //Font auto scaled
   Canvas.Font.Style := Canvas.Font.Style + [TFontStyle.fsBold];
 end;
 
@@ -743,8 +759,8 @@ var
 begin
   P := TDHMultipleTokenParams.Create(Param);
   try
-    Top := P.GetParamAsPixels('top', -1);
-    Bottom := P.GetParamAsPixels('bottom', -1);
+    Top := Lb.CalcScale(P.GetParamAsPixels('top', -1));
+    Bottom := Lb.CalcScale(P.GetParamAsPixels('bottom', -1));
   finally
     P.Free;
   end;
@@ -752,8 +768,8 @@ end;
 
 procedure TDHToken_Offset.Process;
 begin
-  if Top>=0 then Builder.Props.Offset.Top := Top;
-  if Bottom>=0 then Builder.Props.Offset.Bottom := Bottom;
+  if Top>=0 then Props.Offset.Top := Top;
+  if Bottom>=0 then Props.Offset.Bottom := Bottom;
 end;
 
 { TDHToken_Word }
@@ -763,15 +779,15 @@ var
   V: TDHVisualItem_Word;
   Size: TAnySize;
 begin
-  Size := TAnySize.Create(Canvas.TextWidth(Word), Builder.CalcTextHeight(Word));
+  Size := TAnySize.Create(Canvas.TextWidth(Word), Builder.CalcTextHeight(Word)); //scaled
 
   V := TDHVisualItem_Word.Create;
   V.Text := Word;
   V.Font.Assign(Canvas.Font);
-  V.{$IFDEF FMX}FontColor{$ELSE}Font.Color{$ENDIF} := Builder.Props.FontColor;
+  V.{$IFDEF FMX}FontColor{$ELSE}Font.Color{$ENDIF} := Props.FontColor;
 
-  if Builder.Props.SS_Inside then
-    V.YPos := Builder.Props.SS_YPos;
+  if Props.SS_Inside then
+    V.YPos := Props.SS_YPos;
 
   if Builder.CurrentLink is TDHLinkRef then
     Builder.CurrentLink.LinkRef.Text.Append(Word);
@@ -793,13 +809,13 @@ var
   Size: TAnySize;
 begin
   {$IFDEF USE_IMGLST}
-  if Assigned(Builder.Lb.Images) then
+  if Assigned(Lb.Images) then
   begin
     {$IFDEF FMX}
-    with Builder.Lb.Images.Destination[ImageIndex].Layers[0].SourceRect do
+    with Lb.Images.Destination[ImageIndex].Layers[0].SourceRect do
       Size := TAnySize.Create(Width, Height);
     {$ELSE}
-    Size := TAnySize.Create(Builder.Lb.Images.Width, Builder.Lb.Images.Height);
+    Size := TAnySize.Create(Lb.Images.Width, Lb.Images.Height); //*** need scaling please
     {$ENDIF}
   end;
   {$ENDIF}
@@ -823,9 +839,9 @@ var
   Size: TAnySize;
 begin
   V := TDHVisualItem_ImageResource.Create;
-  V.Load(Builder.Lb, ResourceName);
+  V.Load(Lb, ResourceName);
 
-  Size := TAnySize.Create(V.Picture.Width, V.Picture.Height);
+  Size := TAnySize.Create(V.Picture.Width, V.Picture.Height); //*** need scaling please
 
   Builder.AddVisualItemToQueue(V, Size);
 end;
@@ -851,11 +867,11 @@ var
 begin
   P := TDHMultipleTokenParams.Create(Param);
   try
-    Width := P.GetParamAsPixels('width', 100);
-    Height := P.GetParamAsPixels('height', 1);
+    Width := Lb.CalcScale(P.GetParamAsPixels('width', 100));
+    Height := Lb.CalcScale(P.GetParamAsPixels('height', 1));
 
-    Color := ParamToColor(P.GetParam('color'));
-    ColorAlt := ParamToColor(P.GetParam('coloralt'));
+    Color := P.GetParamAsColor('color');
+    ColorAlt := P.GetParamAsColor('coloralt');
 
     Full := SameText(P.GetParam('width'), 'full');
   finally
@@ -884,21 +900,21 @@ end;
 
 procedure TDHToken_AlignLeft.Process;
 begin
-  Builder.Props.HorzAlign := haLeft;
+  Props.HorzAlign := haLeft;
 end;
 
 { TDHToken_AlignCenter }
 
 procedure TDHToken_AlignCenter.Process;
 begin
-  Builder.Props.HorzAlign := haCenter;
+  Props.HorzAlign := haCenter;
 end;
 
 { TDHToken_AlignRight }
 
 procedure TDHToken_AlignRight.Process;
 begin
-  Builder.Props.HorzAlign := haRight;
+  Props.HorzAlign := haRight;
 end;
 
 { TDHToken_VertAlign }
@@ -910,7 +926,7 @@ end;
 
 procedure TDHToken_VertAlign.Process;
 begin
-  Builder.Props.VertAlign := Align;
+  Props.VertAlign := Align;
 end;
 
 { TDHToken_SpoilerTitle }
@@ -937,11 +953,11 @@ begin
   //Anyway, we need to check if spoiler exists because it could already exists
   //even at first building if there are multiple spoilers with same name.
 
-  Spoiler := Builder.Lb.Spoilers.Find(Ident);
+  Spoiler := Lb.Spoilers.Find(Ident);
   if Spoiler=nil then
   begin
     Spoiler := TDHSpoiler.Create(Ident, StartExpanded);
-    Builder.Lb.Spoilers.Add(Spoiler);
+    Lb.Spoilers.Add(Spoiler);
   end;
 
   Builder.CurrentLink := Spoiler;
@@ -965,28 +981,28 @@ procedure TDHToken_SuperOrSubScript.Process;
 var
   Delta, ParentHeight: TPixels;
 begin
-  if not Builder.Props.SS_Inside then
-    Builder.Props.SS_FullHeight := Canvas.TextHeight(STR_SPACE);
-  Builder.Props.SS_Inside := True;
-
   ParentHeight := Canvas.TextHeight(STR_SPACE);
 
-  DefineFontPt(Canvas.Font, RoundIfVCL(Canvas.Font.Size * 0.75), Builder.Lb);
+  if not Props.SS_Inside then
+    Props.SS_FullHeight := ParentHeight;
+  Props.SS_Inside := True;
+
+  Canvas.Font.Size := RoundIfVCL(Canvas.Font.Size * 0.75); //Font auto scaled!
 
   if Self is TDHToken_Superscript then Delta := 0 else
   if Self is TDHToken_Subscript then Delta := ParentHeight - Canvas.TextHeight(STR_SPACE) else
     raise EDHInternalExcept.Create('Invalid Super or Sub Script class');
 
-  Builder.Props.SS_YPos := Builder.Props.SS_YPos + Delta;
+  Props.SS_YPos := Props.SS_YPos + Delta;
 end;
 
 { TDHToken_List }
 
 procedure TDHToken_List.Process;
 begin
-  Inc(Builder.Props.List_Level);
-  Builder.Props.List_Number := 0;
-  Builder.Props.List_Bullet := Self is TDHToken_UnorderedList;
+  Inc(Props.List_Level);
+  Props.List_Number := 0;
+  Props.List_Bullet := Self is TDHToken_UnorderedList;
 end;
 
 { TDHToken_ListItem }
@@ -1000,18 +1016,18 @@ procedure TDHToken_ListItem.Process;
 var
   Token: TDHToken_Word;
 begin
-  Inc(Builder.Props.List_Number);
+  Inc(Props.List_Number);
 
   Token := TDHToken_Word.Create;
   try
     Token.Builder := Builder;
 
-    if Builder.Props.List_Bullet then
+    if Props.List_Bullet then
       Token.Word := '• '
     else
-      Token.Word := IntToStr(Builder.Props.List_Number)+'. ';
+      Token.Word := IntToStr(Props.List_Number)+'. ';
 
-    Builder.CurrentDiv.Point.X := Builder.Props.List_Level * Builder.Lb.ListLevelPadding;
+    Builder.CurrentDiv.Point.X := Props.List_Level * Lb.CalcScale(Lb.ListLevelPadding);
     Token.Breakable := True;
     Token.Process;
   finally
@@ -1027,8 +1043,8 @@ var
 begin
   P := TDHMultipleTokenParams.Create(Param);
   try
-    Space := StrToPixels(P.GetFirstParam, 0);
-    ParagraphSpace := P.GetParamAsPixels('par', 0);
+    Space := Lb.CalcScale(StrToPixels(P.GetFirstParam, 0));
+    ParagraphSpace := Lb.CalcScale(P.GetParamAsPixels('par', 0));
   finally
     P.Free;
   end;
@@ -1036,8 +1052,8 @@ end;
 
 procedure TDHToken_LineSpace.Process;
 begin
-  Builder.Props.LineSpace := Space;
-  Builder.Props.ParagraphSpace := ParagraphSpace;
+  Props.LineSpace := Space;
+  Props.ParagraphSpace := ParagraphSpace;
 end;
 
 { TDHToken_Div }
@@ -1059,6 +1075,8 @@ var
       &Var := Value
     else
       &Var := All;
+
+    &Var := Lb.CalcScale(&Var);
   end;
 
   procedure ReadBorder(var B: TDHBorderRec; const Ident: string);
@@ -1069,7 +1087,7 @@ var
     UpdVar(B.Thick, AllThick, P.GetParamAsPixels('thick_'+Ident, -1));
     UpdVar(B.Pad, AllPad, P.GetParamAsPixels('pad_'+Ident, -1));
 
-    LnCol := ParamToColor(P.GetParam('lncol_'+Ident));
+    LnCol := P.GetParamAsColor('lncol_'+Ident);
     if LnCol<>clNone then
       B.LnColor := LnCol
     else
@@ -1100,6 +1118,8 @@ begin
 
     Size := TAnySize.Create(StrToPixels(ParW, 0), StrToPixels(ParH, 0));
     //if size in percent, here size contains percent value already
+    if not PercentWidth then Size.Width := Lb.CalcScale(Size.Width);
+    if not PercentHeight then Size.Height := Lb.CalcScale(Size.Height);
 
     FullWidth := SameText(ParW, 'full');
     FullHeight := SameText(ParH, 'full');
@@ -1113,7 +1133,7 @@ begin
     AllMargin := P.GetParamAsPixels('margin', 0);
     AllThick := P.GetParamAsPixels('thick', 0);
     AllPad := P.GetParamAsPixels('pad', 0);
-    AllLnCol := ParamToColor(P.GetParam('lncol'));
+    AllLnCol := P.GetParamAsColor('lncol');
 
     ReadBorder(Borders.Left, 'left');
     ReadBorder(Borders.Top, 'top');
@@ -1127,14 +1147,14 @@ begin
 
     //--
 
-    FloatPos := TAnyPoint.Create(P.GetParamAsPixels('x', -1), P.GetParamAsPixels('y', -1));
+    FloatPos := TAnyPoint.Create(Lb.CalcScale(P.GetParamAsPixels('x', -1)), Lb.CalcScale(P.GetParamAsPixels('y', -1)));
     Floating := (FloatPos.X>=0) and (FloatPos.Y>=0);
 
     HorzAlign := ParamToHorzAlign(P.GetParam('align'));
     VertAlign := ParamToVertAlign(P.GetParam('valign'));
-    MaxWidth := P.GetParamAsPixels('maxwidth', 0);
-    BackColor := ParamToColor(P.GetParam('color'));
-    BorderColor := ParamToColor(P.GetParam('outcolor'));
+    MaxWidth := Lb.CalcScale(P.GetParamAsPixels('maxwidth', 0));
+    BackColor := P.GetParamAsColor('color');
+    BorderColor := P.GetParamAsColor('outcolor');
     KeepProps := P.ParamExists('keep');
   finally
     P.Free;
@@ -1179,7 +1199,7 @@ begin
 
   V := TDHVisualItem_Div.Create;
   V.InnerColor := BackColor;
-  V.OutterColor := BorderColor;
+  V.OuterColor := BorderColor;
 
   ToDivLineAttr(Borders.Left, V.Left);
   ToDivLineAttr(Borders.Top, V.Top);
@@ -1194,13 +1214,13 @@ begin
 
   if not KeepProps then
   begin
-    Builder.Props.Offset.Top := 0;
-    Builder.Props.Offset.Bottom := 0;
-    Builder.Props.BackColor := clNone;
-    Builder.Props.HorzAlign := haLeft;
-    Builder.Props.VertAlign := vaTop;
-    Builder.Props.LineSpace := 0;
-    Builder.Props.ParagraphSpace := 0;
+    Props.Offset.Top := 0;
+    Props.Offset.Bottom := 0;
+    Props.BackColor := clNone;
+    Props.HorzAlign := haLeft;
+    Props.VertAlign := vaTop;
+    Props.LineSpace := 0;
+    Props.ParagraphSpace := 0;
   end;
 
   Builder.CurrentDiv.SubDivs.Add(D);
@@ -1426,14 +1446,14 @@ begin
   {$ENDIF}
   Props.BackColor := clNone;
 
-  Props.Offset.Top := Lb.Offset.Top;
-  Props.Offset.Bottom := Lb.Offset.Bottom;
+  Props.Offset.Top := Lb.CalcScale(Lb.Offset.Top);
+  Props.Offset.Bottom := Lb.CalcScale(Lb.Offset.Bottom);
 
   Props.VertAlign := Lb.LineVertAlign;
   Props.HorzAlign := Lb.LineHorzAlign;
 
-  Props.LineSpace := Lb.LineSpace;
-  Props.ParagraphSpace := Lb.ParagraphSpace;
+  Props.LineSpace := Lb.CalcScale(Lb.LineSpacing);
+  Props.ParagraphSpace := Lb.CalcScale(Lb.ParagraphSpacing);
   //--
 
   //--MainDiv
@@ -1443,17 +1463,17 @@ begin
   MainDiv.AutoWidth := Lb.AutoWidth;
   MainDiv.AutoHeight := Lb.AutoHeight;
 
-  MainDiv.MaxWidth := Lb.MaxWidth;
+  MainDiv.MaxWidth := Lb.CalcScale(Lb.MaxWidth);
 
   MainDiv.FixedSize := TAnySize.Create(Lb.Width, Lb.Height);
 
   MainDiv.HorzAlign := Lb.OverallHorzAlign;
   MainDiv.VertAlign := Lb.OverallVertAlign;
 
-  MainDiv.Borders.Left.Margin := Lb.Borders.Left;
-  MainDiv.Borders.Top.Margin := Lb.Borders.Top;
-  MainDiv.Borders.Right.Margin := Lb.Borders.Right;
-  MainDiv.Borders.Bottom.Margin := Lb.Borders.Bottom;
+  MainDiv.Borders.Left.Margin := Lb.CalcScale(Lb.Borders.Left);
+  MainDiv.Borders.Top.Margin := Lb.CalcScale(Lb.Borders.Top);
+  MainDiv.Borders.Right.Margin := Lb.CalcScale(Lb.Borders.Right);
+  MainDiv.Borders.Bottom.Margin := Lb.CalcScale(Lb.Borders.Bottom);
   //--
 end;
 
@@ -1481,7 +1501,9 @@ begin
   CurrentDiv := nil;
 
   MainDiv.CalcTextSize;
-  ProcBoundsAndLines(MainDiv.TextSize, MainDiv.Lines.Count, MainDiv.GetParagraphCount);
+  ProcBoundsAndLines(
+    MainDiv.TextSize, MainDiv.GetAreaSize,
+    MainDiv.Lines.Count, MainDiv.GetParagraphCount);
 
   SendObjectsToComponent(MainDiv);
 end;
