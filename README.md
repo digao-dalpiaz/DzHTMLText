@@ -45,13 +45,14 @@
    - New Header Tag (`<H>`)
    - New Custom Style Tag (`<STYLE>`)
    - Font Style tags (Bold, Italic, Underline and Strikeout) now supports "turn off" parameter
-   - Spoler tag now supports display already expanded
+   - Spoiler tag now supports display already expanded
    - Fixed Offset tag to not extend background color in the offset area
    - Fixed Linux (in Lazarus) compilation (DEFAULT_DPI const)  
    - Removed DesignDPI property (**WARNING!!! If you defined a value other than the default in this property, when opening the form, this value will be removed, but that's okay, because the design of forms in Delphi is always based on 96 pixels per inch**)
    - Linux auto scaling supporting on Lazarus
-   - Fixed supporting decimal values in all TPixels and TFontPt parameters in FMX
-   - Fixed decimal values in tags parameters to use "." as decimal separator in FMX environment (TPixels and TFontPt)
+   - Removed TFontPt class (now using TPixels for Font Size)
+   - Fixed supporting decimal values in all TPixels parameters in FMX
+   - Fixed decimal values in tags parameters to use "." as decimal separator in FMX environment (TPixels)
    - New ParagraphCount property (read-only)
    - New LineHorzAlign property
    - New ParagraphSpacing property
