@@ -104,6 +104,8 @@ type
   {$REGION 'Token single classes'}
   TDHToken_Break = class(TDHTokenSingle)
   private
+    NoBreak: Boolean;
+
     procedure Process; override;
     function IsBreakableToken: Boolean; override;
   end;
@@ -114,6 +116,7 @@ type
     Breakable: Boolean;
 
     procedure Process; override;
+    procedure CheckForSpaceWhenNoBreak;
   end;
 
   TDHToken_Line = class(TDHTokenSingle)
@@ -368,6 +371,8 @@ type
     function GetAreaSizeWOB: TAnySize;
     function GetAreaSize: TAnySize;
     function GetAbsoluteStartingPos: TAnyPoint;
+
+    function GetLastItem: TDHPreVisualItem;
   public
     constructor Create(Parent: TDHDivArea);
     destructor Destroy; override;
@@ -418,13 +423,14 @@ type
 
     QueueVisualItems: TDHPreVisualItemList;
 
+    LastNoBreak: Boolean;
+
     function AddToken<T: TDHToken, constructor>: T;
     procedure AddInvalidToken;
 
     function NewLine(Continuous: Boolean): TDHDivAreaLine;
 
     procedure ReadTokens;
-    procedure ReadTokensOfLine(const Text: string; From: Integer);
     function ProcessTag(const Tag: string): Boolean;
     procedure ProcessChildrenTokens(Block: TDHTokenBlock);
     procedure SendObjectsToComponent(DivArea: TDHDivArea);
@@ -781,6 +787,8 @@ var
   V: TDHVisualItem_Word;
   Size: TAnySize;
 begin
+  CheckForSpaceWhenNoBreak;
+
   Size := TAnySize.Create(Canvas.TextWidth(Word), Builder.CalcTextHeight(Word)); //scaled
 
   V := TDHVisualItem_Word.Create;
@@ -795,6 +803,26 @@ begin
     Builder.CurrentLink.LinkRef.Text.Append(Word);
 
   Builder.AddVisualItemToQueue(V, Size, Breakable);
+end;
+
+procedure TDHToken_Word.CheckForSpaceWhenNoBreak;
+var
+  Token: TDHToken_Word;
+begin
+  if Builder.LastNoBreak then
+  begin
+    Builder.LastNoBreak := False; //reset to avoid circular loop
+
+    Token := TDHToken_Word.Create;
+    try
+      Token.Builder := Builder;
+      Token.Word := STR_SPACE;
+      Token.Breakable := True;
+      Token.Process;
+    finally
+      Token.Free;
+    end;
+  end;
 end;
 
 { TDHToken_Image }
@@ -856,7 +884,18 @@ begin
 end;
 
 procedure TDHToken_Break.Process;
+var
+  Item: TDHPreVisualItem;
 begin
+  if NoBreak then
+  begin
+    Item := Builder.CurrentDiv.GetLastItem;
+    if (Item<>nil) and (Item.VisualObject is TDHVisualItem_Word) then
+      Builder.LastNoBreak := True;
+
+    Exit;
+  end;
+
   Builder.CurrentDiv.CheckForLinesInitialization;
   Builder.NewLine(False);
 end;
@@ -1343,6 +1382,20 @@ begin
   Result := Borders.Top.Margin + Borders.Bottom.Margin;
 end;
 
+function TDHDivArea.GetLastItem: TDHPreVisualItem;
+var
+  Line: TDHDivAreaLine;
+begin
+  if Lines.Count>0 then
+  begin
+    Line := Lines.Last;
+    if Line.Items.Count>0 then
+      Exit(Line.Items.Last);
+  end;
+
+  Result := nil;
+end;
+
 procedure TDHDivArea.CalcTextSize;
 var
   Line: TDHDivAreaLine;
@@ -1549,31 +1602,13 @@ end;
 procedure TDHBuilder.ReadTokens;
 const NBR_TAG = '<NBR>';
 var
-  I, From: Integer;
-  A: string;
-begin
-  for I := 0 to Lb.Lines.Count-1 do
-  begin
-    A := Lb.Lines[I];
-    From := 1;
-    if I>0 then
-    begin
-      if A.StartsWith(NBR_TAG, True) then
-        From := NBR_TAG.Length+1 //jump NBR tag
-      else
-        AddToken<TDHToken_Break>; //break previous line
-    end;
-    ReadTokensOfLine(A, From);
-  end;
-end;
-
-procedure TDHBuilder.ReadTokensOfLine(const Text: string; From: Integer);
-var
+  Text: string;
   CharIni: Char;
   I, CurPos, Len: Integer;
-  BreakableChar: Boolean;
+  BreakableChar, Nbr: Boolean;
 begin
-  CurPos := From;
+  Text := Lb.Text;
+  CurPos := 1;
   Len := Text.Length;
   while CurPos <= Len do
   begin
@@ -1598,6 +1633,16 @@ begin
       //losted tag closing
       AddInvalidToken;
       Inc(CurPos);
+    end else
+    if (CharIni = #13) or (CharIni = #10) then
+    begin
+      Inc(CurPos);
+      if Text[CurPos]=#10 then Inc(CurPos); //when #13#10 sequence
+
+      Nbr := UpperCase(Copy(Text, CurPos, NBR_TAG.Length)) = NBR_TAG;
+      if Nbr then Inc(CurPos, NBR_TAG.Length);
+
+      AddToken<TDHToken_Break>.NoBreak := Nbr or not Lb.AutoBreak;
     end else
     begin //all the rest is text
       I := TDHCharUtils.FindNextWordBreakChar(Text, CurPos);
@@ -1696,7 +1741,11 @@ begin
       if (Spoiler=nil) or not Spoiler.Expanded then Continue;
     end;
 
-    if Token.IsBreakableToken then ProcessPendingObjects;
+    if Token.IsBreakableToken then
+    begin
+      ProcessPendingObjects;
+      LastNoBreak := False;
+    end;
 
     if Token is TDHTokenBlock then
     begin

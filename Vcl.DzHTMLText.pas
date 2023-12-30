@@ -311,6 +311,7 @@ type
     FAutoHeight: Boolean;
     FMaxWidth: TPixels; //max width when using AutoWidth
     FAutoOpenLink: Boolean;
+    FAutoBreak: Boolean;
 
     FLineCount: Integer; //read-only
     FParagraphCount: Integer; //read-only
@@ -361,6 +362,7 @@ type
     procedure SetLines(const Value: TStrings);
     function GetText: string;
     procedure SetText(const Value: string); {$IFDEF FMX}reintroduce;{$ENDIF}
+    procedure SetAutoBreak(const Value: Boolean);
 
     procedure SetAutoHeight(const Value: Boolean);
     procedure SetAutoWidth(const Value: Boolean);
@@ -558,6 +560,8 @@ type
     property AutoWidth: Boolean read FAutoWidth write SetAutoWidth default False;
     property AutoHeight: Boolean read FAutoHeight write SetAutoHeight default False;
     property MaxWidth: TPixels read FMaxWidth write SetMaxWidth stored GetStoredMaxWidth;
+
+    property AutoBreak: Boolean read FAutoBreak write SetAutoBreak default True;
 
     property Offset: TDHOffset read FOffset write SetOffset stored GetStoredOffset;
     property CustomStyles: TDHCustomStyles read FCustomStyles write SetCustomStyles stored GetStoredCustomStyles;
@@ -822,6 +826,7 @@ begin
   LLinkRef := TDHLinkRefList.Create;
   LSpoiler := TDHSpoilerList.Create;
 
+  FAutoBreak := True;
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
 
@@ -969,6 +974,16 @@ end;
 procedure TDzHTMLText.SetText(const Value: string);
 begin
   FLines.Text := Value;
+end;
+
+procedure TDzHTMLText.SetAutoBreak(const Value: Boolean);
+begin
+  if Value<>FAutoBreak then
+  begin
+    FAutoBreak := Value;
+
+    BuildAndPaint;
+  end;
 end;
 
 procedure TDzHTMLText.SetLineVertAlign(const Value: TDHVertAlign);

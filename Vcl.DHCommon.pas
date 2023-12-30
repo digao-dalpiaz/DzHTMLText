@@ -128,7 +128,7 @@ begin
   begin
     C := A[I];
 
-    if CharInSet(C, [STR_SPACE,'<','>','/','\']) or IsCJKChar(C) then
+    if CharInSet(C, [STR_SPACE,'<','>','/','\',#13,#10]) or IsCJKChar(C) then
       Exit(I);
   end;
 
