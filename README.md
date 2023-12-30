@@ -61,6 +61,9 @@
    - New LineHorzAlign property
    - New ParagraphSpacing property
    - Supporting spaces in tag parameters (auto trim)
+   - New AutoBreak property
+   - Supporting tag params using multiple lines
+   - Include space char automatically when using `<NBR>` tag or AutoBreak disable, in text sequence between lines
 
 <details>
   <summary>Click here to view the entire changelog</summary>
@@ -430,6 +433,8 @@ Supports Delphi XE3..Delphi 12
 
 > **TPixels** represents `Integer` in **VCL**, or `Single` in **FMX**.
 
+`AutoBreak: Boolean` = When enabled, the component automatically converts Line Break sequence into a new line. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after Line Break sequence.
+
 `AutoHeight: Boolean` = Auto set height of control when Text property changed
 
 `AutoWidth: Boolean` = Auto set width of control when Text property changed.
@@ -449,9 +454,7 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `LineCount: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
 
-`Lines: TStrings` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
-
-> The component automatically converts #13#10 sequence into a line break. Because of this behavior, all typed line breaks will appear as a real line break. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after #13#10 characters. This will tell the component to not consider the sequence as a line break (Please check this tag at Example project).
+`Lines: TStrings` = The text you want to show at label control. You can use `<BR>` tag to break lines. The default Line Break sequence breaks lines either when AutoBreak property is enabled.
 
 `LineSpacing: TPixels` = Specify the default line spacing in overall text. You can use `<LS>` tag to determine line spacing at specific lines.
 
