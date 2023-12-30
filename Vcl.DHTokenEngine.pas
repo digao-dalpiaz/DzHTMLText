@@ -388,6 +388,7 @@ type
 
     function GetFullHeight: TPixels;
     function IsSpace: Boolean;
+    function IsFloatingDiv: Boolean;
   public
     destructor Destroy; override;
   end;
@@ -1177,21 +1178,26 @@ var
   D: TDHDivArea;
   V: TDHVisualItem_Div;
   Item: TDHPreVisualItem;
+  Sz: TPixels;
 begin
-  if not Builder.CurrentDiv.AutoWidth then
+  if not Builder.CurrentDiv.AutoWidth and
+    (WidthType in [TDHDivSizeType.Full, TDHDivSizeType.Reverse, TDHDivSizeType.Percent]) then
   begin
+    Sz := Builder.CurrentDiv.GetAreaSizeWOB.Width;
     case WidthType of
-      TDHDivSizeType.Full: Size.Width := Builder.CurrentDiv.GetAreaSizeWOB.Width - Builder.CurrentDiv.Point.X;
-      TDHDivSizeType.Reverse: Size.Width := Builder.CurrentDiv.GetAreaSizeWOB.Width - Builder.CurrentDiv.Point.X - Size.Width;
-      TDHDivSizeType.Percent: Size.Width := RoundIfVCL(Builder.CurrentDiv.GetAreaSizeWOB.Width * Size.Width/100);
+      TDHDivSizeType.Full: Size.Width := Sz - Builder.CurrentDiv.Point.X;
+      TDHDivSizeType.Reverse: Size.Width := Sz - Builder.CurrentDiv.Point.X - Size.Width;
+      TDHDivSizeType.Percent: Size.Width := RoundIfVCL(Sz * Size.Width/100);
     end;
   end;
-  if not Builder.CurrentDiv.AutoHeight then
+  if not Builder.CurrentDiv.AutoHeight and
+    (HeightType in [TDHDivSizeType.Full, TDHDivSizeType.Reverse, TDHDivSizeType.Percent]) then
   begin
+    Sz := Builder.CurrentDiv.GetAreaSizeWOB.Height;
     case HeightType of
-      TDHDivSizeType.Full: Size.Height := Builder.CurrentDiv.GetAreaSizeWOB.Height - Builder.CurrentDiv.Point.Y;
-      TDHDivSizeType.Reverse: Size.Height := Builder.CurrentDiv.GetAreaSizeWOB.Height - Builder.CurrentDiv.Point.Y - Size.Height;
-      TDHDivSizeType.Percent: Size.Height := RoundIfVCL(Builder.CurrentDiv.GetAreaSizeWOB.Height * Size.Height/100);
+      TDHDivSizeType.Full: Size.Height := Sz - Builder.CurrentDiv.Point.Y;
+      TDHDivSizeType.Reverse: Size.Height := Sz - Builder.CurrentDiv.Point.Y - Size.Height;
+      TDHDivSizeType.Percent: Size.Height := RoundIfVCL(Sz * Size.Height/100);
     end;
   end;
 
@@ -1257,6 +1263,11 @@ end;
 function TDHPreVisualItem.GetFullHeight: TPixels;
 begin
   Result := Size.Height + Offset.GetHeight;
+end;
+
+function TDHPreVisualItem.IsFloatingDiv: Boolean;
+begin
+  Result := (SelfDiv<>nil) and SelfDiv.Floating;
 end;
 
 function TDHPreVisualItem.IsSpace: Boolean;
@@ -1382,6 +1393,8 @@ begin
 
   for Item in Items do
   begin
+    if Item.IsFloatingDiv then Continue;
+
     W := W + Item.Size.Width;
 
     FullH := Item.GetFullHeight;
@@ -1865,7 +1878,7 @@ begin
 
     Line.Items.Add(Item);
 
-    if not ((Item.SelfDiv<>nil) and Item.SelfDiv.Floating) then
+    if not Item.IsFloatingDiv then
     begin
       Item.Position := CurrentDiv.Point;
       Item.Position.Offset(0, Item.Offset.Top);
@@ -1893,7 +1906,8 @@ begin
         Item.SelfDiv.FixedSize.Height := Item.Size.Height; //size of div area for align children
       end;
 
-      CheckAlign(Item);
+      if not Item.IsFloatingDiv then
+        CheckAlign(Item);
 
       P := Item.DivArea.GetAbsoluteStartingPos;
       P.Offset(Item.Position);
