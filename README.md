@@ -480,7 +480,7 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `StyleLinkHover: TDHStyleLinkProp` = Properties to format a link when is selected by mouse.
 
-`Text: String` (public) = This property is a shortcut to `Lines` property. At run-time, you can read and write this property directly, but the component will store the text at `Lines` property.
+`Text: string` (public) = This property is a shortcut to `Lines` property. At run-time, you can read and write this property directly, but the component will store the text at `Lines` property.
 
 `TextHeight: TPixels` = Returns the total text height. This property is read-only.
 
@@ -509,7 +509,7 @@ procedure OnLinkRightClick(Sender: TObject; Link: TDHBaseLink; var Handled: Bool
 This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
 ```delphi
-procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: String; Picture: TAnyPicture; var Handled: Boolean);
+procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: string; Picture: TAnyPicture; var Handled: Boolean);
 ```
 If you are using `<imgres>` tag, this event will fire on every image tag, allowing you to manually load a image from anywhere, in any image format, assigning it to Picture object. Be sure to set `Handled := True` when you manually load an image.
 *Not using this event causes the component to automatically load the image from application resources by name, and must be in PNG format when using VCL environment. In FMX environment you can use any image format supported by Delphi.*
@@ -628,13 +628,13 @@ The spoiler name is **case insensitive**.
 - `LinkRef: TDHLinkRef` = References the TDHLinkRef object when link kind is a `<a>` tag.
 
    **TDHLinkRef object:**
-   - `Target: String` = The link target specified at `<a:target>` tag.
-   - `Text: String` = The link display text specified at `<a:target>Display Text</a>` inner text.   
+   - `Target: string` = The link target specified at `<a:target>` tag.
+   - `Text: TStringBuilder` = The link display text specified at `<a:target>Display Text</a>` inner text.   
 
 - `Spoiler: TDHSpoiler` = References the TDHSpoiler object when link kind is a `<spoiler>` tag.
 
    **TDHSpoiler object:**
-   - `Name: String` = The spoiler name.
+   - `Name: string` = The spoiler name.
    - `Expanded: Boolean` = If the spoiler details is expanded.
 
 **Link events**
@@ -666,8 +666,8 @@ If you want to display literal special characters in the text, just type the HTM
 There are two class functions to deal with HTML characters:
 
 ```delphi
-class function EscapeTextToHTML(const aText: String): String;
-class function UnescapeHTMLToText(const aHTML: String): String;
+class function EscapeTextToHTML(const aText: string): string;
+class function UnescapeHTMLToText(const aHTML: string): string;
 ```
 
 > As this component is not a complete HTML language debugger, there is no need to escape the other special characters. Therefore, for characters such as accentuation, for example, or other signs, you must use them normally.
