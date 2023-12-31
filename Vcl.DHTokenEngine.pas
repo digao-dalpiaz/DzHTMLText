@@ -41,7 +41,7 @@ type
     HorzAlign: TDHHorzAlign;
     VertAlign: TDHVertAlign;
 
-    //--Superscript and Subscript  ***************
+    //--Superscript and Subscript
     SS_Inside: Boolean;
     SS_FullHeight: TPixels;
     SS_YPos: TPixels;
@@ -329,6 +329,8 @@ type
 
     LonelyHeight: TPixels; //when line does not contains any object
 
+    ContainsListItem: Boolean;
+
     TextSize: TAnySize;
     procedure CalcTextSize;
   public
@@ -372,6 +374,7 @@ type
     function GetAreaSize: TAnySize;
     function GetAbsoluteStartingPos: TAnyPoint;
 
+    function GetLastLine: TDHDivAreaLine;
     function GetLastItem: TDHPreVisualItem;
   public
     constructor Create(Parent: TDHDivArea);
@@ -1056,7 +1059,12 @@ end;
 procedure TDHToken_ListItem.Process;
 var
   Token: TDHToken_Word;
+  Line: TDHDivAreaLine;
 begin
+  Line := Builder.CurrentDiv.GetLastLine;
+  if (Line<>nil) and Line.ContainsListItem then
+    Builder.NewLine(True); //** review please
+
   Inc(Props.List_Number);
 
   Token := TDHToken_Word.Create;
@@ -1074,6 +1082,8 @@ begin
   finally
     Token.Free;
   end;
+
+  Builder.CurrentDiv.Lines.Last.ContainsListItem := True;
 end;
 
 { TDHToken_LineSpace }
@@ -1382,16 +1392,21 @@ begin
   Result := Borders.Top.Margin + Borders.Bottom.Margin;
 end;
 
+function TDHDivArea.GetLastLine: TDHDivAreaLine;
+begin
+  if Lines.Count>0 then
+    Exit(Lines.Last);
+
+  Result := nil;
+end;
+
 function TDHDivArea.GetLastItem: TDHPreVisualItem;
 var
   Line: TDHDivAreaLine;
 begin
-  if Lines.Count>0 then
-  begin
-    Line := Lines.Last;
-    if Line.Items.Count>0 then
-      Exit(Line.Items.Last);
-  end;
+  Line := GetLastLine;
+  if (Line<>nil) and (Line.Items.Count>0) then
+    Exit(Line.Items.Last);
 
   Result := nil;
 end;
@@ -1572,6 +1587,8 @@ begin
   CurrentDiv := MainDiv;
   ProcessChildrenTokens(MainToken);
   ProcessPendingObjects; //process remaining objects in queue list
+  if CurrentDiv<>MainDiv then raise EDHInternalExcept.Create('Incorrect final div');
+  if (Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak then NewLine(False); //allow one blank line
   EndOfLine;
   CurrentDiv := nil;
 
@@ -1802,7 +1819,7 @@ var
   Line: TDHDivAreaLine;
 begin
   if CurrentDiv.Lines.Count=0 then Exit;
-  
+
   Line := CurrentDiv.Lines.Last;
   if Line.Items.Count=0 then //line without visual items
     Line.LonelyHeight := CalcTextHeight(STR_SPACE) + Props.Offset.GetHeight;
@@ -1815,16 +1832,20 @@ var
   Line: TDHDivAreaLine;
   Space: TPixels;
 begin
-  EndOfLine; //must always contain lines here
+  EndOfLine;
 
-  Line := CurrentDiv.Lines.Last;
+  Space := 0;
+  if CurrentDiv.Lines.Count>0 then
+  begin
+    Line := CurrentDiv.Lines.Last;
 
-  Space := Props.LineSpace;
-  if not Continuous then
-    Space := Space + Props.ParagraphSpace;
+    Space := Props.LineSpace;
+    if not Continuous then
+      Space := Space + Props.ParagraphSpace;
 
-  CurrentDiv.Point.X := 0;
-  CurrentDiv.Point.Offset(0, Line.TextSize.Height + Space);
+    CurrentDiv.Point.X := 0;
+    CurrentDiv.Point.Offset(0, Line.TextSize.Height + Space);
+  end;
 
   Result := CurrentDiv.AddNewLineObject;
   Result.Continuous := Continuous;
