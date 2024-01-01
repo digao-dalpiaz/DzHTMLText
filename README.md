@@ -366,7 +366,7 @@ This visual component allows you to specify a formatted text in a label, using a
     [align=left|center|right] --> Horizontal overall alignment
     [valign=top|center|bottom] --> Vertival overall alignment
     [holdprops] --> When entering a div, some text properties are reseted. Use "holdprops" param to keep these properties.
-      Reseted properties: Offset, Background color, Horizontal and Vertical text alignment, line and paragraph spacing.
+      Reseted properties: Offset, Background color, Horizontal and Vertical text alignment, line and paragraph spacing, and Paragraph Indent.
 
 <A[:target]></A> - Link
 <B[:off]></B> - Bold
