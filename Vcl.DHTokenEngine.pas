@@ -55,8 +55,7 @@ type
     List_Bullet: Boolean;
     //--
 
-    LeftMargin: TPixels;
-    LineSpace, ParagraphSpace: TPixels;
+    LineSpace, ParagraphSpace, ParagraphIndent: TPixels;
 
     procedure AssignProps(Source: TDHPropsStore);
   end;
@@ -304,6 +303,14 @@ type
     procedure Process; override;
   end;
 
+  TDHToken_ParagraphIndent = class(TDHTokenBlock)
+  private
+    Indent: TPixels;
+
+    procedure ReadParam; override;
+    procedure Process; override;
+  end;
+
   {$SCOPEDENUMS ON}
   TDHDivSizeType = (Auto, Outer, Inner, Full, Percent, Reverse, Line);
   {$SCOPEDENUMS OFF}
@@ -367,11 +374,10 @@ type
 
     FixedSize, TextSize: TAnySize;
 
+    LeftMargin: TPixels;
+
     procedure CalcTextSize;
     function GetParagraphCount: Integer;
-
-    function AddNewLineObject: TDHDivAreaLine;
-    procedure CheckForLinesInitialization;
 
     function GetHorzBorder: TPixels;
     function GetVertBorder: TPixels;
@@ -437,7 +443,11 @@ type
     function AddToken<T: TDHToken, constructor>: T;
     procedure AddInvalidToken;
 
-    function NewLine(Continuous: Boolean): TDHDivAreaLine;
+    function CalcTextHeight(const Text: string): TPixels;
+    procedure CheckForLinesInitialization;
+    procedure EndOfLine;
+    function JumpLine(Continuous: Boolean): TDHDivAreaLine;
+    function AddNewLineObject(Continuous: Boolean): TDHDivAreaLine;
 
     procedure ReadTokens;
     function ProcessTag(const Tag: string): Boolean;
@@ -450,9 +460,8 @@ type
     procedure ProcessSpecificObjects(List: TDHPreVisualItemList);
     function CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
     procedure ProcessOneObject(Item: TDHPreVisualItem);
-
-    function CalcTextHeight(const Text: string): TPixels;
-    procedure EndOfLine;
+    procedure ApplyLineMargin;
+    procedure ApplyLineSpace;
   public
     constructor Create(Lb: TDzHTMLText; Canvas: TCanvas;
       VisualItems: TDHVisualItemList; ProcBoundsAndLines: TDHProcBoundsAndLines);
@@ -485,7 +494,7 @@ type
   end;
 
 const
-  TOKENS_OBJECTS: array[0..28] of TDHTokenObjectDef = (
+  TOKENS_OBJECTS: array[0..29] of TDHTokenObjectDef = (
     //single
     (Ident: 'BR'; Clazz: TDHToken_Break; AllowPar: True; OptionalPar: True), //breakable!
     (Ident: 'LINE'; Clazz: TDHToken_Line; AllowPar: True; OptionalPar: True),
@@ -517,7 +526,8 @@ const
     (Ident: 'UL'; Clazz: TDHToken_UnorderedList),
     (Ident: 'OL'; Clazz: TDHToken_OrderedList),
     (Ident: 'LI'; Clazz: TDHToken_ListItem), //breakable!
-    (Ident: 'LS'; Clazz: TDHToken_LineSpace; AllowPar: True)
+    (Ident: 'LS'; Clazz: TDHToken_LineSpace; AllowPar: True),
+    (Ident: 'PI'; Clazz: TDHToken_ParagraphIndent; AllowPar: True)
   );
 
 function GetTokenObjectDefIndexFromIdent(const Ident: string): Integer;
@@ -736,6 +746,7 @@ begin
 
   if Style.LineSpacing>=0 then Props.LineSpace := Lb.CalcScale(Style.LineSpacing);
   if Style.ParagraphSpacing>=0 then Props.ParagraphSpace := Lb.CalcScale(Style.ParagraphSpacing);
+  if Style.ParagraphIndent>=0 then Props.ParagraphIndent := Lb.CalcScale(Style.ParagraphIndent);
 end;
 
 procedure TDHToken_CustomStyle.ApplyFontStyle(Value: TDHCustomStyleBoolValue; FontStyle: TFontStyle);
@@ -910,8 +921,8 @@ begin
     Exit;
   end;
 
-  Builder.CurrentDiv.CheckForLinesInitialization;
-  Builder.NewLine(Continuous);
+  Builder.CheckForLinesInitialization;
+  Builder.JumpLine(Continuous);
 end;
 
 { TDHToken_Line }
@@ -1079,7 +1090,7 @@ var
 begin
   Line := Builder.CurrentDiv.GetLastLine;
   if (Line<>nil) and (Line.Items.Count>0) then //line already contains items
-    Builder.NewLine(True);
+    Builder.JumpLine(True);
 
   Inc(Props.List_Number);
 
@@ -1099,7 +1110,7 @@ begin
     Token.Free;
   end;
 
-  Props.LeftMargin := Builder.CurrentDiv.Point.X;
+  Builder.CurrentDiv.LeftMargin := Builder.CurrentDiv.Point.X; //to next lines
 end;
 
 { TDHToken_LineSpace }
@@ -1121,6 +1132,22 @@ procedure TDHToken_LineSpace.Process;
 begin
   Props.LineSpace := Space;
   Props.ParagraphSpace := ParagraphSpace;
+
+  Builder.ApplyLineSpace;
+end;
+
+{ TDHToken_ParagraphIndent }
+
+procedure TDHToken_ParagraphIndent.ReadParam;
+begin
+  Indent := Lb.CalcScale(StrToPixels(Param, 0));
+end;
+
+procedure TDHToken_ParagraphIndent.Process;
+begin
+  Props.ParagraphIndent := Indent;
+
+  Builder.ApplyLineMargin;
 end;
 
 { TDHToken_Div }
@@ -1301,6 +1328,7 @@ begin
     Props.VertAlign := vaTop;
     Props.LineSpace := 0;
     Props.ParagraphSpace := 0;
+    Props.ParagraphIndent := 0;
   end;
 
   Builder.CurrentDiv.SubDivs.Add(D);
@@ -1357,18 +1385,6 @@ begin
   Lines.Free;
   SubDivs.Free;
   inherited;
-end;
-
-procedure TDHDivArea.CheckForLinesInitialization;
-begin
-  if Lines.Count=0 then
-    AddNewLineObject;
-end;
-
-function TDHDivArea.AddNewLineObject: TDHDivAreaLine;
-begin
-  Result := TDHDivAreaLine.Create;
-  Lines.Add(Result);
 end;
 
 function TDHDivArea.GetAbsoluteStartingPos: TAnyPoint;
@@ -1507,9 +1523,9 @@ begin
   List_Number := Source.List_Number;
   List_Bullet := Source.List_Bullet;
 
-  LeftMargin := Source.LeftMargin;
   LineSpace := Source.LineSpace;
   ParagraphSpace := Source.ParagraphSpace;
+  ParagraphIndent := Source.ParagraphIndent;
 end;
 
 { TDHPreVisualItemList }
@@ -1560,6 +1576,7 @@ begin
 
   Props.LineSpace := Lb.CalcScale(Lb.LineSpacing);
   Props.ParagraphSpace := Lb.CalcScale(Lb.ParagraphSpacing);
+  Props.ParagraphIndent := Lb.CalcScale(Lb.ParagraphIndent);
   //--
 
   //--MainDiv
@@ -1604,7 +1621,7 @@ begin
   ProcessChildrenTokens(MainToken);
   ProcessPendingObjects; //process remaining objects in queue list
   if CurrentDiv<>MainDiv then raise EDHInternalExcept.Create('Incorrect final div');
-  if (Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak then MainDiv.AddNewLineObject; //allow one blank line
+  if (Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak then AddNewLineObject(False); //allow one blank line
   EndOfLine;
   CurrentDiv := nil;
 
@@ -1831,6 +1848,22 @@ begin
     Result := Canvas.TextHeight(Text);
 end;
 
+procedure TDHBuilder.CheckForLinesInitialization;
+begin
+  if CurrentDiv.Lines.Count=0 then
+    AddNewLineObject(False);
+end;
+
+function TDHBuilder.AddNewLineObject(Continuous: Boolean): TDHDivAreaLine;
+begin
+  Result := TDHDivAreaLine.Create;
+  Result.Continuous := Continuous;
+  CurrentDiv.Lines.Add(Result);
+
+  ApplyLineSpace;
+  ApplyLineMargin;
+end;
+
 procedure TDHBuilder.EndOfLine;
 var
   Line: TDHDivAreaLine;
@@ -1842,27 +1875,52 @@ begin
     Line.LonelyHeight := CalcTextHeight(STR_SPACE) + Props.Offset.GetHeight;
 
   Line.CalcTextSize(CurrentDiv.Point.X);
+
+  CurrentDiv.Point.Offset(0, Line.TextSize.Height);
 end;
 
-function TDHBuilder.NewLine(Continuous: Boolean): TDHDivAreaLine;
+function TDHBuilder.JumpLine(Continuous: Boolean): TDHDivAreaLine;
+begin
+  EndOfLine; //must always contains lines here
+
+  Result := AddNewLineObject(Continuous);
+end;
+
+procedure TDHBuilder.ApplyLineMargin;
+var
+  X: TPixels;
+  Line: TDHDivAreaLine;
+begin
+  //here line may be nil, when processing first line and does not yet contain objects
+  Line := CurrentDiv.GetLastLine;
+  if (Line<>nil) and (Line.Items.Count>0) then Exit; //only apply once per line
+
+  X := 0;
+  if CurrentDiv.LeftMargin > 0 then
+    X := CurrentDiv.LeftMargin
+  else
+    if (Line=nil) or not Line.Continuous then X := Props.ParagraphIndent;
+
+  CurrentDiv.Point.X := X;
+end;
+
+procedure TDHBuilder.ApplyLineSpace;
 var
   Line: TDHDivAreaLine;
   Space: TPixels;
 begin
-  EndOfLine; //must always contains lines here
+  if CurrentDiv.Lines.Count<=1 then Exit; //only apply space after second line
 
   Line := CurrentDiv.Lines.Last;
+  if Line.Items.Count>0 then Exit; //only apply once per line
 
   Space := Props.LineSpace;
-  if not Continuous then
+  if not Line.Continuous then
     Space := Space + Props.ParagraphSpace;
 
-  CurrentDiv.Point.X := Props.LeftMargin;
-  CurrentDiv.Point.Offset(0, Line.TextSize.Height + Space);
+  CurrentDiv.Point.Offset(0, Space);
 
-  Result := CurrentDiv.AddNewLineObject;
-  Result.Continuous := Continuous;
-  Result.Space := Space;
+  Line.Space := Space;
 end;
 
 function TDHBuilder.CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
@@ -1919,7 +1977,7 @@ var
 begin
   PrevSpaceRemoved := False;
 
-  CurrentDiv.CheckForLinesInitialization;
+  CheckForLinesInitialization;
 
   Line := CurrentDiv.Lines.Last;
   if Line.Items.Count>0 then
@@ -1940,7 +1998,7 @@ begin
           Line.Items.Remove(Item);
           PrevSpaceRemoved := True;
         end;
-        Line := NewLine(True);
+        Line := JumpLine(True);
       end;
     end;
   end;

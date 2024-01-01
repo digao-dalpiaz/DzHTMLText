@@ -223,7 +223,7 @@ type
     FHorzAlign: TDHCustomStyleHorzAlignValue;
     FVertAlign: TDHCustomStyleVertAlignValue;
     FOffsetTop, FOffsetBottom: TPixels;
-    FLineSpacing, FParagraphSpacing: TPixels;
+    FLineSpacing, FParagraphSpacing, FParagraphIndent: TPixels;
 
     procedure Modified;
 
@@ -242,11 +242,13 @@ type
     procedure SetOffsetBottom(const Value: TPixels);
     procedure SetLineSpacing(const Value: TPixels);
     procedure SetParagraphSpacing(const Value: TPixels);
+    procedure SetParagraphIndent(const Value: TPixels);
 
     function GetStoredOffsetTop: Boolean;
     function GetStoredOffsetBottom: Boolean;
     function GetStoredLineSpacing: Boolean;
     function GetStoredParagraphSpacing: Boolean;
+    function GetStoredParagraphIndent: Boolean;
   protected
     function GetDisplayName: string; override;
   public
@@ -267,6 +269,7 @@ type
     property OffsetBottom: TPixels read FOffsetBottom write SetOffsetBottom stored GetStoredOffsetBottom;
     property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
     property ParagraphSpacing: TPixels read FParagraphSpacing write SetParagraphSpacing stored GetStoredParagraphSpacing;
+    property ParagraphIndent: TPixels read FParagraphIndent write SetParagraphIndent stored GetStoredParagraphIndent;
   end;
 
   TDHCustomStyles = class(TCollection)
@@ -342,7 +345,7 @@ type
 
     FBorders: TDHBorders;
 
-    FLineSpacing, FParagraphSpacing: TPixels;
+    FLineSpacing, FParagraphSpacing, FParagraphIndent: TPixels;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
@@ -403,6 +406,7 @@ type
     procedure SetOffset(const Value: TDHOffset);
     procedure SetLineSpacing(const Value: TPixels);
     procedure SetParagraphSpacing(const Value: TPixels);
+    procedure SetParagraphIndent(const Value: TPixels);
     procedure SetCustomStyles(const Value: TDHCustomStyles);
 
     {$IFDEF USE_IMGLST}
@@ -597,6 +601,7 @@ type
 
     property LineSpacing: TPixels read FLineSpacing write SetLineSpacing {$IFDEF VCL}default 0{$ENDIF};
     property ParagraphSpacing: TPixels read FParagraphSpacing write SetParagraphSpacing {$IFDEF VCL}default 0{$ENDIF};
+    property ParagraphIndent: TPixels read FParagraphIndent write SetParagraphIndent {$IFDEF VCL}default 0{$ENDIF};
 
     property About: string read FAbout;
   end;
@@ -1041,6 +1046,16 @@ begin
   if Value<>FParagraphSpacing then
   begin
     FParagraphSpacing := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetParagraphIndent(const Value: TPixels);
+begin
+  if Value<>FParagraphIndent then
+  begin
+    FParagraphIndent := Value;
 
     BuildAndPaint;
   end;
@@ -1966,6 +1981,7 @@ begin
 
   FLineSpacing := -1;
   FParagraphSpacing := -1;
+  FParagraphIndent := -1;
 end;
 
 function TDHCustomStyle.GetDisplayName: string;
@@ -2037,7 +2053,6 @@ begin
     Modified;
   end;
 end;
-
 
 procedure TDHCustomStyle.SetStyleStrikeout(const Value: TDHCustomStyleBoolValue);
 begin
@@ -2129,6 +2144,16 @@ begin
   end;
 end;
 
+procedure TDHCustomStyle.SetParagraphIndent(const Value: TPixels);
+begin
+  if Value <> FParagraphIndent then
+  begin
+    FParagraphIndent := Value;
+
+    Modified;
+  end;
+end;
+
 function TDHCustomStyle.GetStoredOffsetTop: Boolean;
 begin
   Result := FOffsetTop<>-1;
@@ -2147,6 +2172,11 @@ end;
 function TDHCustomStyle.GetStoredParagraphSpacing: Boolean;
 begin
   Result := FParagraphSpacing<>-1;
+end;
+
+function TDHCustomStyle.GetStoredParagraphIndent: Boolean;
+begin
+  Result := FParagraphIndent<>-1;
 end;
 {$ENDREGION}
 
