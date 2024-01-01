@@ -67,6 +67,7 @@
    - TDHLinkRef.Text now is TStringBuilder
    - Set Left Marging when using List Items (Ordered and Unordered lists)
    - Tag `<BR>` now supports parameter to specify if a new paragraph or a continuous line
+   - New Tag `<PI>` - paragraph indent
 
 <details>
   <summary>Click here to view the entire changelog</summary>
@@ -391,6 +392,7 @@ This visual component allows you to specify a formatted text in a label, using a
 <SPOILER:name[,exp]></SPOILER> - Spoiler Title (use "exp" param to show spoiler already expanded)
 <SDETAIL:name></SDETAIL> - Spoiler Detail
 <LS:aaa[,par=bbb]></LS> - Line spacing where 'aaa' is the height in pixels, and 'bbb' is the height when a new paragraph (plus original line space)
+<PI:nnn></PI> - Paragraph Indent - left margin of a new paragraph in pixels
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
 <LINE:[width=123|full],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
@@ -476,6 +478,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 `OverallVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Determines overall text vertical alignment. This property only take effects if `AutoHeight` is false.
 
 `ParagraphCount: Integer` = Returns the total paragraphs of text. This property is read-only.
+
+`ParagraphIndent: TPixels` = Default left margin of a new paragraph.
 
 `ParagraphSpacing: TPixels` = Specify the default paragraph spacing in overall text. The paragraph spacing is added to original line spacing. You can use `<LS>` tag to determine paragraph spacing at specific lines.
 
