@@ -64,6 +64,7 @@
    - New AutoBreak property
    - Supporting tag params using multiple lines
    - Include space char automatically when using `<NBR>` tag or AutoBreak disable, in text sequence between lines
+   - TDHLinkRef.Text now is TStringBuilder
 
 <details>
   <summary>Click here to view the entire changelog</summary>
