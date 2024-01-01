@@ -49,10 +49,13 @@ type
     SS_YPos: TPixels;
     //--
 
+    //--List (Ordered and Unordered)
     List_Level: Byte;
     List_Number: Word;
     List_Bullet: Boolean;
+    //--
 
+    LeftMargin: TPixels;
     LineSpace, ParagraphSpace: TPixels;
 
     procedure AssignProps(Source: TDHPropsStore);
@@ -107,7 +110,9 @@ type
   TDHToken_Break = class(TDHTokenSingle)
   private
     NoBreak: Boolean;
+    Continuous: Boolean;
 
+    procedure ReadParam; override;
     procedure Process; override;
     function IsBreakableToken: Boolean; override;
   end;
@@ -287,6 +292,7 @@ type
   private
     procedure Process; override;
 
+    function IsBreakableToken: Boolean; override;
     function IsBypassProps: Boolean; override;
   end;
 
@@ -331,10 +337,8 @@ type
 
     LonelyHeight: TPixels; //when line does not contains any object
 
-    ContainsListItem: Boolean;
-
     TextSize: TAnySize;
-    procedure CalcTextSize;
+    procedure CalcTextSize(Width: TPixels);
   public
     constructor Create;
     destructor Destroy; override;
@@ -483,7 +487,7 @@ type
 const
   TOKENS_OBJECTS: array[0..28] of TDHTokenObjectDef = (
     //single
-    (Ident: 'BR'; Clazz: TDHToken_Break), //breakable!
+    (Ident: 'BR'; Clazz: TDHToken_Break; AllowPar: True; OptionalPar: True), //breakable!
     (Ident: 'LINE'; Clazz: TDHToken_Line; AllowPar: True; OptionalPar: True),
     (Ident: 'IMG'; Clazz: TDHToken_Image; AllowPar: True),
     (Ident: 'IMGRES'; Clazz: TDHToken_ImageResource; AllowPar: True),
@@ -512,7 +516,7 @@ const
     (Ident: 'SUB'; Clazz: TDHToken_Subscript),
     (Ident: 'UL'; Clazz: TDHToken_UnorderedList),
     (Ident: 'OL'; Clazz: TDHToken_OrderedList),
-    (Ident: 'LI'; Clazz: TDHToken_ListItem),
+    (Ident: 'LI'; Clazz: TDHToken_ListItem), //breakable!
     (Ident: 'LS'; Clazz: TDHToken_LineSpace; AllowPar: True)
   );
 
@@ -888,6 +892,11 @@ begin
   Result := True;
 end;
 
+procedure TDHToken_Break.ReadParam;
+begin
+  Continuous := SameText(Param, 'cont');
+end;
+
 procedure TDHToken_Break.Process;
 var
   Item: TDHPreVisualItem;
@@ -902,7 +911,7 @@ begin
   end;
 
   Builder.CurrentDiv.CheckForLinesInitialization;
-  Builder.NewLine(False);
+  Builder.NewLine(Continuous);
 end;
 
 { TDHToken_Line }
@@ -1053,6 +1062,11 @@ end;
 
 { TDHToken_ListItem }
 
+function TDHToken_ListItem.IsBreakableToken: Boolean;
+begin
+  Result := True;
+end;
+
 function TDHToken_ListItem.IsBypassProps: Boolean;
 begin
   Result := True;
@@ -1064,8 +1078,8 @@ var
   Line: TDHDivAreaLine;
 begin
   Line := Builder.CurrentDiv.GetLastLine;
-  if (Line<>nil) and Line.ContainsListItem then
-    Builder.NewLine(True); //** review please
+  if (Line<>nil) and (Line.Items.Count>0) then //line already contains items
+    Builder.NewLine(True);
 
   Inc(Props.List_Number);
 
@@ -1085,7 +1099,7 @@ begin
     Token.Free;
   end;
 
-  Builder.CurrentDiv.Lines.Last.ContainsListItem := True;
+  Props.LeftMargin := Builder.CurrentDiv.Point.X;
 end;
 
 { TDHToken_LineSpace }
@@ -1453,25 +1467,24 @@ begin
   inherited;
 end;
 
-procedure TDHDivAreaLine.CalcTextSize;
+procedure TDHDivAreaLine.CalcTextSize(Width: TPixels);
 var
-  W, H, FullH: TPixels;
+  H, FullH: TPixels;
   Item: TDHPreVisualItem;
 begin
-  W := 0;
+  //here que don't sum items width, because first item may contain a left margin
+  //so we set width as current div point
   H := LonelyHeight;
 
   for Item in Items do
   begin
     if Item.IsFloatingDiv then Continue;
 
-    W := W + Item.Size.Width;
-
     FullH := Item.GetFullHeight;
     if FullH > H then H := FullH;
   end;
 
-  TextSize := TAnySize.Create(W, H);
+  TextSize := TAnySize.Create(Width, H);
 end;
 
 { TDHPropsStore }
@@ -1494,6 +1507,7 @@ begin
   List_Number := Source.List_Number;
   List_Bullet := Source.List_Bullet;
 
+  LeftMargin := Source.LeftMargin;
   LineSpace := Source.LineSpace;
   ParagraphSpace := Source.ParagraphSpace;
 end;
@@ -1827,7 +1841,7 @@ begin
   if Line.Items.Count=0 then //line without visual items
     Line.LonelyHeight := CalcTextHeight(STR_SPACE) + Props.Offset.GetHeight;
 
-  Line.CalcTextSize;
+  Line.CalcTextSize(CurrentDiv.Point.X);
 end;
 
 function TDHBuilder.NewLine(Continuous: Boolean): TDHDivAreaLine;
@@ -1846,7 +1860,7 @@ begin
     if not Continuous then
       Space := Space + Props.ParagraphSpace;
 
-    CurrentDiv.Point.X := 0;
+    CurrentDiv.Point.X := Props.LeftMargin;
     CurrentDiv.Point.Offset(0, Line.TextSize.Height + Space);
   end;
 
