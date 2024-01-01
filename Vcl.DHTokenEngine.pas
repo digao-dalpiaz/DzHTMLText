@@ -455,13 +455,14 @@ type
     procedure SendObjectsToComponent(DivArea: TDHDivArea);
     procedure CheckAlign(Item: TDHPreVisualItem);
 
-    procedure AddVisualItemToQueue(V: TDHVisualItem; Size: TAnySize; Breakable: Boolean = False);
-    procedure ProcessPendingObjects;
-    procedure ProcessSpecificObjects(List: TDHPreVisualItemList);
-    function CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
-    procedure ProcessOneObject(Item: TDHPreVisualItem);
     procedure ApplyLineMargin;
     procedure ApplyLineSpace;
+
+    procedure AddVisualItemToQueue(V: TDHVisualItem; Size: TAnySize; Breakable: Boolean = False);
+    function CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
+    procedure ProcessPendingObjects;
+    procedure ProcessOneObject(Item: TDHPreVisualItem);
+    procedure ProcessSpecificObjects(List: TDHPreVisualItemList);
   public
     constructor Create(Lb: TDzHTMLText; Canvas: TCanvas;
       VisualItems: TDHVisualItemList; ProcBoundsAndLines: TDHProcBoundsAndLines);
