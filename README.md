@@ -66,6 +66,7 @@
    - Include space char automatically when using `<NBR>` tag or AutoBreak disable, in text sequence between lines
    - TDHLinkRef.Text now is TStringBuilder
    - Set Left Marging when using List Items (Ordered and Unordered lists)
+   - Tag `<BR>` now supports parameter to specify if a new paragraph or a continuous line
 
 <details>
   <summary>Click here to view the entire changelog</summary>
@@ -377,7 +378,7 @@ This visual component allows you to specify a formatted text in a label, using a
 <BC:{COLOR_VALUE}></BC> - Background Color
 <H:1..6></H> - Header predefined style - font size (calculated according to component main font size) and bold style
 <STYLE:name></STYLE> - Custom style, according to CustomStyles collection property (name must be the same as Custom Style "Ident" property - case insensitive)
-<BR> - Line Break
+<BR[:cont]> - Line Break (Use "cont" parameter to a continous line. If parameter not specified, a new paragraph will be considered)
 <NBR> - Prevent line break after #13#10 sequence
 <L></L> - Align Left
 <C></C> - Align Center
