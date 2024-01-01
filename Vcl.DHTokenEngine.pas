@@ -17,7 +17,6 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-
 {$INCLUDE Types.inc}
 
 type
@@ -463,9 +462,9 @@ implementation
 uses
 {$IFDEF FMX}FMX.DHCommon{$ELSE}Vcl.DHCommon{$ENDIF},
 {$IFDEF FPC}
-  Variants, SysUtils, StrUtils, Math
+  Variants, SysUtils, StrUtils
 {$ELSE}
-  System.Variants, System.SysUtils, System.StrUtils, System.Math,
+  System.Variants, System.SysUtils, System.StrUtils,
   {$IFDEF FMX}
   FMX.Controls
   {$ELSE}
@@ -1698,7 +1697,7 @@ begin
   CloseTag := A.StartsWith('/');
   if CloseTag then Delete(A, 1, 1);
 
-  Par := EmptyStr;
+  Par := EmptyStr; //avoid warning on Lazarus
   HasPar := SplitStr(A, ':', A, Par);
   if HasPar then
   begin
