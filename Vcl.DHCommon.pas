@@ -7,7 +7,7 @@ interface
 uses
 {$IFDEF FMX}FMX.DzHTMLText{$ELSE}Vcl.DzHTMLText{$ENDIF},
 {$IFDEF FPC}
-  Types, SysUtils, Graphics
+  Types, SysUtils, Graphics, FGL
 {$ELSE}
   System.Types, System.UITypes, System.SysUtils
   {$IFDEF FMX}
@@ -20,6 +20,7 @@ uses
 const
   STR_SPACE = ' ';
 
+{$INCLUDE Types.inc}
 type
   TDHMultipleTokenParams = class
   private

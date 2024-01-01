@@ -18,7 +18,6 @@ uses
 {$ENDIF};
 
 {$INCLUDE Types.inc}
-
 type
   TDHBorderRec = record
   private
