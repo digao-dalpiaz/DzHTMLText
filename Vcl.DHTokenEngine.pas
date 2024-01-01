@@ -7,7 +7,7 @@ interface
 uses
 {$IFDEF FMX}FMX.DzHTMLText{$ELSE}Vcl.DzHTMLText{$ENDIF},
 {$IFDEF FPC}
-  Classes, Types
+  Classes, Types, Graphics, FGL
 {$ELSE}
   System.Classes, System.Generics.Collections, System.Types, System.UITypes,
   {$IFDEF FMX}
@@ -16,6 +16,9 @@ uses
     Vcl.Graphics
   {$ENDIF}
 {$ENDIF};
+
+
+{$INCLUDE Types.inc}
 
 type
   TDHBorderRec = record
@@ -460,7 +463,7 @@ implementation
 uses
 {$IFDEF FMX}FMX.DHCommon{$ELSE}Vcl.DHCommon{$ENDIF},
 {$IFDEF FPC}
-  Variants, SysUtils, StrUtils, Math,
+  Variants, SysUtils, StrUtils, Math
 {$ELSE}
   System.Variants, System.SysUtils, System.StrUtils, System.Math,
   {$IFDEF FMX}
@@ -1695,6 +1698,7 @@ begin
   CloseTag := A.StartsWith('/');
   if CloseTag then Delete(A, 1, 1);
 
+  Par := EmptyStr;
   HasPar := SplitStr(A, ':', A, Par);
   if HasPar then
   begin
@@ -1934,7 +1938,8 @@ begin
 
   while List.Count>0 do
   begin
-    Item := List.ExtractAt(0);
+    Item := List.First;
+    List.Extract(Item); //Lazarus does not support ExtractAt
 
     if not PrevSpaceRemoved and Line.Continuous and Item.IsSpace and (Line.Items.Count=0) then
     begin
