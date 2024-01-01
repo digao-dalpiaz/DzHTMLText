@@ -379,7 +379,7 @@ This visual component allows you to specify a formatted text in a label, using a
 <H:1..6></H> - Header predefined style - font size (calculated according to component main font size) and bold style
 <STYLE:name></STYLE> - Custom style, according to CustomStyles collection property (name must be the same as Custom Style "Ident" property - case insensitive)
 <BR[:cont]> - Line Break (Use "cont" parameter to a continous line. If parameter not specified, a new paragraph will be considered)
-<NBR> - Prevent line break after #13#10 sequence
+<NBR> - Prevent new line if used after a line break sequence
 <L></L> - Align Left
 <C></C> - Align Center
 <R></R> - Align Right
