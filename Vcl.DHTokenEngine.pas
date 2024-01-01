@@ -11,7 +11,8 @@ uses
 {$ELSE}
   System.Classes, System.Generics.Collections, System.Types, System.UITypes,
   {$IFDEF FMX}
-    {$IFDEF USE_NEW_UNITS}FMX.Graphics, {$ENDIF}System.UIConsts
+    FMX.Types, System.UIConsts
+    {$IFDEF USE_NEW_UNITS}, FMX.Graphics{$ENDIF}
   {$ELSE}
     Vcl.Graphics
   {$ENDIF}

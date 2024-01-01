@@ -1569,12 +1569,13 @@ begin
 end;
 
 {$IFDEF VCL}
+type THackForm = class(TCustomForm); //older Delphi version - Scaled is a protected property
 function TDzHTMLText.CalcMulDiv(Size, Fator: Integer): Integer;
 var
   PPI: Integer;
 begin
   //design always based on Default PPI
-  if (csDesigning in ComponentState) or (ParentForm=nil) or (not ParentForm.Scaled) then
+  if (csDesigning in ComponentState) or (ParentForm=nil) or (not THackForm(ParentForm).Scaled) then
     PPI := DEFAULT_PPI
   else
     PPI :=

@@ -9,11 +9,12 @@ uses
 {$IFDEF FPC}
   Types, SysUtils, Graphics, FGL
 {$ELSE}
-  System.Types, System.UITypes, System.SysUtils
+  System.Types, System.UITypes, System.SysUtils,
   {$IFDEF FMX}
+    FMX.Types
     {$IFDEF USE_NEW_UNITS}, FMX.Graphics{$ENDIF}
   {$ELSE}
-    , Vcl.Graphics
+    Vcl.Graphics
   {$ENDIF}
 {$ENDIF};
 
