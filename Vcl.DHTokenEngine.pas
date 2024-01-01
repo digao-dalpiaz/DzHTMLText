@@ -1604,7 +1604,7 @@ begin
   ProcessChildrenTokens(MainToken);
   ProcessPendingObjects; //process remaining objects in queue list
   if CurrentDiv<>MainDiv then raise EDHInternalExcept.Create('Incorrect final div');
-  if (Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak then NewLine(False); //allow one blank line
+  if (Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak then MainDiv.AddNewLineObject; //allow one blank line
   EndOfLine;
   CurrentDiv := nil;
 
@@ -1849,20 +1849,16 @@ var
   Line: TDHDivAreaLine;
   Space: TPixels;
 begin
-  EndOfLine;
+  EndOfLine; //must always contains lines here
 
-  Space := 0;
-  if CurrentDiv.Lines.Count>0 then
-  begin
-    Line := CurrentDiv.Lines.Last;
+  Line := CurrentDiv.Lines.Last;
 
-    Space := Props.LineSpace;
-    if not Continuous then
-      Space := Space + Props.ParagraphSpace;
+  Space := Props.LineSpace;
+  if not Continuous then
+    Space := Space + Props.ParagraphSpace;
 
-    CurrentDiv.Point.X := Props.LeftMargin;
-    CurrentDiv.Point.Offset(0, Line.TextSize.Height + Space);
-  end;
+  CurrentDiv.Point.X := Props.LeftMargin;
+  CurrentDiv.Point.Offset(0, Line.TextSize.Height + Space);
 
   Result := CurrentDiv.AddNewLineObject;
   Result.Continuous := Continuous;
