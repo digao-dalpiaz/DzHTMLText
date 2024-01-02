@@ -65,7 +65,7 @@
    - Supporting tag params using multiple lines
    - Include space char automatically when using `<NBR>` tag or AutoBreak disable, in text sequence between lines
    - TDHLinkRef.Text now is TStringBuilder
-   - Set Left Marging when using List Items (Ordered and Unordered lists)
+   - Set Left Margin when using List Items (Ordered and Unordered lists) - align text when item has multiple lines
    - Tag `<BR>` now supports parameter to specify if a new paragraph or a continuous line
    - New Tag `<PI>` - paragraph indent
 
