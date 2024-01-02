@@ -1877,6 +1877,7 @@ begin
 
   Line.CalcTextSize(CurrentDiv.Point.X);
 
+  CurrentDiv.Point.X := 0;
   CurrentDiv.Point.Offset(0, Line.TextSize.Height);
 end;
 
@@ -1902,7 +1903,7 @@ begin
   else
     if (Line=nil) or not Line.Continuous then X := Props.ParagraphIndent;
 
-  CurrentDiv.Point.X := X;
+  CurrentDiv.Point.Offset(X, 0);
 end;
 
 procedure TDHBuilder.ApplyLineSpace;
