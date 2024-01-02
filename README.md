@@ -23,6 +23,7 @@
 - [Spoiler Tag](#spoiler-tag)
 - [Link object](#link-object)
 - [Image Tag](#image-tag)
+- [Div Tag](#div-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Transparency (why not in VCL?)](#transparency-why-not-in-vcl)
@@ -661,6 +662,16 @@ Example:
 ![App Resources Dialog](images/app_resources_dialog.png)
 
 In this example, the image tag should be `<imgres:test>`
+
+## Div Tag
+
+![Div Example](images/div.png)
+
+The component is based in Div areas. This mean the main area of component is a Div, and you can insert sub divs, and another divs inside divs, and so on. The div tag allows you to work with alignment, colors, borders, margin, and you can even make a table using multiple divs.
+
+The div tag may be floating, using specific X and Y position, or docked to the current text, when not specifying any position.
+
+Please, refer to all possible parameters in [Available tags](#available-tags).
 
 ## Literal tag character
 
