@@ -340,13 +340,12 @@ type
   private
     Continuous: Boolean; //when this line is a continuation of the previous one
     Items: TDHPreVisualItemList;
-    Space: TPixels;
     YPos: TPixels;
 
     LonelyHeight: TPixels; //when line does not contains any object
 
     TextSize: TAnySize;
-    procedure CalcTextSize(Width: TPixels);
+    function GetHighHeight: TPixels;
   public
     constructor Create;
     destructor Destroy; override;
@@ -1448,18 +1447,16 @@ end;
 procedure TDHDivArea.CalcTextSize;
 var
   Line: TDHDivAreaLine;
-  W, H: TPixels;
+  W: TPixels;
 begin
   W := 0;
-  H := 0;
 
   for Line in Lines do
   begin
-    if Line.TextSize.Width > W then W := Line.TextSize.Width;
-    H := H + Line.TextSize.Height + Line.Space;
+    if Line.TextSize.Width > W then W := Line.TextSize.Width; //high width
   end;
 
-  TextSize := TAnySize.Create(W, H);
+  TextSize := TAnySize.Create(W, Point.Y);
 end;
 
 function TDHDivArea.GetParagraphCount: Integer;
@@ -1485,13 +1482,11 @@ begin
   inherited;
 end;
 
-procedure TDHDivAreaLine.CalcTextSize(Width: TPixels);
+function TDHDivAreaLine.GetHighHeight: TPixels;
 var
   H, FullH: TPixels;
   Item: TDHPreVisualItem;
 begin
-  //here que don't sum items width, because first item may contain a left margin
-  //so we set width as current div point
   H := LonelyHeight;
 
   for Item in Items do
@@ -1502,7 +1497,7 @@ begin
     if FullH > H then H := FullH;
   end;
 
-  TextSize := TAnySize.Create(Width, H);
+  Result := H;
 end;
 
 { TDHPropsStore }
@@ -1879,7 +1874,7 @@ begin
   if Line.Items.Count=0 then //line without visual items
     Line.LonelyHeight := CalcTextHeight(STR_SPACE) + Props.Offset.GetHeight;
 
-  Line.CalcTextSize(CurrentDiv.Point.X);
+  Line.TextSize := TAnySize.Create(CurrentDiv.Point.X, Line.GetHighHeight);
 
   CurrentDiv.Point.Offset(0, Line.TextSize.Height);
 end;
@@ -1924,8 +1919,6 @@ begin
     Space := Space + Props.ParagraphSpace;
 
   CurrentDiv.Point.Y := Line.YPos + Space; //do not use offset because may apply more than once
-
-  Line.Space := Space;
 end;
 
 function TDHBuilder.CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
@@ -1963,17 +1956,11 @@ begin
   if QueueVisualItems.Count=0 then Exit;
 
   //when processing queue items, props used to new line must be before first item, and not current props!
-  OriginalProps := TDHPropsStore.Create;
-  try
-    OriginalProps.AssignProps(Props);
+  OriginalProps := Props;
 
-    Props.AssignProps(QueueProps);
-    ProcessSpecificObjects(QueueVisualItems);
-
-    Props.AssignProps(OriginalProps);
-  finally
-    OriginalProps.Free;
-  end;
+  Props := QueueProps;
+  ProcessSpecificObjects(QueueVisualItems);
+  Props := OriginalProps;
 end;
 
 procedure TDHBuilder.ProcessOneObject(Item: TDHPreVisualItem);
