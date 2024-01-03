@@ -31,12 +31,12 @@ package DzHTMLText_VCL;
 
 requires
   rtl,
-  vclimg,
-  vcl;
+  vcl,
+  vclimg;
 
 contains
-  Vcl.DzHTMLText in 'Vcl.DzHTMLText.pas',
+  Vcl.DHCommon in 'Vcl.DHCommon.pas',
   Vcl.DHTokenEngine in 'Vcl.DHTokenEngine.pas',
-  Vcl.DHCommon in 'Vcl.DHCommon.pas';
+  Vcl.DzHTMLText in 'Vcl.DzHTMLText.pas';
 
 end.
