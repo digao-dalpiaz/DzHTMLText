@@ -341,6 +341,7 @@ type
     Continuous: Boolean; //when this line is a continuation of the previous one
     Items: TDHPreVisualItemList;
     Space: TPixels;
+    YPos: TPixels;
 
     LonelyHeight: TPixels; //when line does not contains any object
 
@@ -1861,6 +1862,7 @@ function TDHBuilder.AddNewLineObject(Continuous: Boolean): TDHDivAreaLine;
 begin
   Result := TDHDivAreaLine.Create;
   Result.Continuous := Continuous;
+  Result.YPos := CurrentDiv.Point.Y;
   CurrentDiv.Lines.Add(Result);
 
   ApplyLineSpace;
@@ -1879,7 +1881,6 @@ begin
 
   Line.CalcTextSize(CurrentDiv.Point.X);
 
-  CurrentDiv.Point.X := 0;
   CurrentDiv.Point.Offset(0, Line.TextSize.Height);
 end;
 
@@ -1905,7 +1906,7 @@ begin
   else
     if (Line=nil) or not Line.Continuous then X := Props.ParagraphIndent;
 
-  CurrentDiv.Point.Offset(X, 0);
+  CurrentDiv.Point.X := X; //do not use offset because may apply more than once
 end;
 
 procedure TDHBuilder.ApplyLineSpace;
@@ -1922,7 +1923,7 @@ begin
   if not Line.Continuous then
     Space := Space + Props.ParagraphSpace;
 
-  CurrentDiv.Point.Offset(0, Space);
+  CurrentDiv.Point.Y := Line.YPos + Space; //do not use offset because may apply more than once
 
   Line.Space := Space;
 end;
