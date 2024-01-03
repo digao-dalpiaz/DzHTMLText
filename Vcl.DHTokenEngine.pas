@@ -427,7 +427,7 @@ type
     VisualItems: TDHVisualItemList;
     ProcBoundsAndLines: TDHProcBoundsAndLines;
 
-    Props: TDHPropsStore;
+    Props, QueueProps: TDHPropsStore;
 
     CurrentLink: TDHBaseLink;
 
@@ -1553,6 +1553,7 @@ begin
   Self.ProcBoundsAndLines := ProcBoundsAndLines;
 
   QueueVisualItems := TDHPreVisualItemList.Create;
+  QueueProps := TDHPropsStore.Create;
 
   MainToken := TDHToken_Main.Create;
 
@@ -1604,6 +1605,7 @@ end;
 destructor TDHBuilder.Destroy;
 begin
   QueueVisualItems.Free;
+  QueueProps.Free;
   Props.Free;
   MainToken.Free;
   MainDiv.Free;
@@ -1946,15 +1948,31 @@ procedure TDHBuilder.AddVisualItemToQueue(V: TDHVisualItem; Size: TAnySize; Brea
 begin
   //if breakable, process pending itens, and then process breakable item immediately
   if Breakable then ProcessPendingObjects;
+
+  if QueueVisualItems.Count=0 then QueueProps.AssignProps(Props); //store first item props
   QueueVisualItems.Add(CreatePreVisualItem(V, Size));
+
   if Breakable then ProcessPendingObjects;
 end;
 
 procedure TDHBuilder.ProcessPendingObjects;
+var
+  OriginalProps: TDHPropsStore;
 begin
   if QueueVisualItems.Count=0 then Exit;
 
-  ProcessSpecificObjects(QueueVisualItems);
+  //when processing queue items, props used to new line must be before first item, and not current props!
+  OriginalProps := TDHPropsStore.Create;
+  try
+    OriginalProps.AssignProps(Props);
+
+    Props.AssignProps(QueueProps);
+    ProcessSpecificObjects(QueueVisualItems);
+
+    Props.AssignProps(OriginalProps);
+  finally
+    OriginalProps.Free;
+  end;
 end;
 
 procedure TDHBuilder.ProcessOneObject(Item: TDHPreVisualItem);
@@ -1997,6 +2015,7 @@ begin
         Item := Line.Items.Last;
         if Item.IsSpace then //remove previous SPACE if is the last item in the line
         begin
+          CurrentDiv.Point.Offset(-Item.Size.Width, 0); //rollback current point
           Line.Items.Remove(Item);
           PrevSpaceRemoved := True;
         end;
