@@ -366,6 +366,7 @@ This visual component allows you to specify a formatted text in a label, using a
     [outcolor={COLOR_VALUE}] --> Color outside the border line
     [align=left|center|right] --> Horizontal overall alignment
     [valign=top|center|bottom] --> Vertival overall alignment
+    [behind] --> When floating, the div will be draw behind the text, otherwise will be draw in the front of the text.
     [holdprops] --> When entering a div, some text properties are reseted. Use "holdprops" param to keep these properties.
       Reseted properties: Offset, Background color, Horizontal and Vertical text alignment, line and paragraph spacing, and Paragraph Indent.
 
