@@ -1121,13 +1121,11 @@ end;
 {$IFDEF VCL}
 procedure TDzHTMLText.CMColorchanged(var Message: TMessage);
 begin
-  {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
   Modified([mfPaint]);
 end;
 
 procedure TDzHTMLText.CMFontchanged(var Message: TMessage);
 begin
-  {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
   BuildAndPaint;
 end;
 {$ENDIF}
