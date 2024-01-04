@@ -312,6 +312,8 @@ type
     {$IFDEF FMX}
     FColor: TAnyColor;
     FFontColor: TAnyColor;
+    {$ELSE}
+    FTransparentSet: Boolean;
     {$ENDIF}
 
     {$IFDEF USE_IMGLST}
@@ -419,6 +421,8 @@ type
     procedure CMColorchanged(var Message: TMessage); message CM_COLORCHANGED;
     procedure CMFontchanged(var Message: TMessage); message CM_FONTCHANGED;
     procedure CMMouseleave(var Message: TMessage); message CM_MOUSELEAVE;
+    procedure SetTransparent( value: boolean );
+    function GetTransparent: Boolean;
     {$ENDIF}
 
     procedure Notification(AComponent: TComponent; Operation: TOperation);
@@ -521,6 +525,7 @@ type
       property OnMouseActivate;
       property StyleElements;
       {$ENDIF}
+    property Transparent: boolean read GetTransparent write SetTransparent stored FTransparentSet;
     {$ENDIF}
 
     property Lines: TStrings read FLines write SetLines;
@@ -893,7 +898,11 @@ constructor TDzHTMLText.Create(AOwner: TComponent);
 begin
   inherited;
   {$IFDEF VCL}
-  ControlStyle := ControlStyle + [csOpaque];
+  // TCustomLabel goes this way...
+  if StyleServices.Enabled then
+     ControlStyle := ControlStyle - [csOpaque]
+  else
+     ControlStyle := ControlStyle + [csOpaque];
   //Warning! The use of transparency in the component causes flickering
   {$ENDIF}
 
@@ -1186,6 +1195,23 @@ begin
   {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
   BuildAndPaint;
 end;
+procedure TDzHTMLText.SetTransparent( value: boolean );
+begin
+  if Transparent <> value then
+  begin
+    if Value then
+       ControlStyle := ControlStyle - [csOpaque]
+    else
+       ControlStyle := ControlStyle + [csOpaque];
+    if not (csLoading in ComponentState) then
+       Invalidate;
+    FTransparentSet := True;
+  end;
+end;
+function TDzHTMLText.GetTransparent: Boolean;
+begin
+  Result := not (csOpaque in ControlStyle);
+end;
 {$ENDIF}
 
 {$IFDEF FMX}
@@ -1288,12 +1314,24 @@ begin
       C.Brush.Color := GetColorresolvingParent
     else
     {$ELSE}
+    if Transparent then
+    begin
+      // Default TCanvas of a TGraphicControl is the same DC as the Parent TWinControl
+      // and in this case allready filled with the parent's and childs content, if this control is not csOpaque
+      // so we do a copy of this part into our buffer and paint on this...
+      // looks like transparent?
+      BitBlt(C.Handle, 0, 0, Width, Height, Canvas.Handle, 0, 0, SRCCOPY);
+    end else
     if TStyleManager.IsCustomStyleActive and (seClient in StyleElements) and not (csDesigning in ComponentState) then
-      C.Brush.Color := TStyleManager.ActiveStyle.GetStyleColor(TStyleColor.scWindow)
-    else
-    {$ENDIF}
-  C.Brush.Color := Color;
-  C.FillRect(ClientRect);
+    begin
+       C.Brush.Color := TStyleManager.ActiveStyle.GetStyleColor(TStyleColor.scWindow);
+       C.FillRect(ClientRect);
+    end else
+   {$ENDIF}
+    begin
+     C.Brush.Color := Color;
+     C.FillRect(ClientRect);
+    end;
   {$ENDIF}
 
   if csDesigning in ComponentState then
