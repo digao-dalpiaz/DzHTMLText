@@ -202,11 +202,6 @@ begin
   {$ENDIF};
 end;
 
-function StrToPixelsScaled(const StrValue: string; Def: TPixels; Lb: TDzHTMLText): TPixels;
-begin
-  Result := Lb.CalcScale(StrToPixels(StrValue, Def)); //********************
-end;
-
 function ParamToColor(const Param: string): TAnyColor;
 var
   A: string;

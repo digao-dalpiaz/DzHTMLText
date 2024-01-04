@@ -343,8 +343,6 @@ type
     Items: TDHPreVisualItemList;
     YPos: TPixels;
 
-    LonelyHeight: TPixels; //when line does not contains any object
-
     TextSize: TAnySize;
     function GetHighHeight: TPixels;
   public
@@ -1220,7 +1218,7 @@ var
       if Px>0 then
       begin
         if SizeType <> TDHDivSizeType.Percent then Px := Lb.CalcScale(Px);
-        Result := Px
+        Result := Px;
       end
       else
         SizeType := TDHDivSizeType.Auto;
@@ -1502,7 +1500,7 @@ var
   H: TPixels;
   Item: TDHPreVisualItem;
 begin
-  H := LonelyHeight;
+  H := 0;
 
   for Item in Items do
   begin
@@ -1884,10 +1882,9 @@ begin
   if CurrentDiv.Lines.Count=0 then Exit;
 
   Line := CurrentDiv.Lines.Last;
-  if Line.Items.Count=0 then //line without visual items
-    Line.LonelyHeight := CalcTextHeight(STR_SPACE) + Props.Offset.GetHeight;
-
   Line.TextSize := TAnySize.Create(CurrentDiv.Point.X, Line.GetHighHeight);
+  if Line.Items.Count=0 then //line without visual items
+    Line.TextSize.Height := CalcTextHeight(STR_SPACE) + Props.Offset.GetHeight;
 
   CurrentDiv.Point.Offset(0, Line.TextSize.Height);
 end;
@@ -1914,7 +1911,7 @@ begin
   else
     if (Line=nil) or not Line.Continuous then X := Props.ParagraphIndent;
 
-  CurrentDiv.Point.X := X; //do not use offset because may apply more than once
+  CurrentDiv.Point.X := X; //do not use offset because may apply twice
 end;
 
 procedure TDHBuilder.ApplyLineSpace;
@@ -1931,7 +1928,7 @@ begin
   if not Line.Continuous then
     Space := Space + Props.ParagraphSpace;
 
-  CurrentDiv.Point.Y := Line.YPos + Space; //do not use offset because may apply more than once
+  CurrentDiv.Point.Y := Line.YPos + Space; //do not use offset because may apply twice
 end;
 
 function TDHBuilder.CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
