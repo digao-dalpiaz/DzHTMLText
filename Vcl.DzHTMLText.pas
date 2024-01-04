@@ -631,9 +631,9 @@ uses
   Vcl.DHTokenEngine, Vcl.DHCommon
 {$ENDIF}
 {$IFDEF FPC}
-  {$IFDEF MSWINDOWS}, Windows{$ENDIF}, StrUtils, Math, LResources, Variants
+  {$IFDEF MSWINDOWS}, Windows{$ENDIF}, StrUtils, LResources, Variants
 {$ELSE}
-  , System.StrUtils, System.Math, System.Variants
+  , System.StrUtils, System.Variants
   {$IFDEF FMX}
     , System.UIConsts
     {$IF Defined(ANDROID)}
