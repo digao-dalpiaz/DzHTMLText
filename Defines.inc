@@ -19,6 +19,7 @@
 {$WARN 3177 off : Some fields coming after "$1" were not initialized}
 {$WARN 5024 off : Parameter "$1" not used}
 {$WARN 5028 off : Local $1 "$2" is not used}
+{$WARN 5091 off : Local variable "$1" of a managed type does not seem to be initialized}
 {$ENDIF}
 
 {$ZEROBASEDSTRINGS OFF}

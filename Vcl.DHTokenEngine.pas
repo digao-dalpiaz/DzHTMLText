@@ -1737,7 +1737,6 @@ begin
   CloseTag := A.StartsWith('/');
   if CloseTag then Delete(A, 1, 1);
 
-  Par := EmptyStr; //avoid warning on Lazarus
   HasPar := SplitStr(A, ':', A, Par);
   if HasPar then
   begin
