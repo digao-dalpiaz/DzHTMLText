@@ -329,6 +329,8 @@ type
     {$IFDEF FMX}
     FColor: TAnyColor;
     FFontColor: TAnyColor;
+    {$ELSE}
+    FTransparent: Boolean;
     {$ENDIF}
 
     {$IFDEF USE_IMGLST}
@@ -418,6 +420,9 @@ type
     procedure SetColor(const Value: TAnyColor);
 
     procedure OnFontChanged(Sender: TObject);
+    {$ELSE}
+    procedure SetTransparent(const Value: Boolean);
+    procedure UpdateTransparentFlag;
     {$ENDIF}
 
     procedure SetTextSize(Inner, Outer: TAnySize);
@@ -575,6 +580,10 @@ type
 
     {$IFDEF USE_IMGLST}
     property Images: TCustomImageList read FImages write SetImages;
+    {$ENDIF}
+
+    {$IFDEF VCL}
+    property Transparent: Boolean read FTransparent write SetTransparent default False;
     {$ENDIF}
 
     property LineCount: Integer read FLineCount;
@@ -815,8 +824,7 @@ constructor TDzHTMLText.Create(AOwner: TComponent);
 begin
   inherited;
   {$IFDEF VCL}
-  ControlStyle := ControlStyle + [csOpaque];
-  //Warning! The use of transparency in the component causes flickering
+  UpdateTransparentFlag;
   {$ENDIF}
 
   FAbout := 'Digao Dalpiaz / Version '+STR_VERSION;
@@ -1149,6 +1157,25 @@ procedure TDzHTMLText.OnFontChanged(Sender: TObject);
 begin
   BuildAndPaint;
 end;
+{$ELSE}
+procedure TDzHTMLText.SetTransparent(const Value: Boolean);
+begin
+  if Value <> FTransparent then
+  begin
+    FTransparent := Value;
+
+    UpdateTransparentFlag;
+    Modified([mfPaint]);
+  end;
+end;
+
+procedure TDzHTMLText.UpdateTransparentFlag;
+begin
+  if FTransparent then
+    ControlStyle := ControlStyle - [csOpaque]
+  else
+    ControlStyle := ControlStyle + [csOpaque];
+end;
 {$ENDIF}
 
 procedure TDzHTMLText.SetTextSize(Inner, Outer: TAnySize);
@@ -1197,14 +1224,19 @@ var
 {$ENDIF}
 begin
   {$IFDEF VCL}
-  //Using internal bitmap as a buffer to reduce flickering
-  B := TAnyBitmap.Create;
-  try
-    B.SetSize(Width, Height);
-    CanvasProcess(B.Canvas);
-    Canvas.Draw(0, 0, B);
-  finally
-    B.Free;
+  if FTransparent then
+    CanvasProcess(Canvas)
+  else
+  begin
+    //Using internal bitmap as a buffer to reduce flickering
+    B := TAnyBitmap.Create;
+    try
+      B.SetSize(Width, Height);
+      CanvasProcess(B.Canvas);
+      Canvas.Draw(0, 0, B);
+    finally
+      B.Free;
+    end;
   end;
   {$ELSE}
   //In FMX, Paint method calls BeginScene/EndScene automatically,
@@ -1225,6 +1257,8 @@ begin
     C.FillRect(LocalRect, 0, 0, [], 1);
   end;
   {$ELSE}
+  if not FTransparent then
+  begin
     {$IFDEF FPC}
     if (Color=clDefault) and (ParentColor) then
       C.Brush.Color := GetColorresolvingParent
@@ -1234,8 +1268,10 @@ begin
       C.Brush.Color := TStyleManager.ActiveStyle.GetStyleColor(TStyleColor.scWindow)
     else
     {$ENDIF}
-  C.Brush.Color := Color;
-  C.FillRect(ClientRect);
+      C.Brush.Color := Color;
+
+    C.FillRect(ClientRect);
+  end;
   {$ENDIF}
 
   if csDesigning in ComponentState then

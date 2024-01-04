@@ -325,6 +325,7 @@ type
     VertAlign: TDHVertAlign;
     WidthType, HeightType: TDHDivSizeType;
     KeepProps: Boolean;
+    FloatingBehind: Boolean;
 
     Floating: Boolean;
 
@@ -365,12 +366,13 @@ type
     Borders: TDHBordersRec;
 
     Lines: TObjectList<TDHDivAreaLine>;
-    SubDivs: TObjectList<TDHDivArea>;
 
-    Floating: Boolean;
     HeightByLine: Boolean;
 
     PreVisualItem: TDHPreVisualItem;
+    FloatingDivs: TDHPreVisualItemList;
+
+    FloatingBehind: Boolean;
 
     FixedSize, TextSize: TAnySize;
 
@@ -398,8 +400,6 @@ type
     VisualObject: TDHVisualItem;
     Size: TAnySize;
     Position: TAnyPoint;
-    DivArea: TDHDivArea;
-    Line: TDHDivAreaLine;
     HorzAlign: TDHHorzAlign;
     VertAlign: TDHVertAlign;
     Offset: TDHOffsetRec;
@@ -408,7 +408,6 @@ type
 
     function GetFullHeight: TPixels;
     function IsSpace: Boolean;
-    function IsFloatingDiv: Boolean;
   public
     destructor Destroy; override;
   end;
@@ -453,7 +452,7 @@ type
     function ProcessTag(const Tag: string): Boolean;
     procedure ProcessChildrenTokens(Block: TDHTokenBlock);
     procedure SendObjectsToComponent(DivArea: TDHDivArea);
-    procedure CheckAlign(Item: TDHPreVisualItem);
+    procedure CheckAlign(Item: TDHPreVisualItem; Line: TDHDivAreaLine; DivArea: TDHDivArea);
 
     procedure ApplyLineMargin;
     procedure ApplyLineSpace;
@@ -539,6 +538,11 @@ begin
     if TOKENS_OBJECTS[I].Ident = Ident then Exit(I);
 
   Result := -1;
+end;
+
+procedure SetWhenBigger(var V: TPixels; This: TPixels);
+begin
+  if This > V then V := This;
 end;
 
 {$REGION 'Token types'}
@@ -1253,6 +1257,7 @@ begin
     BackColor := P.GetParamAsColor('color');
     BorderColor := P.GetParamAsColor('outcolor');
     KeepProps := P.ParamExists('holdprops');
+    FloatingBehind := P.ParamExists('behind');
   finally
     P.Free;
   end;
@@ -1299,11 +1304,11 @@ begin
   D.AutoWidth := WidthType=TDHDivSizeType.Auto;
   D.AutoHeight := (HeightType=TDHDivSizeType.Auto) or (HeightType=TDHDivSizeType.Line);
   D.MaxWidth := MaxWidth;
-  D.Floating := Floating;
   D.Borders := Borders;
   D.VertAlign := VertAlign;
   D.HorzAlign := HorzAlign;
   D.HeightByLine := HeightType=TDHDivSizeType.Line;
+  D.FloatingBehind := FloatingBehind;
 
   V := TDHVisualItem_Div.Create;
   V.InnerColor := BackColor;
@@ -1315,7 +1320,11 @@ begin
   ToDivLineAttr(Borders.Bottom, V.Bottom);
 
   Item := Builder.CreatePreVisualItem(V, TAnySize.Create(0, 0)); //we don't know the size yet
-  if Floating then Item.Position := FloatPos;
+  if Floating then
+  begin
+    Item.Position := FloatPos;
+    Builder.CurrentDiv.FloatingDivs.Add(Item);
+  end;
   Item.SelfDiv := D;
 
   D.PreVisualItem := Item;
@@ -1332,7 +1341,6 @@ begin
     Props.ParagraphIndent := 0;
   end;
 
-  Builder.CurrentDiv.SubDivs.Add(D);
   Builder.CurrentDiv := D; //change current div!
 end;
 
@@ -1350,6 +1358,7 @@ end;
 destructor TDHPreVisualItem.Destroy;
 begin
   if VisualObject<>nil then VisualObject.Free;
+  if SelfDiv<>nil then SelfDiv.Free;  
 
   inherited;
 end;
@@ -1357,11 +1366,6 @@ end;
 function TDHPreVisualItem.GetFullHeight: TPixels;
 begin
   Result := Size.Height + Offset.GetHeight;
-end;
-
-function TDHPreVisualItem.IsFloatingDiv: Boolean;
-begin
-  Result := (SelfDiv<>nil) and SelfDiv.Floating;
 end;
 
 function TDHPreVisualItem.IsSpace: Boolean;
@@ -1376,7 +1380,7 @@ constructor TDHDivArea.Create(Parent: TDHDivArea);
 begin
   inherited Create;
   Lines := TObjectList<TDHDivAreaLine>.Create;
-  SubDivs := TObjectList<TDHDivArea>.Create;
+  FloatingDivs := TDHPreVisualItemList.Create;
 
   Self.Parent := Parent;
 end;
@@ -1384,7 +1388,7 @@ end;
 destructor TDHDivArea.Destroy;
 begin
   Lines.Free;
-  SubDivs.Free;
+  FloatingDivs.Free;
   inherited;
 end;
 
@@ -1447,16 +1451,24 @@ end;
 procedure TDHDivArea.CalcTextSize;
 var
   Line: TDHDivAreaLine;
-  W: TPixels;
+  W, H: TPixels;
+  Item: TDHPreVisualItem;
 begin
   W := 0;
+  H := Point.Y;
 
   for Line in Lines do
   begin
-    if Line.TextSize.Width > W then W := Line.TextSize.Width; //high width
+    SetWhenBigger(W, Line.TextSize.Width); //high width
   end;
 
-  TextSize := TAnySize.Create(W, Point.Y);
+  for Item in FloatingDivs do
+  begin
+    SetWhenBigger(W, Item.Position.X + Item.Size.Width);
+    SetWhenBigger(H, Item.Position.Y + Item.Size.Height);
+  end;
+
+  TextSize := TAnySize.Create(W, H);
 end;
 
 function TDHDivArea.GetParagraphCount: Integer;
@@ -1484,17 +1496,14 @@ end;
 
 function TDHDivAreaLine.GetHighHeight: TPixels;
 var
-  H, FullH: TPixels;
+  H: TPixels;
   Item: TDHPreVisualItem;
 begin
   H := LonelyHeight;
 
   for Item in Items do
   begin
-    if Item.IsFloatingDiv then Continue;
-
-    FullH := Item.GetFullHeight;
-    if FullH > H then H := FullH;
+    SetWhenBigger(H, Item.GetFullHeight);
   end;
 
   Result := H;
@@ -1830,7 +1839,8 @@ begin
         DivArea.CalcTextSize;
         DivArea.PreVisualItem.Size := DivArea.GetAreaSize; //update visual item size
 
-        ProcessOneObject(DivArea.PreVisualItem);
+        if not TDHToken_Div(Token).Floating then
+          ProcessOneObject(DivArea.PreVisualItem);
       end else
       if (Token is TDHToken_Link) or (Token is TDHToken_SpoilerTitle) then CurrentLink := nil; //closing Link or Spoiler Title token
     end
@@ -2024,56 +2034,75 @@ begin
       Continue;
     end;
 
-    Item.DivArea := CurrentDiv;
-    Item.Line := Line;
-
     Line.Items.Add(Item);
 
-    if not Item.IsFloatingDiv then
-    begin
-      Item.Position := CurrentDiv.Point;
-      Item.Position.Offset(0, Item.Offset.Top);
-      CurrentDiv.Point.Offset(Item.Size.Width, 0);
-    end;
+    Item.Position := CurrentDiv.Point;
+    Item.Position.Offset(0, Item.Offset.Top);
+    CurrentDiv.Point.Offset(Item.Size.Width, 0);
   end;
 end;
 
 procedure TDHBuilder.SendObjectsToComponent(DivArea: TDHDivArea);
 var
-  Line: TDHDivAreaLine;
+  PDiv: TAnyPoint;
   Item: TDHPreVisualItem;
-  SubDiv: TDHDivArea;
-  P: TAnyPoint;
+
+  procedure DoItem;
+  var
+    P: TAnyPoint;
+  begin
+    P := PDiv;
+    P.Offset(Item.Position);
+    Item.VisualObject.Rect := TAnyRect.Create(P, Item.Size.Width, Item.Size.Height);
+
+    VisualItems.Add(Item.VisualObject);
+    Item.VisualObject := nil;
+
+    if Item.SelfDiv<>nil then
+      SendObjectsToComponent(Item.SelfDiv);
+  end;
+
+  procedure ProcessFloatingDivs(Behind: Boolean);
+  var
+    DivItem: TDHPreVisualItem;
+  begin
+    for DivItem in DivArea.FloatingDivs do
+    begin
+      if DivItem.SelfDiv.FloatingBehind <> Behind then Continue;
+
+      Item := DivItem;
+      DoItem;
+    end;
+  end;
+
+var
+  Line: TDHDivAreaLine;
 begin
+  PDiv := DivArea.GetAbsoluteStartingPos;
+
+  ProcessFloatingDivs(True);
+
   for Line in DivArea.Lines do
   begin
     for Item in Line.Items do
     begin
       if (Item.SelfDiv<>nil) and Item.SelfDiv.HeightByLine then
       begin
-        Item.Size.Height := Item.Line.TextSize.Height - Item.Offset.GetHeight; //size of div rectangle
+        Item.Size.Height := Line.TextSize.Height - Item.Offset.GetHeight; //size of div rectangle
 
         Item.SelfDiv.AutoHeight := False;
         Item.SelfDiv.FixedSize.Height := Item.Size.Height; //size of div area for align children
       end;
 
-      if not Item.IsFloatingDiv then
-        CheckAlign(Item);
-
-      P := Item.DivArea.GetAbsoluteStartingPos;
-      P.Offset(Item.Position);
-      Item.VisualObject.Rect := TAnyRect.Create(P, Item.Size.Width, Item.Size.Height);
-
-      VisualItems.Add(Item.VisualObject);
-      Item.VisualObject := nil;
+      CheckAlign(Item, Line, DivArea);
+      DoItem;
     end;
   end;
 
-  for SubDiv in DivArea.SubDivs do
-    SendObjectsToComponent(SubDiv);
+  ProcessFloatingDivs(False);
 end;
 
-procedure TDHBuilder.CheckAlign(Item: TDHPreVisualItem);
+procedure TDHBuilder.CheckAlign(Item: TDHPreVisualItem; Line: TDHDivAreaLine; DivArea: TDHDivArea);
 type
   TFuncAlignResult = record
     Outside, Inside: TPixels;
@@ -2083,31 +2112,31 @@ type
   var
     DivLim: TPixels;
   begin
-    if Item.DivArea.HorzAlign in [haCenter, haRight] then
-      DivLim := Item.DivArea.TextSize.Width
+    if DivArea.HorzAlign in [haCenter, haRight] then
+      DivLim := DivArea.TextSize.Width
     else
-      DivLim := Item.DivArea.GetAreaSizeWOB.Width;
+      DivLim := DivArea.GetAreaSizeWOB.Width;
 
     Result.Outside := DivLim;
-    Result.Inside := Item.Line.TextSize.Width;
+    Result.Inside := Line.TextSize.Width;
   end;
 
   function FuncAlignVert: TFuncAlignResult;
   begin
-    Result.Outside := Item.Line.TextSize.Height;
+    Result.Outside := Line.TextSize.Height;
     Result.Inside := Item.GetFullHeight;
   end;
 
   function FuncDivAlignHorz: TFuncAlignResult;
   begin
-    Result.Outside := Item.DivArea.GetAreaSizeWOB.Width;
-    Result.Inside := Item.DivArea.TextSize.Width;
+    Result.Outside := DivArea.GetAreaSizeWOB.Width;
+    Result.Inside := DivArea.TextSize.Width;
   end;
 
   function FuncDivAlignVert: TFuncAlignResult;
   begin
-    Result.Outside := Item.DivArea.GetAreaSizeWOB.Height;
-    Result.Inside := Item.DivArea.TextSize.Height;
+    Result.Outside := DivArea.GetAreaSizeWOB.Height;
+    Result.Inside := DivArea.TextSize.Height;
   end;
 
   procedure Check(FnIndex: Byte; Horz: Boolean; Prop: Variant);
@@ -2142,8 +2171,8 @@ begin
   Check(0, True, Item.HorzAlign);
   Check(1, False, Item.VertAlign);
 
-  Check(2, True, Item.DivArea.HorzAlign);
-  Check(3, False, Item.DivArea.VertAlign);
+  Check(2, True, DivArea.HorzAlign);
+  Check(3, False, DivArea.VertAlign);
 end;
 
 end.
