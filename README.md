@@ -26,7 +26,6 @@
 - [Div Tag](#div-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
-- [Transparency (why not in VCL?)](#transparency-why-not-in-vcl)
 - [Auto Scaling](#auto-scaling)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 - [Donate](#donate)
@@ -69,6 +68,7 @@
    - Set Left Margin when using List Items (Ordered and Unordered lists) - align text when item has multiple lines
    - Tag `<BR>` now supports parameter to specify if a new paragraph or a continuous line
    - New Tag `<PI>` - paragraph indent
+   - New Transparent property for VCL
 
 <details>
   <summary>Click here to view the entire changelog</summary>
@@ -494,6 +494,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `TextWidth: TPixels` = Returns the total text width. This property is read-only.
 
+`Transparent: Boolean` (only in VCL) = Enables component transparency. **Warning: When using with links, it will cause flickering when redrawing component.**
+
 ## Events
 
 ```delphi
@@ -696,10 +698,6 @@ If you have component width smaller than your text, then it will break to a new 
 These chars are: ` ` (space), `\` and `/`. The bars are considered as word break because if you type some path, for example, then should be a way to split this path into a new line if it was too big.
 
 When you type Chinese, Japanese or Korean characters, this behavior is quite different. In this case, the component will break lines considering any char as a complete word.
-
-## Transparency (why not in VCL?)
-
-The transparency option is not available for this component when using VCL, because the text painted on canvas is not static. This means the canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
 
 ## Auto Scaling
 
