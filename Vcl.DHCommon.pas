@@ -82,7 +82,9 @@ var
 begin
   for Param in Params do
   begin
+    {$WARN 5091 off : Local variable "$1" of a managed type does not seem to be initialized}
     if not SplitStr(Param, '=', Left, Right) then Continue;
+    {$WARN 5091 on : Local variable "$1" of a managed type does not seem to be initialized}
 
     if SameText(Left, Name) then
       Exit(Right);
