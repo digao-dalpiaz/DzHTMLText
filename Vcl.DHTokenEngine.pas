@@ -870,10 +870,13 @@ begin
     with Lb.Images.Destination[ImageIndex].Layers[0].SourceRect do
       Size := TAnySize.Create(Width, Height);
     {$ELSE}
-    Size := TAnySize.Create(Lb.Images.Width, Lb.Images.Height); //*** need scaling please
+    Size := TAnySize.Create(Lb.Images.Width, Lb.Images.Height);
     {$ENDIF}
   end;
   {$ENDIF}
+
+  Size.Width := Lb.CalcScale(Size.Width);
+  Size.Height := Lb.CalcScale(Size.Height);
 
   V := TDHVisualItem_Image.Create;
   V.ImageIndex := ImageIndex;
@@ -896,7 +899,7 @@ begin
   V := TDHVisualItem_ImageResource.Create;
   V.Load(Lb, ResourceName);
 
-  Size := TAnySize.Create(V.Picture.Width, V.Picture.Height); //*** need scaling please
+  Size := TAnySize.Create(Lb.CalcScale(V.Picture.Width), Lb.CalcScale(V.Picture.Height));
 
   Builder.AddVisualItemToQueue(V, Size);
 end;

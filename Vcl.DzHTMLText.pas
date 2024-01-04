@@ -1427,7 +1427,7 @@ end;
 procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TAnyRect; W: TDHVisualItem_ImageResource);
 begin
   {$IFDEF FMX}
-  C.DrawBitmap(W.Picture, TAnyRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1);
+  C.DrawBitmap(W.Picture, TAnyRect.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1);
   {$ELSE}
   C.StretchDraw(R, W.Picture.Graphic);
   {$ENDIF}
