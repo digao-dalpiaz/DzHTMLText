@@ -1,4 +1,4 @@
-﻿{------------------------------------------------------------------------------
+{------------------------------------------------------------------------------
 TDzHTMLText component
 Developed by Rodrigo Depine Dalpiaz (digao dalpiaz)
 Label with formatting tags support
@@ -457,7 +457,7 @@ type
     property LinkRefs: TDHLinkRefList read LLinkRef;
 
     {$IFDEF VCL}
-    function CalcMulDiv(Size, Fator: Integer): Integer;
+    function CalcMulDiv(Size, DesignPPI: Integer; IsFont: Boolean): Integer;
     function CalcFontHeight(Size: Integer): Integer;
     {$ENDIF}
     function CalcScale(Size: TPixels): TPixels;
@@ -1619,37 +1619,38 @@ end;
 
 {$IFDEF VCL}
 type THackForm = class(TCustomForm); //older Delphi version - Scaled is a protected property
-function TDzHTMLText.CalcMulDiv(Size, Fator: Integer): Integer;
+function TDzHTMLText.CalcMulDiv(Size, DesignPPI: Integer; IsFont: Boolean): Integer;
 var
-  PPI: Integer;
+  MonitorPPI: Integer;
 begin
-  //design always based on Default PPI
-  if (csDesigning in ComponentState) or (ParentForm=nil) or (not THackForm(ParentForm).Scaled) then
-    PPI := DEFAULT_PPI
-  else
-    PPI :=
-      {$IF (Defined(DCC) and (CompilerVersion >= 30)) or Defined(FPC)} //D10 Seattle or Lazarus
-      ParentForm.Monitor.PixelsPerInch
-      {$ELSE}
-      DEFAULT_PPI
-      {$ENDIF};
+  MonitorPPI := DEFAULT_PPI;
+  {$IF (Defined(DCC) and (CompilerVersion >= 30)) or Defined(FPC)} //D10 Seattle or Lazarus
+  if {$IFDEF DCC}not (csDesigning in ComponentState) and{$ENDIF} //design always based on Default PPI in Delphi
+    (ParentForm<>nil) and THackForm(ParentForm).Scaled then
+    MonitorPPI := ParentForm.Monitor.PixelsPerInch;
+  {$ENDIF}
 
-  Result := Round(Size * PPI / Fator); //MulDiv equivalent
+  {$IFDEF FPC}
+  if not IsFont and (ParentForm<>nil) then DesignPPI := ParentForm.DesignTimePPI;
+  {$ENDIF}
+
+  Result := Round(Size * MonitorPPI / DesignPPI); //MulDiv equivalent
 end;
 
 function TDzHTMLText.CalcFontHeight(Size: Integer): Integer;
 begin
-  Result := -CalcMulDiv(Size, 72);
+  Result := -CalcMulDiv(Size, 72, True);
 end;
 {$ENDIF}
 
 function TDzHTMLText.CalcScale(Size: TPixels): TPixels;
 begin
+  Result :=
   {$IFDEF VCL}
-  Result := CalcMulDiv(Size, DEFAULT_PPI);
+    CalcMulDiv(Size, DEFAULT_PPI, False)
   {$ELSE}
-  Result := Size;
-  {$ENDIF}
+    Size
+  {$ENDIF};
 end;
 
 function TDzHTMLText.GetStoredStyleLink(const Index: Integer): Boolean;

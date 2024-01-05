@@ -43,6 +43,7 @@
    - Improved token processing performance
    - FmxLinux supporting
    - Refactoring Scaling in VCL
+   - Fixed Lazarus Scaling (Lazarus IDE stores Design DPI)
    - New Div Tag (`<DIV>`)
    - Removed Tab and Float Tags (`<T>`, `<TF>`, `<FLOAT>`) - *please use new Div tag*
    - New Header Tag (`<H>`)

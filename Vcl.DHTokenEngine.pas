@@ -1105,7 +1105,7 @@ begin
     Token.Builder := Builder;
 
     if Props.List_Bullet then
-      Token.Word := '• '
+      Token.Word := 'â€¢ '
     else
       Token.Word := IntToStr(Props.List_Number)+'. ';
 
