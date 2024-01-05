@@ -32,7 +32,7 @@
 
 ## What's New
 
-- 01/01/2024 (Version 5.0)
+- 01/05/2024 (Version 5.0)
 
    | :exclamation: Component breaking changes           |
    |----------------------------------------------------|
