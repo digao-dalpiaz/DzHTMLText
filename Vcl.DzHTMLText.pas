@@ -452,6 +452,10 @@ type
 
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
+
+    {$IFDEF VCL}
+    procedure SetParent(AParent: TWinControl); override;
+    {$ENDIF}
   public
     property Spoilers: TDHSpoilerList read LSpoiler;
     property LinkRefs: TDHLinkRefList read LLinkRef;
@@ -464,10 +468,6 @@ type
 
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-
-    {$IFDEF VCL}
-    procedure SetParentComponent(Value: TComponent); override;
-    {$ENDIF}
 
     property IsLinkHover: Boolean read GetIsLinkHover;
     property SelectedLink: TDHBaseLink read FSelectedLink;
@@ -892,7 +892,7 @@ begin
 end;
 
 {$IFDEF VCL}
-procedure TDzHTMLText.SetParentComponent(Value: TComponent);
+procedure TDzHTMLText.SetParent(AParent: TWinControl);
 begin
   inherited;
   ParentForm := GetParentForm(Self);
