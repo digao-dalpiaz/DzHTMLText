@@ -1,3 +1,3 @@
-﻿unit FMX.DzHTMLText;
+unit FMX.DzHTMLText;
 {$DEFINE FMX}
 {$INCLUDE 'Vcl.DzHTMLText.pas'}

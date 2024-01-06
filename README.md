@@ -3,7 +3,7 @@
 # DzHTMLText
 ## Delphi and Lazarus HTML Label component
 
-![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE3..11-blue.svg)
+![Delphi Supported Versions](https://img.shields.io/badge/Delphi%20Supported%20Versions-XE3..12-blue.svg)
 ![Platforms](https://img.shields.io/badge/Platforms-Win32,Win64,Android,iOS,Mac,Linux-red.svg)
 ![Auto Install](https://img.shields.io/badge/-Auto%20Install%20App-orange.svg)
 ![VCL and FMX](https://img.shields.io/badge/-VCL%20and%20FMX-lightgrey.svg)
@@ -23,22 +23,60 @@
 - [Spoiler Tag](#spoiler-tag)
 - [Link object](#link-object)
 - [Image Tag](#image-tag)
-- [Tab Tag](#tab-tag)
-- [Float Tag](#float-tag)
+- [Div Tag](#div-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
-- [Transparency (why not in VCL?)](#transparency-why-not-in-vcl)
+- [Auto Scaling](#auto-scaling)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 - [Donate](#donate)
 
 ## What's New
 
-- 12/05/2023 (Version 4.4)
+- 01/05/2024 (Version 5.0)
 
-   - Fixed Lazarus compilation (ScalingUtils directive).
+   | :exclamation: Component breaking changes           |
+   |----------------------------------------------------|
+   | Tags `<T>`, `<TF>` and `<FLOAT>` have been removed |
+   | Please use new tag `<DIV>`                         |
+
+   - **NEW COMPONENT ENGINE!!!**
+   - Improved token processing performance
+   - FmxLinux supporting
+   - Refactoring Scaling in VCL
+   - Fixed Lazarus Scaling (Lazarus IDE stores Design DPI)
+   - New Div Tag (`<DIV>`)
+   - Removed Tab and Float Tags (`<T>`, `<TF>`, `<FLOAT>`) - *please use new Div tag*
+   - New Header Tag (`<H>`)
+   - New Custom Style Tag (`<STYLE>`)
+   - Font Style tags (Bold, Italic, Underline and Strikeout) now supports "turn off" parameter
+   - Spoiler tag now supports display already expanded
+   - Fixed Offset tag to not extend background color in the offset area
+   - Fixed Linux (in Lazarus) compilation (DEFAULT_DPI const)  
+   - Removed DesignDPI property (**WARNING!!! If you defined a value other than the default in this property, when opening the form, this value will be removed, but that's okay, because the design of forms in Delphi is always based on 96 pixels per inch**)
+   - Linux auto scaling supporting on Lazarus
+   - Removed TFontPt class (now using TPixels for Font Size)
+   - Fixed supporting decimal values in all TPixels parameters in FMX
+   - Fixed decimal values in tags parameters to use "." as decimal separator in FMX environment (TPixels)
+   - Fixed Spoiler name as case-insensitive
+   - New ParagraphCount property (read-only)
+   - New LineHorzAlign property
+   - New ParagraphSpacing property
+   - Supporting spaces in tag parameters (auto trim)
+   - New AutoBreak property
+   - Supporting tag params using multiple lines
+   - Include space char automatically when using `<NBR>` tag or AutoBreak disable, in text sequence between lines
+   - TDHLinkRef.Text now is TStringBuilder
+   - Set Left Margin when using List Items (Ordered and Unordered lists) - align text when item has multiple lines
+   - Tag `<BR>` now supports parameter to specify if a new paragraph or a continuous line
+   - New Tag `<PI>` - paragraph indent
+   - New Transparent property for VCL
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 12/05/2023 (Version 4.4)
+
+   - Fixed Lazarus compilation (ScalingUtils directive).
 
 - 12/04/2023 (Version 4.3)
 
@@ -307,35 +345,61 @@ This visual component allows you to specify a formatted text in a label, using a
 ## Available Tags
 
 ```
-<A[:abc]></A> - Link
-<B></B> - Bold
-<I></I> - Italic
-<U></U> - Underline
-<S></S> - Strike out
+<DIV:{DIV_PARAMS}></DIV> - Div Area
+  DIV_PARAMS: (split by ",")
+    [x=nnn] --> when defined, div will be floating
+    [y=nnn] --> when defined, div will be floating
+    [width=size|size#|size-|perc%|full] - when not specified, will be AutoWidth
+    [height=size|size#|size-|perc%|full|line] - when not specified, will be AutoHeight
+      Width and Height params:
+        size = Fixed External Size
+        size# = Fixed Internal Size
+        size- = Remaining parent div size minus this size (only works when AutoWidth/AutoHeight of parent div is disabled)
+        perc% = Percent size of parent div (only works when AutoWidth/AutoHeight of parent div is disabled)
+        "full" = Remaining size of current line (only works when AutoWidth/AutoHeight of parent div is disabled)
+        "line" = Current line height (only in Height param)
+    [maxwidth=nnn] --> Max width when using auto width (when width not specified)
+    [margin[_left|_top|_right|_bottom]=nnn] --> Spacing between border line and text
+    [thick[_left|_top|_right|_bottom]=nnn] --> Border line size
+    [pad[_left|_top|_right|_bottom]=nnn] --> Spacing between outter limit and border line
+    [lncolor[_left|_top|_right|_bottom]={COLOR_VALUE}] --> Border line color
+    [color={COLOR_VALUE}] --> Color inside the border line
+    [outcolor={COLOR_VALUE}] --> Color outside the border line
+    [align=left|center|right] --> Horizontal overall alignment
+    [valign=top|center|bottom] --> Vertival overall alignment
+    [behind] --> When floating, the div will be draw behind the text, otherwise will be draw in the front of the text.
+    [holdprops] --> When entering a div, some text properties are reseted. Use "holdprops" param to keep these properties.
+      Reseted properties: Offset, Background color, Horizontal and Vertical text alignment, line and paragraph spacing, and Paragraph Indent.
+
+<A[:target]></A> - Link
+<B[:off]></B> - Bold
+<I[:off]></I> - Italic
+<U[:off]></U> - Underline
+<S[:off]></S> - Strike out
 <FN:abc></FN> - Font Name
 <FS:123></FS> - Font Size
 <FC:{COLOR_VALUE}></FC> - Font Color
 <BC:{COLOR_VALUE}></BC> - Background Color
-<BR> - Line Break
-<NBR> - Prevent line break after #13#10 sequence
+<H:1..6></H> - Header predefined style - font size (calculated according to component main font size) and bold style
+<STYLE:name></STYLE> - Custom style, according to CustomStyles collection property (name must be the same as Custom Style "Ident" property - case insensitive)
+<BR[:cont]> - Line Break (Use "cont" parameter to a continous line. If parameter not specified, a new paragraph will be considered)
+<NBR> - Prevent new line if used after a line break sequence
 <L></L> - Align Left
 <C></C> - Align Center
 <R></R> - Align Right
-<T:nnn> - Tab alignment, where 'nnn' is text alignment from the left margin in pixels
-<TF:nnn> - Tab with aligned break, where 'nnn' is text alignment from the left margin in pixels
-<IMG:nnn> - Image from ImageList where 'nnn' is image index
+<IMG:index> - Image from ImageList where 'index' is image index
 <IMGRES:name> - PNG image from Resource where 'name' is the resource name
 <UL></UL> - Unordered list
 <OL></OL> - Ordered list
 <LI></LI> - List item
-<FLOAT:X,Y[,Width]></FLOAT> - Floating area
-<SPOILER:name></SPOILER> - Spoiler Title
+<SPOILER:name[,exp]></SPOILER> - Spoiler Title (use "exp" param to show spoiler already expanded)
 <SDETAIL:name></SDETAIL> - Spoiler Detail
-<LS:nnn></LS> - Line spacing where 'nnn' is the height in pixels
+<LS:aaa[,par=bbb]></LS> - Line spacing where 'aaa' is the height in pixels, and 'bbb' is the height when a new paragraph (plus original line space)
+<PI:nnn></PI> - Paragraph Indent - left margin of a new paragraph in pixels
 <SUP></SUP> - Superscript
 <SUB></SUB> - Subscript
 <LINE:[width=123|full],[height=456],[color={COLOR_VALUE}],[coloralt={COLOR_VALUE}]> - Horizontal single or dual color line
-  "full" option only works when AutoWidth is disabled
+  "full" option only works when AutoWidth of parent div is disabled
   Default values:
     width = 100
     height = 1
@@ -345,7 +409,8 @@ This visual component allows you to specify a formatted text in a label, using a
 <OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
   Offset margins are memorized if a new offset tag is specifyed without same parameter name
 
-* {COLOR_VALUE} - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
+* COLOR_VALUE - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
+* When FMX, all sizes (TPixels) use the "." notation as a decimal separator
 ```
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
@@ -370,11 +435,13 @@ This visual component allows you to specify a formatted text in a label, using a
 4. If you want to use Win64 platform, select this platform and Build again.
 5. Add sub-path Win32\Release to the Library paths at Tools\Options using 32-bit option, and if you have compiled to 64 bit platform, add sub-path Win64\Release using 64-bit option.
 
-Supports Delphi XE3..Delphi 11
+Supports Delphi XE3..Delphi 12
 
 ## Component Properties
 
 > **TPixels** represents `Integer` in **VCL**, or `Single` in **FMX**.
+
+`AutoBreak: Boolean` = When enabled, the component automatically converts Line Break sequence into a new line. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after Line Break sequence.
 
 `AutoHeight: Boolean` = Auto set height of control when Text property changed
 
@@ -387,9 +454,7 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background. In VCL environment, transparency is not available.
 
-`DesignDPI: Integer` *(only in VCL+WINDOWS)* = Defines Pixels Per Inch that html syntax was formatted (auto assigned when component inserted in a Form). All measurements will be calculated based on the Design DPI, and applied to the current Monitor DPI. Example: if you specified a tab width as 60 pixels, at 96 DPI, when displaying the text on a 120 DPI monitor, the tab width will be larger (75 pixels).
-
-> For automatic scaling by DPI to work correctly, it is necessary to use Delphi 10 or higher, or Lazarus, as for previous versions of Delphi, the scaling will be based on the DPI of the main monitor, which is not always the monitor where the component is being displayed.
+`CustomStyles: TDHHeaderStyles` = Collection of header styles to use with tag `<H:ident>`, where `ident` is Ident property of a header style in collection list.
 
 `Font: TFont` = Determines the base font. When no tag is specified on text, this base font is used.
 
@@ -397,11 +462,11 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `LineCount: Integer` = Returns the total lines of text, according to the bounds of control. This property is read-only.
 
-`Lines: TStrings` = The text you want to show at label control. You can use `<BR>` tag to break lines. The Windows default Line Break (#13#10) breaks lines either.
-
-> The component automatically converts #13#10 sequence into a line break. Because of this behavior, all typed line breaks will appear as a real line break. If you don't want the line break in a specific sequence, you can use the `<NBR>` tag after #13#10 characters. This will tell the component to not consider the sequence as a line break (Please check this tag at Example project).
+`Lines: TStrings` = The text you want to show at label control. You can use `<BR>` tag to break lines. The default Line Break sequence breaks lines either when AutoBreak property is enabled.
 
 `LineSpacing: TPixels` = Specify the default line spacing in overall text. You can use `<LS>` tag to determine line spacing at specific lines.
+
+`LineHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Allows you to specify the horizontal alignment of each element in the line. Default is `haLeft`.
 
 `LineVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Allows you to specify the vertical alignment of each element in the line. This property only take effects when the elements have different heights at same line. Default is `vaTop`.
 
@@ -409,19 +474,29 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `MaxWidth: TPixels` = Specify the maximum width of text, when using AutoWidth property.
 
+`Offset: TDHOffset` = Sets Top and Bottom offset (spacing in Pixels) for each line. When using `<offset>` tag, it will replace this setting, according to the specified attribute (top and/or bottom).
+
 `OverallHorzAlign: TDHHorzAlign (haLeft, haCenter, haRight)` = Determines overall text horizontal alignment. This property only take effects if `AutoWidth` is false.
 
 `OverallVertAlign: TDHVertAlign (vaTop, vaCenter, vaBottom)` = Determines overall text vertical alignment. This property only take effects if `AutoHeight` is false.
+
+`ParagraphCount: Integer` = Returns the total paragraphs of text. This property is read-only.
+
+`ParagraphIndent: TPixels` = Default left margin of a new paragraph.
+
+`ParagraphSpacing: TPixels` = Specify the default paragraph spacing in overall text. The paragraph spacing is added to original line spacing. You can use `<LS>` tag to determine paragraph spacing at specific lines.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 
 `StyleLinkHover: TDHStyleLinkProp` = Properties to format a link when is selected by mouse.
 
-`Text: String` (public) = This property is a shortcut to `Lines` property. At run-time, you can read and write this property directly, but the component will store the text at `Lines` property.
+`Text: string` (public) = This property is a shortcut to `Lines` property. At run-time, you can read and write this property directly, but the component will store the text at `Lines` property.
 
 `TextHeight: TPixels` = Returns the total text height. This property is read-only.
 
 `TextWidth: TPixels` = Returns the total text width. This property is read-only.
+
+`Transparent: Boolean` (only in VCL) = Enables component transparency. **Warning: When using with links, it will cause flickering when redrawing component.**
 
 ## Events
 
@@ -446,7 +521,7 @@ procedure OnLinkRightClick(Sender: TObject; Link: TDHBaseLink; var Handled: Bool
 This event is fired when a link is right-clicked by the mouse. You can use Handled var to by-pass the AutoOpenLink property (the handled value is False at method start).
 
 ```delphi
-procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: String; Picture: TPicture; var Handled: Boolean);
+procedure OnRetrieveImgRes(Sender: TObject; const ResourceName: string; Picture: TAnyPicture; var Handled: Boolean);
 ```
 If you are using `<imgres>` tag, this event will fire on every image tag, allowing you to manually load a image from anywhere, in any image format, assigning it to Picture object. Be sure to set `Handled := True` when you manually load an image.
 *Not using this event causes the component to automatically load the image from application resources by name, and must be in PNG format when using VCL environment. In FMX environment you can use any image format supported by Delphi.*
@@ -455,7 +530,7 @@ Example:
 
 ```delphi
 procedure TForm1.DzHTMLText1RetrieveImgRes(Sender: TObject; const ResourceName: string;
-  Picture: TPicture; var Handled: Boolean);
+  Picture: TAnyPicture; var Handled: Boolean);
 var JPG: TJpegImage;
 begin
   if ResourceName='TEST' then
@@ -542,7 +617,7 @@ To create the spoiler link: `<spoiler:name>This is the spoiler link text</spoile
 
 To create the detail div: `<sdetail:name>This is the detail div that will be expanded when the spoiler link is clicked.</sdetail>`
 
-Caution! The spoiler name is **case sensitive**.
+The spoiler name is **case insensitive**.
 
 > You can handle spoiler link at *link events*. It's possible to bypass expand/collapse behavior using `Handled` property.
 
@@ -565,13 +640,13 @@ Caution! The spoiler name is **case sensitive**.
 - `LinkRef: TDHLinkRef` = References the TDHLinkRef object when link kind is a `<a>` tag.
 
    **TDHLinkRef object:**
-   - `Target: String` = The link target specified at `<a:target>` tag.
-   - `Text: String` = The link display text specified at `<a:target>Display Text</a>` inner text.   
+   - `Target: string` = The link target specified at `<a:target>` tag.
+   - `Text: TStringBuilder` = The link display text specified at `<a:target>Display Text</a>` inner text.   
 
 - `Spoiler: TDHSpoiler` = References the TDHSpoiler object when link kind is a `<spoiler>` tag.
 
    **TDHSpoiler object:**
-   - `Name: String` = The spoiler name.
+   - `Name: string` = The spoiler name.
    - `Expanded: Boolean` = If the spoiler details is expanded.
 
 **Link events**
@@ -592,23 +667,15 @@ Example:
 
 In this example, the image tag should be `<imgres:test>`
 
-## Tab Tag
+## Div Tag
 
-There are two **tab** tags you can use:
+![Div Example](images/div.png)
 
-- `<t:nnn>` = Allow you to positioning text exactly on "nnn" position in pixels starting on the left border of component. If the text wraps to a new line, it will be return aligned at left border of component.
+The component is based in Div areas. This mean the main area of component is a Div, and you can insert sub divs, and another divs inside divs, and so on. The div tag allows you to work with alignment, colors, borders, margin, and you can even make a table using multiple divs.
 
-- `<tf:nnn>` = The same as above, but if the text wraps to a new line, it will be aligned in the same position as the first line which the tab started. This tag will produce a better visual text alignment.
+The div tag may be floating, using specific X and Y position, or docked to the current text, when not specifying any position.
 
-## Float Tag
-
-Use float tag to create an area at specific X and Y position. Optionally you can specify the area width.
-
-Syntax: `<float:x,y[,width]>...</float>`
-
-Example: `<float:100,20,150>My text <b>floating</b> area.</float>`
-
-> You must not use a floating tag inside another floating tag!
+Please, refer to all possible parameters in [Available tags](#available-tags).
 
 ## Literal tag character
 
@@ -621,8 +688,8 @@ If you want to display literal special characters in the text, just type the HTM
 There are two class functions to deal with HTML characters:
 
 ```delphi
-class function EscapeTextToHTML(const aText: String): String;
-class function UnescapeHTMLToText(const aHTML: String): String;
+class function EscapeTextToHTML(const aText: string): string;
+class function UnescapeHTMLToText(const aHTML: string): string;
 ```
 
 > As this component is not a complete HTML language debugger, there is no need to escape the other special characters. Therefore, for characters such as accentuation, for example, or other signs, you must use them normally.
@@ -634,9 +701,19 @@ These chars are: ` ` (space), `\` and `/`. The bars are considered as word break
 
 When you type Chinese, Japanese or Korean characters, this behavior is quite different. In this case, the component will break lines considering any char as a complete word.
 
-## Transparency (why not in VCL?)
+## Auto Scaling
 
-The transparency option is not available for this component when using VCL, because the text painted on canvas is not static. This means the canvas needs to change eventually, when mouse is over links. So this causes a lot of flickering. Because of that, the transparency is not available at this time.
+### VCL (Delphi and Lazarus)
+
+All measurements will be calculated based on the Design DPI (always 96 pixels per inch), and applied to the current Monitor DPI. Example: if you specified a tab width as 60 pixels, at 96 DPI, when displaying the text on a 120 DPI monitor, the tab width will be larger (75 pixels).
+
+For automatic scaling by DPI to work correctly, it is necessary to use Windows 8.1 or higher, and Delphi 10 or higher, or Lazarus.
+If using Delphi previous version, the scaling will be based on default DPI (96).
+If using Windows previous version, the scaling will be based on the default monitor DPI.
+
+### FMX
+
+In FMX environment, auto scaling is controled by Fire Monkey framework, automatically scaling the entire form layout and its components.
 
 ## Formatted Message Dialog Component
 

@@ -1,4 +1,4 @@
-﻿{------------------------------------------------------------------------------
+{------------------------------------------------------------------------------
 TDzHTMLText component
 Developed by Rodrigo Depine Dalpiaz (digao dalpiaz)
 Label with formatting tags support
@@ -10,46 +10,21 @@ Please, read the documentation at GitHub link.
 
 {$IFNDEF FMX}unit Vcl.DzHTMLText;{$ENDIF}
 
-{$IFDEF FMX}
-  {$IF CompilerVersion >= 26} //XE5
-    {$DEFINE USE_NEW_UNITS}
-  {$ENDIF}
-  {$IF CompilerVersion >= 29} //XE8
-    {$DEFINE USE_NEW_ENV}
-    {$DEFINE USE_IMGLST}
-  {$ENDIF}
-{$ELSE}
-  {$DEFINE VCL}
-  {$DEFINE USE_NEW_ENV}
-  {$DEFINE USE_IMGLST}
-  {$IFDEF MSWINDOWS}
-    {$DEFINE USE_SCALING}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF FPC}
-{$mode delphi}
-{$WARN 6058 off : Call to subroutine "$1" marked as inline is not inlined}
-{$WARN 3175 off : Some fields coming before "$1" were not initialized}
-{$WARN 3177 off : Some fields coming after "$1" were not initialized}
-{$ENDIF}
-
-{$ZEROBASEDSTRINGS OFF}
+{$INCLUDE Defines.inc}
 
 interface
 
 uses
-{$IFDEF USE_SCALING}ScalingUtils, {$ENDIF}
 {$IFDEF FPC}
-  Controls, Classes, Messages, Graphics, Types, FGL, LCLIntf, ImgList
+  Controls, Forms, Classes, Messages, Graphics, Types, FGL, LCLIntf, ImgList, SysUtils
 {$ELSE}
-  System.Generics.Collections, System.Types, System.Classes,
+  System.Generics.Collections, System.Types, System.Classes, System.SysUtils,
   {$IFDEF FMX}
   FMX.Forms, FMX.Controls, FMX.Types, System.UITypes
     {$IFDEF USE_NEW_UNITS}, FMX.StdCtrls, FMX.Graphics, FMX.MultiResBitmap{$ENDIF}
     {$IFDEF USE_IMGLST}, FMX.ImgList{$ENDIF}
   {$ELSE}
-  Vcl.Controls, Vcl.Graphics, Vcl.ImgList, Vcl.Imaging.pngimage,
+  Vcl.Controls, Vcl.Forms, Vcl.Graphics, Vcl.ImgList, Vcl.Imaging.pngimage,
   Winapi.Messages
   {$ENDIF}
 {$ENDIF};
@@ -58,35 +33,8 @@ const DZHTMLTEXT_INTERNAL_VERSION = 706; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
-{$IFDEF FMX}
-const clNone = TAlphaColors.Null;
-{$ENDIF}
-
+{$INCLUDE Types.inc}
 type
-  {$IFDEF FPC}
-  TObjectList<T: TObject> = class(TFPGObjectList<T>);
-  TList<T> = class(TFPGList<T>);
-  {$ENDIF}
-
-  {$IFDEF FMX}
-  TAnyRect = TRectF;
-  TAnyPoint = TPointF;
-  TAnySize = TSizeF;
-  TAnyColor = TAlphaColor;
-  TAnyBitmap = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
-  TAnyPicture = FMX.{$IFDEF USE_NEW_UNITS}Graphics{$ELSE}Types{$ENDIF}.TBitmap;
-  {$ELSE}
-  TAnyRect = TRect;
-  TAnyPoint = TPoint;
-  TAnySize = TSize;
-  TAnyColor = TColor;
-  TAnyBitmap = {$IFDEF DCC}Vcl.{$ENDIF}Graphics.TBitmap;
-  TAnyPicture = TPicture;
-  {$ENDIF}
-
-  TPixels = {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF};
-  TFontPt = {$IFDEF FMX}Single{$ELSE}Integer{$ENDIF};
-
   TDzHTMLText = class;
 
   TDHLinkKind = (lkLinkRef, lkSpoiler);
@@ -107,10 +55,13 @@ type
   TDHLinkRef = class(TDHBaseLink)
   private
     FTarget: string;
-    FText: string;
+    FText: TStringBuilder;
   public
     property Target: string read FTarget;
-    property Text: string read FText;
+    property Text: TStringBuilder read FText;
+
+    constructor Create(const Target: string);
+    destructor Destroy; override;
   end;
   TDHLinkRefList = class(TObjectList<TDHLinkRef>);
 
@@ -121,6 +72,8 @@ type
   public
     property Name: string read FName;
     property Expanded: Boolean read FExpanded;
+
+    constructor Create(const Name: string; Expanded: Boolean);
   end;
   TDHSpoilerList = class(TObjectList<TDHSpoiler>)
   public
@@ -128,51 +81,55 @@ type
   end;
 
   TDHVisualItem = class //represents each visual item printed to then canvas
-  private
-    OffsetTop, OffsetBottom: TPixels;
+  public
     Rect: TAnyRect;
     BColor: TAnyColor; //background color
     Link: TDHBaseLink;
-    {The link number is created sequentially, when reading text links
-    and works to know the link target, stored on a TStringList, because if
-    the link was saved here at a work, it will be repeat if has multiple words
-    per link, spending a lot of unnecessary memory.}
+  end;
+  TDHVisualItemList = class(TObjectList<TDHVisualItem>);
+
+  TDHDivBorderLineAttrRec = record
+  public
+    Thick, Pad: TPixels;
+    Color: TAnyColor;
+  end;
+  TDHVisualItem_Div = class(TDHVisualItem)
+  public
+    OuterColor, InnerColor: TAnyColor;
+    Left, Top, Right, Bottom: TDHDivBorderLineAttrRec;
   end;
 
   TDHVisualItem_Word = class(TDHVisualItem)
-  private
+  public
     Text: string;
     Font: TFont;
     {$IFDEF FMX}
     FontColor: TAnyColor;
     {$ENDIF}
     YPos: TPixels;
-  public
+
     constructor Create;
     destructor Destroy; override;
   end;
 
   TDHVisualItem_Image = class(TDHVisualItem)
-  private
+  public
     ImageIndex: Integer;
   end;
 
   TDHVisualItem_ImageResource = class(TDHVisualItem)
-  private
+  public
     Picture: TAnyPicture;
     procedure Load(Lb: TDzHTMLText; const ResourceName: string);
-  public
+
     constructor Create;
     destructor Destroy; override;
   end;
 
-  TDHVisualItemList = class(TObjectList<TDHVisualItem>);
-
   TDHVisualItem_Line = class(TDHVisualItem)
-  private
+  public
     Color: TAnyColor;
     ColorAlt: TAnyColor;
-    Full: Boolean;
   end;
 
   TDHOffset = class(TPersistent)
@@ -223,19 +180,6 @@ type
     property Underline: Boolean read FUnderline write SetUnderline default False;
   end;
 
-  TDHScaling = class
-  private
-    Lb: TDzHTMLText;
-    {$IFDEF USE_SCALING}
-    Ctrl: TDzFormScaling;
-    {$ENDIF}
-    procedure Update;
-    function Calc(Value: TPixels): TPixels;
-  public
-    constructor Create(aOwner: TDzHTMLText);
-    destructor Destroy; override;
-  end;
-
   TDHBorders = class(TPersistent)
   private
     Lb: TDzHTMLText;
@@ -250,9 +194,6 @@ type
     procedure SetTop(const Value: TPixels);
     procedure SetRight(const Value: TPixels);
     procedure SetBottom(const Value: TPixels);
-    function GetHorizontalScaled: TPixels;
-    function GetVerticalScaled: TPixels;
-    function GetRealRect(R: TAnyRect): TAnyRect; inline;
   protected
     function GetOwner: TPersistent; override;
   public
@@ -264,6 +205,83 @@ type
     property Top: TPixels read FTop write SetTop stored GetStoredSides;
     property Right: TPixels read FRight write SetRight stored GetStoredSides;
     property Bottom: TPixels read FBottom write SetBottom stored GetStoredSides;
+  end;
+
+  {$SCOPEDENUMS ON}
+  TDHCustomStyleBoolValue = (Undefined, True, False);
+  TDHCustomStyleHorzAlignValue = (Undefined, Left, Center, Right);
+  TDHCustomStyleVertAlignValue = (Undefined, Top, Center, Bottom);
+  {$SCOPEDENUMS OFF}
+  TDHCustomStyle = class(TCollectionItem)
+  private
+    FIdent: string;
+    FFontName: string;
+    FFontSize: TPixels;
+    FStyleBold, FStyleItalic, FStyleUnderline, FStyleStrikeout: TDHCustomStyleBoolValue;
+    FFontColor: TAnyColor;
+    FBackColor: TAnyColor;
+    FHorzAlign: TDHCustomStyleHorzAlignValue;
+    FVertAlign: TDHCustomStyleVertAlignValue;
+    FOffsetTop, FOffsetBottom: TPixels;
+    FLineSpacing, FParagraphSpacing, FParagraphIndent: TPixels;
+
+    procedure Modified;
+
+    procedure SetIdent(const Value: string);
+    procedure SetFontName(const Value: string);
+    procedure SetFontSize(const Value: TPixels);
+    procedure SetStyleBold(const Value: TDHCustomStyleBoolValue);
+    procedure SetStyleItalic(const Value: TDHCustomStyleBoolValue);
+    procedure SetStyleStrikeout(const Value: TDHCustomStyleBoolValue);
+    procedure SetStyleUnderline(const Value: TDHCustomStyleBoolValue);
+    procedure SetBackColor(const Value: TAnyColor);
+    procedure SetFontColor(const Value: TAnyColor);
+    procedure SetHorzAlign(const Value: TDHCustomStyleHorzAlignValue);
+    procedure SetVertAlign(const Value: TDHCustomStyleVertAlignValue);
+    procedure SetOffsetTop(const Value: TPixels);
+    procedure SetOffsetBottom(const Value: TPixels);
+    procedure SetLineSpacing(const Value: TPixels);
+    procedure SetParagraphSpacing(const Value: TPixels);
+    procedure SetParagraphIndent(const Value: TPixels);
+
+    function GetStoredOffsetTop: Boolean;
+    function GetStoredOffsetBottom: Boolean;
+    function GetStoredLineSpacing: Boolean;
+    function GetStoredParagraphSpacing: Boolean;
+    function GetStoredParagraphIndent: Boolean;
+  protected
+    function GetDisplayName: string; override;
+  public
+    constructor Create(Collection: TCollection); override;
+  published
+    property Ident: string read FIdent write SetIdent;
+    property FontName: string read FFontName write SetFontName;
+    property FontSize: TPixels read FFontSize write SetFontSize {$IFDEF VCL}default 0{$ENDIF};
+    property StyleBold: TDHCustomStyleBoolValue read FStyleBold write SetStyleBold default TDHCustomStyleBoolValue.Undefined;
+    property StyleItalic: TDHCustomStyleBoolValue read FStyleItalic write SetStyleItalic default TDHCustomStyleBoolValue.Undefined;
+    property StyleUnderline: TDHCustomStyleBoolValue read FStyleUnderline write SetStyleUnderline default TDHCustomStyleBoolValue.Undefined;
+    property StyleStrikeout: TDHCustomStyleBoolValue read FStyleStrikeout write SetStyleStrikeout default TDHCustomStyleBoolValue.Undefined;
+    property FontColor: TAnyColor read FFontColor write SetFontColor default clNone;
+    property BackColor: TAnyColor read FBackColor write SetBackColor default clNone;
+    property HorzAlign: TDHCustomStyleHorzAlignValue read FHorzAlign write SetHorzAlign default TDHCustomStyleHorzAlignValue.Undefined;
+    property VertAlign: TDHCustomStyleVertAlignValue read FVertAlign write SetVertAlign default TDHCustomStyleVertAlignValue.Undefined;
+    property OffsetTop: TPixels read FOffsetTop write SetOffsetTop stored GetStoredOffsetTop;
+    property OffsetBottom: TPixels read FOffsetBottom write SetOffsetBottom stored GetStoredOffsetBottom;
+    property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
+    property ParagraphSpacing: TPixels read FParagraphSpacing write SetParagraphSpacing stored GetStoredParagraphSpacing;
+    property ParagraphIndent: TPixels read FParagraphIndent write SetParagraphIndent stored GetStoredParagraphIndent;
+  end;
+
+  TDHCustomStyles = class(TCollection)
+  private
+    Lb: TDzHTMLText;
+  protected
+    function GetOwner: TPersistent; override;
+    procedure Update(Item: TCollectionItem); override;
+  public
+    constructor Create(Lb: TDzHTMLText);
+
+    function FindByIdent(const Ident: string): TDHCustomStyle;
   end;
 
   TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
@@ -286,32 +304,33 @@ type
   private
     FAbout: string;
 
-    {$IFDEF USE_SCALING}
-    FDesignDPI: Integer;
-    {$ENDIF}
-    Scaling: TDHScaling;
+    VisualItems: TDHVisualItemList;
 
-    LVisualItem: TDHVisualItemList; //visual item list to paint event
-    LLinkRef: TDHLinkRefList; //list of links info
     LSpoiler: TDHSpoilerList;
+    LLinkRef: TDHLinkRefList;
 
     FLines: TStrings;
     FAutoWidth: Boolean;
     FAutoHeight: Boolean;
     FMaxWidth: TPixels; //max width when using AutoWidth
     FAutoOpenLink: Boolean;
+    FAutoBreak: Boolean;
 
     FLineCount: Integer; //read-only
+    FParagraphCount: Integer; //read-only
     FTextWidth: TPixels; //read-only
     FTextHeight: TPixels; //read-only
 
     FOffset: TDHOffset;
+    FCustomStyles: TDHCustomStyles;
 
     FStyleLinkNormal, FStyleLinkHover: TDHStyleLinkProp;
 
     {$IFDEF FMX}
     FColor: TAnyColor;
     FFontColor: TAnyColor;
+    {$ELSE}
+    FTransparent: Boolean;
     {$ENDIF}
 
     {$IFDEF USE_IMGLST}
@@ -321,12 +340,14 @@ type
     FOnRetrieveImgRes: TDHEvRetrieveImgRes;
 
     FLineVertAlign: TDHVertAlign;
+    FLineHorzAlign: TDHHorzAlign;
     FOverallVertAlign: TDHVertAlign;
     FOverallHorzAlign: TDHHorzAlign;
-    FLineSpacing: TPixels;
     FListLevelPadding: TPixels;
 
     FBorders: TDHBorders;
+
+    FLineSpacing, FParagraphSpacing, FParagraphIndent: TPixels;
 
     FOnLinkEnter, FOnLinkLeave: TDHEvLink;
     FOnLinkClick, FOnLinkRightClick: TDHEvLinkClick;
@@ -338,10 +359,15 @@ type
     UpdatingSemaphore: Integer;
     InternalResizing: Boolean;
 
+    {$IFDEF VCL}
+    ParentForm: TCustomForm;
+    {$ENDIF}
+
     procedure OnLinesChange(Sender: TObject);
     procedure SetLines(const Value: TStrings);
     function GetText: string;
     procedure SetText(const Value: string); {$IFDEF FMX}reintroduce;{$ENDIF}
+    procedure SetAutoBreak(const Value: Boolean);
 
     procedure SetAutoHeight(const Value: Boolean);
     procedure SetAutoWidth(const Value: Boolean);
@@ -349,13 +375,15 @@ type
 
     function GetStoredStyleLink(const Index: Integer): Boolean;
     function GetStoredMaxWidth: Boolean;
-    function GetStoredLineSpacing: Boolean;
     function GetStoredListLevelPadding: Boolean;
     function GetStoredBorders: Boolean;
     function GetStoredOffset: Boolean;
+    function GetStoredCustomStyles: Boolean;
 
     procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure CanvasProcess(C: TCanvas);
+    procedure Paint_VisualItem(W: TDHVisualItem; C: TCanvas);
+    procedure Paint_Div(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Div);
     procedure Paint_Word(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Word);
     procedure Paint_Image(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Image);
     procedure Paint_ImageResource(C: TCanvas; R: TAnyRect; W: TDHVisualItem_ImageResource);
@@ -364,25 +392,24 @@ type
     procedure Modified(Flags: TDHModifiedFlags);
 
     function GetIsLinkHover: Boolean;
+    function GetVisualItemByMousePoint(Point: TAnyPoint): TDHVisualItem;
     procedure CheckMouse(X, Y: TPixels); //check links by mouse position
     procedure SetCursorByLink(Selected: Boolean);
     procedure SetCursor(const Value: TCursor); reintroduce;
 
     procedure SetLineVertAlign(const Value: TDHVertAlign);
+    procedure SetLineHorzAlign(const Value: TDHHorzAlign);
     procedure SetOverallVertAlign(const Value: TDHVertAlign);
     procedure SetOverallHorzAlign(const Value: TDHHorzAlign);
-    procedure SetLineSpacing(const Value: TPixels);
     procedure SetListLevelPadding(const Value: TPixels);
 
     procedure SetStyleLink(const Index: Integer; const Value: TDHStyleLinkProp);
     procedure SetBorders(const Value: TDHBorders);
     procedure SetOffset(const Value: TDHOffset);
-
-    {$IFDEF USE_SCALING}
-    function GetStoredDesignDPI: Boolean;
-    procedure SetDesignDPI(const Value: Integer);
-    function GetDesignDPIFromForm(aOwner: TComponent): Integer;
-    {$ENDIF}
+    procedure SetLineSpacing(const Value: TPixels);
+    procedure SetParagraphSpacing(const Value: TPixels);
+    procedure SetParagraphIndent(const Value: TPixels);
+    procedure SetCustomStyles(const Value: TDHCustomStyles);
 
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
@@ -393,12 +420,14 @@ type
     procedure SetColor(const Value: TAnyColor);
 
     procedure OnFontChanged(Sender: TObject);
+    {$ELSE}
+    procedure SetTransparent(const Value: Boolean);
+    procedure UpdateTransparentFlag;
     {$ENDIF}
 
-    procedure SetTextSize(W, H: TPixels);
+    procedure SetTextSize(Inner, Outer: TAnySize);
 
-    function GetAreaHeight: TPixels; inline;
-    function GetAreaWidth: TPixels; inline;
+    procedure SetTextSizeAndLineCount(InnerSize, OuterSize: TAnySize; LineCount, ParagraphCount: Integer);
   protected
     procedure Loaded; override;
     procedure Paint; override;
@@ -423,15 +452,25 @@ type
 
     procedure Notification(AComponent: TComponent; Operation: TOperation);
       override;
+
+    {$IFDEF VCL}
+    procedure SetParent(AParent: TWinControl); override;
+    {$ENDIF}
   public
+    property Spoilers: TDHSpoilerList read LSpoiler;
+    property LinkRefs: TDHLinkRefList read LLinkRef;
+
+    {$IFDEF VCL}
+    function CalcMulDiv(Size, DesignPPI: Integer; IsFont: Boolean): Integer;
+    function CalcFontHeight(Size: Integer): Integer;
+    {$ENDIF}
+    function CalcScale(Size: TPixels): TPixels;
+
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     property IsLinkHover: Boolean read GetIsLinkHover;
     property SelectedLink: TDHBaseLink read FSelectedLink;
-
-    property LinkRefs: TDHLinkRefList read LLinkRef;
-    property Spoilers: TDHSpoilerList read LSpoiler;
 
     procedure Rebuild; //rebuild words
 
@@ -531,7 +570,10 @@ type
     property AutoHeight: Boolean read FAutoHeight write SetAutoHeight default False;
     property MaxWidth: TPixels read FMaxWidth write SetMaxWidth stored GetStoredMaxWidth;
 
+    property AutoBreak: Boolean read FAutoBreak write SetAutoBreak default True;
+
     property Offset: TDHOffset read FOffset write SetOffset stored GetStoredOffset;
+    property CustomStyles: TDHCustomStyles read FCustomStyles write SetCustomStyles stored GetStoredCustomStyles;
 
     property StyleLinkNormal: TDHStyleLinkProp index 1 read FStyleLinkNormal write SetStyleLink stored GetStoredStyleLink;
     property StyleLinkHover: TDHStyleLinkProp index 2 read FStyleLinkHover write SetStyleLink stored GetStoredStyleLink;
@@ -540,7 +582,12 @@ type
     property Images: TCustomImageList read FImages write SetImages;
     {$ENDIF}
 
+    {$IFDEF VCL}
+    property Transparent: Boolean read FTransparent write SetTransparent default False;
+    {$ENDIF}
+
     property LineCount: Integer read FLineCount;
+    property ParagraphCount: Integer read FParagraphCount;
     property TextWidth: TPixels read FTextWidth;
     property TextHeight: TPixels read FTextHeight;
 
@@ -554,33 +601,41 @@ type
     property AutoOpenLink: Boolean read FAutoOpenLink write FAutoOpenLink default True;
 
     property LineVertAlign: TDHVertAlign read FLineVertAlign write SetLineVertAlign default vaTop;
+    property LineHorzAlign: TDHHorzAlign read FLineHorzAlign write SetLineHorzAlign default haLeft;
     property OverallVertAlign: TDHVertAlign read FOverallVertAlign write SetOverallVertAlign default vaTop;
     property OverallHorzAlign: TDHHorzAlign read FOverallHorzAlign write SetOverallHorzAlign default haLeft;
-    property LineSpacing: TPixels read FLineSpacing write SetLineSpacing stored GetStoredLineSpacing;
     property ListLevelPadding: TPixels read FListLevelPadding write SetListLevelPadding stored GetStoredListLevelPadding;
 
     property Borders: TDHBorders read FBorders write SetBorders stored GetStoredBorders;
 
-    {$IFDEF USE_SCALING}
-    property DesignDPI: Integer read FDesignDPI write SetDesignDPI stored GetStoredDesignDPI;
-    {$ENDIF}
+    property LineSpacing: TPixels read FLineSpacing write SetLineSpacing {$IFDEF VCL}default 0{$ENDIF};
+    property ParagraphSpacing: TPixels read FParagraphSpacing write SetParagraphSpacing {$IFDEF VCL}default 0{$ENDIF};
+    property ParagraphIndent: TPixels read FParagraphIndent write SetParagraphIndent {$IFDEF VCL}default 0{$ENDIF};
 
     property About: string read FAbout;
   end;
 
-function CalcFontHeight(Size: Integer; MonitorPPI: Integer): Integer;
+  EDHInternalExcept = class(Exception)
+  public
+    constructor Create(const Msg: string);
+  end;
 
 procedure Register;
 
 implementation
 
 uses
-{$IFDEF FPC}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}SysUtils, StrUtils, Math, LResources, Forms
+{$IFDEF FMX}
+  FMX.DHTokenEngine, FMX.DHCommon
 {$ELSE}
-  System.SysUtils, System.StrUtils, System.Math
+  Vcl.DHTokenEngine, Vcl.DHCommon
+{$ENDIF}
+{$IFDEF FPC}
+  {$IFDEF MSWINDOWS}, Windows{$ENDIF}, StrUtils, LResources, Variants
+{$ELSE}
+  , System.StrUtils, System.Variants
   {$IFDEF FMX}
-  , System.UIConsts
+    , System.UIConsts
     {$IF Defined(ANDROID)}
     , Androidapi.JNI.GraphicsContentViewText
     , Androidapi.Helpers
@@ -590,18 +645,16 @@ uses
     , Posix.Stdlib
     {$ENDIF}
   {$ELSE}
-  , System.UITypes, Vcl.Themes, Vcl.Forms
+    , System.UITypes, Vcl.Themes
   {$ENDIF}
   {$IFDEF MSWINDOWS}
   , Winapi.Windows, Winapi.ShellAPI
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '4.4';
+const STR_VERSION = '5.0';
 
-{$IFDEF USE_SCALING}
 const DEFAULT_PPI = 96;
-{$ENDIF}
 
 procedure Register;
 begin
@@ -609,98 +662,10 @@ begin
   RegisterComponents('Digao', [TDzHTMLText]);
 end;
 
-function CalcFontHeight(Size: Integer; MonitorPPI: Integer): Integer;
-begin
-  Result := -Round(Size * MonitorPPI / 72);
-end;
-
-{$REGION 'EInternalExcept'}
-type
-  EInternalExcept = class(Exception)
-    constructor Create(const Msg: string);
-  end;
-
-constructor EInternalExcept.Create(const Msg: string);
+{$REGION 'EDHInternalExcept'}
+constructor EDHInternalExcept.Create(const Msg: string);
 begin
   inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
-end;
-{$ENDREGION}
-
-{$REGION 'General Functions'}
-procedure DefineFillColor(C: TCanvas; Color: TAnyColor);
-begin
-  C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := Color;
-end;
-
-function GetGenericFillColor(C: TCanvas): TAnyColor;
-begin
-  Result := C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color;
-end;
-
-procedure DefineFontColor(C: TCanvas; Color: TAnyColor);
-begin
-  C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := Color;
-end;
-
-function GetGenericFontColor(C: TCanvas): TAnyColor;
-begin
-  Result := C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color;
-end;
-
-procedure DefineFontPt(F: TFont; Pt: TFontPt);
-begin
-  F.{$IFDEF FMX}Size{$ELSE}Height{$ENDIF} := Pt;
-end;
-
-function GetGenericFontPt(F: TFont): TFontPt;
-begin
-  Result := F.{$IFDEF FMX}Size{$ELSE}Height{$ENDIF};
-end;
-
-procedure DefineFontName(F: TFont; const Name: string);
-begin
-   F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF} := Name;
-end;
-
-function GetGenericFontName(F: TFont): string;
-begin
-   Result := F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF};
-end;
-
-procedure GenericFillRect(C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
-begin
-  {$IFDEF FMX}
-  if FixPrecisionFMX then R.Left := Trunc(R.Left);  
-  {$ENDIF}
-
-  C.FillRect(
-    {$IFDEF FMX}
-    R, 0, 0, [], 1
-    {$ELSE}
-    R
-    {$ENDIF});
-end;
-
-function ParamToColor(A: string): TAnyColor;
-begin
-  if A = EmptyStr then Exit(clNone);
-
-  if A.StartsWith('#') then A[1] := '$';
-
-  if A.StartsWith('$') then
-  begin
-    if A.Length=7 then Insert({$IFDEF FMX}'FF'{$ELSE}'00'{$ENDIF}, A, 2);
-    //Allow 6-digit (HTML) or 8-digit (Delphi) color notation
-    //The firsts two digits in 8-digit format represents the alpha channel in FMX
-
-    if A.Length<>9 then Exit(clNone);
-  end;
-
-  try
-    Result := {$IFDEF FMX}StringToAlphaColor(A){$ELSE}StringToColor(A){$ENDIF};
-  except
-    Result := clNone;
-  end;
 end;
 {$ENDREGION}
 
@@ -709,7 +674,7 @@ function TDHBaseLink.GetKind: TDHLinkKind;
 begin
   if Self is TDHLinkRef then Result := lkLinkRef else
   if Self is TDHSpoiler then Result := lkSpoiler else
-    raise EInternalExcept.Create('Invalid link kind');
+    raise EDHInternalExcept.Create('Invalid link kind');
 end;
 
 function TDHBaseLink.GetLinkRef: TDHLinkRef;
@@ -735,9 +700,9 @@ var
   DHSpoiler: TDHSpoiler;
 begin
   for DHSpoiler in Self do
-    if DHSpoiler.FName = Name then Exit(DHSpoiler);
+    if SameText(DHSpoiler.FName, Name) then Exit(DHSpoiler);
 
-  Exit(nil);
+  Result := nil;
 end;
 {$ENDREGION}
 
@@ -812,40 +777,6 @@ begin
 end;
 {$ENDREGION}
 
-{$REGION 'TDHScaling'}
-constructor TDHScaling.Create(aOwner: TDzHTMLText);
-begin
-  Lb := aOwner;
-
-  {$IFDEF USE_SCALING}
-  Ctrl := TDzFormScaling.Create;
-  {$ENDIF}
-end;
-
-destructor TDHScaling.Destroy;
-begin
-  {$IFDEF USE_SCALING}
-  Ctrl.Free;
-  {$ENDIF}
-end;
-
-procedure TDHScaling.Update;
-begin
-  {$IFDEF USE_SCALING}
-  Ctrl.Update(GetParentForm(Lb), Lb.FDesignDPI);
-  {$ENDIF}
-end;
-
-function TDHScaling.Calc(Value: TPixels): TPixels;
-begin
-  {$IFDEF USE_SCALING}
-  Result := Ctrl.Calc(Value);
-  {$ELSE}
-  Result := Value;
-  {$ENDIF}
-end;
-{$ENDREGION}
-
 {$REGION 'TDzHTMLText class functions'}
 class function TDzHTMLText.EscapeTextToHTML(const aText: string): string;
 begin
@@ -893,12 +824,7 @@ constructor TDzHTMLText.Create(AOwner: TComponent);
 begin
   inherited;
   {$IFDEF VCL}
-  ControlStyle := ControlStyle + [csOpaque];
-  //Warning! The use of transparency in the component causes flickering
-  {$ENDIF}
-
-  {$IFDEF USE_SCALING}
-  FDesignDPI := GetDesignDPIFromForm(AOwner);
+  UpdateTransparentFlag;
   {$ENDIF}
 
   FAbout := 'Digao Dalpiaz / Version '+STR_VERSION;
@@ -907,19 +833,19 @@ begin
   //FLines.TrailingLineBreak := False; -- only supported by Delphi 10.1 and not full functional in Lazarus
   TStringList(FLines).OnChange := OnLinesChange;
 
-  Scaling := TDHScaling.Create(Self);
-
   FStyleLinkNormal := TDHStyleLinkProp.Create(Self, tslpNormal);
   FStyleLinkHover := TDHStyleLinkProp.Create(Self, tslpHover);
-  LVisualItem := TDHVisualItemList.Create;
+  VisualItems := TDHVisualItemList.Create;
   LLinkRef := TDHLinkRefList.Create;
   LSpoiler := TDHSpoilerList.Create;
 
+  FAutoBreak := True;
   FAutoOpenLink := True;
   FListLevelPadding := _DEF_LISTLEVELPADDING;
 
   FBorders := TDHBorders.Create(Self);
   FOffset := TDHOffset.Create(Self);
+  FCustomStyles := TDHCustomStyles.Create(Self);
 
   FCursor := crDefault;
 
@@ -946,17 +872,17 @@ begin
   FStyleLinkHover.Free;
   FBorders.Free;
   FOffset.Free;
-  LVisualItem.Free;
+  FCustomStyles.Free;
+  VisualItems.Free;
   LLinkRef.Free;
   LSpoiler.Free;
-  Scaling.Free;
   inherited;
 end;
 
 procedure TDzHTMLText.Notification(AComponent: TComponent;
   Operation: TOperation);
 begin
-  inherited Notification(AComponent, Operation);
+  inherited;
   if Operation = opRemove then
   begin
     {$IFDEF USE_IMGLST}
@@ -964,6 +890,14 @@ begin
     {$ENDIF}
   end;
 end;
+
+{$IFDEF VCL}
+procedure TDzHTMLText.SetParent(AParent: TWinControl);
+begin
+  inherited;
+  ParentForm := GetParentForm(Self);
+end;
+{$ENDIF}
 
 {$IFDEF USE_IMGLST}
 procedure TDzHTMLText.SetImages(const Value: TCustomImageList);
@@ -1003,31 +937,6 @@ begin
   Modified([mfBuild, mfPaint]);
 end;
 
-{$IFDEF USE_SCALING}
-procedure TDzHTMLText.SetDesignDPI(const Value: Integer);
-begin
-  if Value<>FDesignDPI then
-  begin
-    FDesignDPI := Value;
-
-    BuildAndPaint;
-  end;
-end;
-
-function TDzHTMLText.GetDesignDPIFromForm(aOwner: TComponent): Integer;
-begin
-  if aOwner is TCustomForm then
-    Result := RetrieveDesignerPPI(TCustomForm(aOwner))
-  else
-    Result := 0;
-end;
-
-function TDzHTMLText.GetStoredDesignDPI: Boolean;
-begin
-  Result := FDesignDPI <> GetDesignDPIFromForm(Owner);
-end;
-{$ENDIF}
-
 procedure TDzHTMLText.SetAutoHeight(const Value: Boolean);
 begin
   if Value<>FAutoHeight then
@@ -1058,16 +967,6 @@ begin
   end;
 end;
 
-function TDzHTMLText.GetAreaWidth: TPixels;
-begin
-  Result := Width - FBorders.GetHorizontalScaled;
-end;
-
-function TDzHTMLText.GetAreaHeight: TPixels;
-begin
-  Result := Height - FBorders.GetVerticalScaled;
-end;
-
 procedure TDzHTMLText.OnLinesChange(Sender: TObject);
 begin
   LSpoiler.Clear;
@@ -1090,11 +989,31 @@ begin
   FLines.Text := Value;
 end;
 
+procedure TDzHTMLText.SetAutoBreak(const Value: Boolean);
+begin
+  if Value<>FAutoBreak then
+  begin
+    FAutoBreak := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
 procedure TDzHTMLText.SetLineVertAlign(const Value: TDHVertAlign);
 begin
   if Value<>FLineVertAlign then
   begin
     FLineVertAlign := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetLineHorzAlign(const Value: TDHHorzAlign);
+begin
+  if Value<>FLineHorzAlign then
+  begin
+    FLineHorzAlign := Value;
 
     BuildAndPaint;
   end;
@@ -1130,6 +1049,26 @@ begin
   end;
 end;
 
+procedure TDzHTMLText.SetParagraphSpacing(const Value: TPixels);
+begin
+  if Value<>FParagraphSpacing then
+  begin
+    FParagraphSpacing := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetParagraphIndent(const Value: TPixels);
+begin
+  if Value<>FParagraphIndent then
+  begin
+    FParagraphIndent := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
 procedure TDzHTMLText.SetListLevelPadding(const Value: TPixels);
 begin
   if Value<>FListLevelPadding then
@@ -1159,6 +1098,11 @@ begin
   FOffset.Assign(Value);
 end;
 
+procedure TDzHTMLText.SetCustomStyles(const Value: TDHCustomStyles);
+begin
+  FCustomStyles.Assign(Value);
+end;
+
 procedure TDzHTMLText.BeginUpdate;
 begin
   Inc(UpdatingSemaphore);
@@ -1177,13 +1121,11 @@ end;
 {$IFDEF VCL}
 procedure TDzHTMLText.CMColorchanged(var Message: TMessage);
 begin
-  {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
   Modified([mfPaint]);
 end;
 
 procedure TDzHTMLText.CMFontchanged(var Message: TMessage);
 begin
-  {$IFDEF FPC}if Message.Result=0 then {};{$ENDIF} //avoid unused var warning
   BuildAndPaint;
 end;
 {$ENDIF}
@@ -1213,20 +1155,46 @@ procedure TDzHTMLText.OnFontChanged(Sender: TObject);
 begin
   BuildAndPaint;
 end;
+{$ELSE}
+procedure TDzHTMLText.SetTransparent(const Value: Boolean);
+begin
+  if Value <> FTransparent then
+  begin
+    FTransparent := Value;
+
+    UpdateTransparentFlag;
+    Modified([mfPaint]);
+  end;
+end;
+
+procedure TDzHTMLText.UpdateTransparentFlag;
+begin
+  if FTransparent then
+    ControlStyle := ControlStyle - [csOpaque]
+  else
+    ControlStyle := ControlStyle + [csOpaque];
+end;
 {$ENDIF}
 
-procedure TDzHTMLText.SetTextSize(W, H: TPixels);
+procedure TDzHTMLText.SetTextSize(Inner, Outer: TAnySize);
 begin
-  FTextWidth := W;
-  FTextHeight := H;
+  FTextWidth := Inner.Width;
+  FTextHeight := Inner.Height;
 
   InternalResizing := True;
   try
-    if FAutoWidth then Width := W + FBorders.GetHorizontalScaled;
-    if FAutoHeight then Height := H + FBorders.GetVerticalScaled;
+    if FAutoWidth then Width := Outer.Width;
+    if FAutoHeight then Height := Outer.Height;
   finally
     InternalResizing := False;
   end;
+end;
+
+procedure TDzHTMLText.SetTextSizeAndLineCount(InnerSize, OuterSize: TAnySize; LineCount, ParagraphCount: Integer);
+begin
+  SetTextSize(InnerSize, OuterSize);
+  FLineCount := LineCount;
+  FParagraphCount := ParagraphCount;
 end;
 
 procedure TDzHTMLText.Resize;
@@ -1254,14 +1222,19 @@ var
 {$ENDIF}
 begin
   {$IFDEF VCL}
-  //Using internal bitmap as a buffer to reduce flickering
-  B := TAnyBitmap.Create;
-  try
-    B.SetSize(Width, Height);
-    CanvasProcess(B.Canvas);
-    Canvas.Draw(0, 0, B);
-  finally
-    B.Free;
+  if FTransparent then
+    CanvasProcess(Canvas)
+  else
+  begin
+    //Using internal bitmap as a buffer to reduce flickering
+    B := TAnyBitmap.Create;
+    try
+      B.SetSize(Width, Height);
+      CanvasProcess(B.Canvas);
+      Canvas.Draw(0, 0, B);
+    finally
+      B.Free;
+    end;
   end;
   {$ELSE}
   //In FMX, Paint method calls BeginScene/EndScene automatically,
@@ -1272,7 +1245,6 @@ end;
 
 procedure TDzHTMLText.CanvasProcess(C: TCanvas);
 var
-  R: TAnyRect;
   W: TDHVisualItem;
 begin
   //draw background color
@@ -1283,6 +1255,8 @@ begin
     C.FillRect(LocalRect, 0, 0, [], 1);
   end;
   {$ELSE}
+  if not FTransparent then
+  begin
     {$IFDEF FPC}
     if (Color=clDefault) and (ParentColor) then
       C.Brush.Color := GetColorresolvingParent
@@ -1292,8 +1266,10 @@ begin
       C.Brush.Color := TStyleManager.ActiveStyle.GetStyleColor(TStyleColor.scWindow)
     else
     {$ENDIF}
-  C.Brush.Color := Color;
-  C.FillRect(ClientRect);
+      C.Brush.Color := Color;
+
+    C.FillRect(ClientRect);
+  end;
   {$ENDIF}
 
   if csDesigning in ComponentState then
@@ -1312,47 +1288,86 @@ begin
     {$ENDIF}
   end;
 
-  for W in LVisualItem do
+  for W in VisualItems do
+    Paint_VisualItem(W, C);
+end;
+
+procedure TDzHTMLText.Paint_VisualItem(W: TDHVisualItem; C: TCanvas);
+var
+  R: TAnyRect;
+begin
+  R := W.Rect;
+
+  DefineFillColor(C, W.BColor);
+
+  if W is TDHVisualItem_Word then
   begin
-    R := FBorders.GetRealRect(W.Rect);
-
-    DefineFillColor(C, W.BColor);
-
-    if W is TDHVisualItem_Word then
-    begin
-      C.Font.Assign(TDHVisualItem_Word(W).Font);
-      {$IFDEF FMX}
-      C.Stroke.Color := TDHVisualItem_Word(W).FontColor;
-      {$ENDIF}
-    end;
-
-    if Assigned(W.Link) then
-    begin
-      if FSelectedLink = W.Link then //selected
-        FStyleLinkHover.SetPropsToCanvas(C)
-      else
-        FStyleLinkNormal.SetPropsToCanvas(C);
-    end;
-
-    if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R, True);
-
-    R.Top := R.Top + W.OffsetTop;
-    R.Bottom := R.Bottom - W.OffsetBottom;
-
-    if W is TDHVisualItem_Word then
-      Paint_Word(C, R, TDHVisualItem_Word(W))
-    else
-    if W is TDHVisualItem_Image then
-      Paint_Image(C, R, TDHVisualItem_Image(W))
-    else
-    if W is TDHVisualItem_ImageResource then
-      Paint_ImageResource(C, R, TDHVisualItem_ImageResource(W))
-    else
-    if W is TDHVisualItem_Line then
-      Paint_Line(C, R, TDHVisualItem_Line(W))
-    else
-      raise EInternalExcept.Create('Invalid visual item object');
+    C.Font.Assign(TDHVisualItem_Word(W).Font);
+    {$IFDEF FMX}
+    C.Stroke.Color := TDHVisualItem_Word(W).FontColor;
+    {$ENDIF}
   end;
+
+  if Assigned(W.Link) then
+  begin
+    if FSelectedLink = W.Link then //selected
+      FStyleLinkHover.SetPropsToCanvas(C)
+    else
+      FStyleLinkNormal.SetPropsToCanvas(C);
+  end;
+
+  if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R, True);
+
+  if W is TDHVisualItem_Div then
+    Paint_Div(C, R, TDHVisualItem_Div(W))
+  else
+  if W is TDHVisualItem_Word then
+    Paint_Word(C, R, TDHVisualItem_Word(W))
+  else
+  if W is TDHVisualItem_Image then
+    Paint_Image(C, R, TDHVisualItem_Image(W))
+  else
+  if W is TDHVisualItem_ImageResource then
+    Paint_ImageResource(C, R, TDHVisualItem_ImageResource(W))
+  else
+  if W is TDHVisualItem_Line then
+    Paint_Line(C, R, TDHVisualItem_Line(W))
+  else
+    raise EDHInternalExcept.Create('Invalid visual item object');
+end;
+
+procedure TDzHTMLText.Paint_Div(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Div);
+
+  procedure PaintSide(var Side: TDHDivBorderLineAttrRec; X, Y, W, H: TPixels);
+  begin
+    if (Side.Thick=0) or (Side.Color=clNone) then Exit;
+
+    DefineFillColor(C, Side.Color);
+    GenericFillRect(C, TAnyRect.Create(TAnyPoint.Create(R.Left+X, R.Top+Y), W, H));
+  end;
+
+begin
+  if W.OuterColor<>clNone then
+  begin
+    DefineFillColor(C, W.OuterColor);
+    GenericFillRect(C, R);
+  end;
+
+  R.Left := R.Left + W.Left.Pad;
+  R.Top := R.Top + W.Top.Pad;
+  R.Right := R.Right - W.Right.Pad;
+  R.Bottom := R.Bottom - W.Bottom.Pad;
+
+  if W.InnerColor<>clNone then
+  begin
+    DefineFillColor(C, W.InnerColor);
+    GenericFillRect(C, R);
+  end;
+
+  PaintSide(W.Left, 0, 0, W.Left.Thick, R.Height);
+  PaintSide(W.Top, 0, 0, R.Width, W.Top.Thick);
+  PaintSide(W.Right, R.Width-W.Right.Thick, 0, W.Right.Thick, R.Height);
+  PaintSide(W.Bottom, 0, R.Height-W.Bottom.Thick, R.Width, W.Bottom.Thick);
 end;
 
 procedure TDzHTMLText.Paint_Word(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Word);
@@ -1410,7 +1425,7 @@ end;
 procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TAnyRect; W: TDHVisualItem_ImageResource);
 begin
   {$IFDEF FMX}
-  C.DrawBitmap(W.Picture, TAnyRect{F}.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1); //FMX scaling?
+  C.DrawBitmap(W.Picture, TAnyRect.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1);
   {$ELSE}
   C.StretchDraw(R, W.Picture.Graphic);
   {$ENDIF}
@@ -1419,12 +1434,7 @@ end;
 procedure TDzHTMLText.Paint_Line(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Line);
 begin
   if W.ColorAlt <> clNone then
-    R.Height := R.Height
-    {$IFDEF VCL}
-      div
-    {$ELSE}
-      /
-    {$ENDIF} 2;
+    R.Height := RoundIfVCL(R.Height / 2); //half height when double color
 
   DefineFillColor(C, W.Color);
   GenericFillRect(C, R);
@@ -1452,26 +1462,24 @@ begin
   Result := Assigned(FSelectedLink);
 end;
 
+function TDzHTMLText.GetVisualItemByMousePoint(Point: TAnyPoint): TDHVisualItem;
+var
+  W: TDHVisualItem;
+begin
+  for W in VisualItems do
+    if (W.Link<>nil) and W.Rect.Contains(Point) then Exit(W);
+
+  Result := nil;
+end;
+
 procedure TDzHTMLText.CheckMouse(X, Y: TPixels);
 var
   Link: TDHBaseLink;
   W: TDHVisualItem;
-  P: TAnyPoint;
 begin
   Link := nil;
-
-  P := TAnyPoint.Create(X, Y);
-
-  //find the first word, if there is any
-  for W in LVisualItem do
-    if Assigned(W.Link) then
-    begin
-      if FBorders.GetRealRect(W.Rect).Contains(P) then //selected
-      begin
-        Link := W.Link;
-        Break;
-      end;
-    end;
+  W := GetVisualItemByMousePoint(TAnyPoint.Create(X, Y));
+  if W<>nil then Link := W.Link;
 
   if Link <> FSelectedLink then //changed
   begin
@@ -1554,7 +1562,7 @@ begin
             {$ELSEIF Defined(MACOS)}
               _system(PAnsiChar('open ' + AnsiString(aTarget)));
             {$ELSE}
-            raise Exception.Create('Unsupported platform');
+            raise EInternalExcept.Create('Unsupported platform');
             {$ENDIF}
           end;
         end;
@@ -1566,7 +1574,7 @@ begin
 
         BuildAndPaint;
       end else
-        raise EInternalExcept.Create('Invalid link object');
+        raise EDHInternalExcept.Create('Invalid link object');
     end;
   end;
 
@@ -1609,6 +1617,42 @@ begin
   inherited;
 end;
 
+{$IFDEF VCL}
+type THackForm = class(TCustomForm); //older Delphi version - Scaled is a protected property
+function TDzHTMLText.CalcMulDiv(Size, DesignPPI: Integer; IsFont: Boolean): Integer;
+var
+  MonitorPPI: Integer;
+begin
+  MonitorPPI := DEFAULT_PPI;
+  {$IF (Defined(DCC) and (CompilerVersion >= 30)) or Defined(FPC)} //D10 Seattle or Lazarus
+  if {$IFDEF DCC}not (csDesigning in ComponentState) and{$ENDIF} //design always based on Default PPI in Delphi
+    (ParentForm<>nil) and THackForm(ParentForm).Scaled then
+    MonitorPPI := ParentForm.Monitor.PixelsPerInch;
+  {$ENDIF}
+
+  {$IFDEF FPC}
+  if not IsFont and (ParentForm<>nil) then DesignPPI := ParentForm.DesignTimePPI;
+  {$ENDIF}
+
+  Result := Round(Size * MonitorPPI / DesignPPI); //MulDiv equivalent
+end;
+
+function TDzHTMLText.CalcFontHeight(Size: Integer): Integer;
+begin
+  Result := -CalcMulDiv(Size, 72, True);
+end;
+{$ENDIF}
+
+function TDzHTMLText.CalcScale(Size: TPixels): TPixels;
+begin
+  Result :=
+  {$IFDEF VCL}
+    CalcMulDiv(Size, DEFAULT_PPI, False)
+  {$ELSE}
+    Size
+  {$ENDIF};
+end;
+
 function TDzHTMLText.GetStoredStyleLink(const Index: Integer): Boolean;
 begin
   Result := False;
@@ -1621,11 +1665,6 @@ end;
 function TDzHTMLText.GetStoredMaxWidth: Boolean;
 begin
   Result := FMaxWidth <> 0;
-end;
-
-function TDzHTMLText.GetStoredLineSpacing: Boolean;
-begin
-  Result := FLineSpacing <> 0;
 end;
 
 function TDzHTMLText.GetStoredListLevelPadding: Boolean;
@@ -1642,81 +1681,27 @@ function TDzHTMLText.GetStoredOffset: Boolean;
 begin
   Result := (FOffset.FTop <> 0) or (FOffset.FBottom <> 0);
 end;
-{$ENDREGION}
 
-{$REGION 'TBuilder and related'}
-type
-  TTokenKind = (
-    ttInvalid,
-    ttBold, ttItalic, ttUnderline, ttStrike,
-    ttFontName, ttFontSize, ttFontColor, ttBackColor,
-    ttTab, ttTabF,
-    ttBreak, ttText, ttLink,
-    ttAlignLeft, ttAlignCenter, ttAlignRight,
-    ttImage, ttImageResource,
-    ttBulletList, ttNumberList, ttListItem,
-    ttFloat,
-    ttSpoilerTitle, ttSpoilerDetail,
-    ttLineSpace,
-    ttSuperscript, ttSubscript,
-    ttLine,
-    ttOffset, ttVAlign);
-
-  TTokenValue = Int64;
-
-  TToken = class
-    Kind: TTokenKind;
-    TagClose: Boolean;
-    Text: string;
-    Value: TTokenValue;
-  end;
-
-  TListToken = class(TObjectList<TToken>);
-
-  TBuilder = class
-    Lb: TDzHTMLText;
-    LToken: TListToken;
-
-    function ProcessTag(const Tag: string): Boolean;
-    procedure AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: TTokenValue = 0);
-
-    procedure ReadTokens; //create list of tokens
-    procedure ProcessTokens; //create list of visual itens
-
-    constructor Create;
-    destructor Destroy; override;
-  end;
-
-constructor TBuilder.Create;
+function TDzHTMLText.GetStoredCustomStyles: Boolean;
 begin
-  inherited;
-  LToken := TListToken.Create;
-end;
-
-destructor TBuilder.Destroy;
-begin
-  LToken.Free;
-  inherited;
+  Result := FCustomStyles.Count>0;
 end;
 
 procedure TDzHTMLText.Rebuild;
 var
-  B: TBuilder;
+  B: TDHBuilder;
   P: TAnyPoint;
 begin
   if csLoading in ComponentState then Exit;
 
-  LVisualItem.Clear; //clean old words
+  VisualItems.Clear; //clean visual items
   LLinkRef.Clear; //clean old links
 
-  Scaling.Update;
-
-  B := TBuilder.Create;
+  B := TDHBuilder.Create(Self,
+    {$IFDEF FMX}TCanvasManager.MeasureCanvas{$ELSE}Canvas{$ENDIF},
+    VisualItems, SetTextSizeAndLineCount);
   try
-    B.Lb := Self;
-
-    B.ReadTokens;
-    B.ProcessTokens;
+    B.Execute;
   finally
     B.Free;
   end;
@@ -1726,1391 +1711,13 @@ begin
   SetCursorByLink(False);
 
   //update link by cursor pos
-  {$IFDEF FMX}
-  P := ScreenToLocal(Screen.MousePos);
-  {$ELSE}
-  P := ScreenToClient(Mouse.CursorPos);
-  {$ENDIF}
+  P :=
+    {$IFDEF FMX}
+    ScreenToLocal(Screen.MousePos)
+    {$ELSE}
+    ScreenToClient(Mouse.CursorPos)
+    {$ENDIF};
   CheckMouse(P.X, P.Y);
-end;
-
-//
-
-procedure TBuilder.AddToken(aKind: TTokenKind; aTagClose: Boolean = False; const aText: string = ''; aValue: TTokenValue = 0);
-var
-  T: TToken;
-begin
-  T := TToken.Create;
-  T.Kind := aKind;
-  T.TagClose := aTagClose;
-  T.Text := aText;
-  T.Value := aValue;
-  LToken.Add(T);
-end;
-
-function Tag_IntZeroBased_ProcValue(const Value: string; var Valid: Boolean): TTokenValue;
-begin
-  Result := StrToIntDef(Value, -1);
-  Valid := (Result>-1);
-end;
-
-function Tag_IntOneBased_ProcValue(const Value: string; var Valid: Boolean): TTokenValue;
-begin
-  Result := StrToIntDef(Value, 0);
-  Valid := (Result>0);
-end;
-
-function Tag_Color_ProcValue(const Value: string; var Valid: Boolean): TTokenValue;
-begin
-  Result := ParamToColor(Value);
-  Valid := (Result<>clNone);
-end;
-
-type TDefToken = record
-  Ident: string;
-  Kind: TTokenKind;
-  Single: Boolean; //without close tag
-  AllowPar, OptionalPar: Boolean;
-  ProcValue: function(const Value: string; var Valid: Boolean): TTokenValue;
-end;
-const DEF_TOKENS: array[0..28] of TDefToken = (
-  (Ident: 'BR'; Kind: ttBreak; Single: True),
-  (Ident: 'B'; Kind: ttBold),
-  (Ident: 'I'; Kind: ttItalic),
-  (Ident: 'U'; Kind: ttUnderline),
-  (Ident: 'S'; Kind: ttStrike),
-  (Ident: 'FN'; Kind: ttFontName; AllowPar: True),
-  (Ident: 'FS'; Kind: ttFontSize; AllowPar: True; ProcValue: Tag_IntOneBased_ProcValue),
-  (Ident: 'FC'; Kind: ttFontColor; AllowPar: True; ProcValue: Tag_Color_ProcValue),
-  (Ident: 'BC'; Kind: ttBackColor; AllowPar: True; ProcValue: Tag_Color_ProcValue),
-  (Ident: 'A'; Kind: ttLink; AllowPar: True; OptionalPar: True),
-  (Ident: 'L'; Kind: ttAlignLeft),
-  (Ident: 'C'; Kind: ttAlignCenter),
-  (Ident: 'R'; Kind: ttAlignRight),
-  (Ident: 'T'; Kind: ttTab; Single: True; AllowPar: True; ProcValue: Tag_IntOneBased_ProcValue),
-  (Ident: 'TF'; Kind: ttTabF; Single: True; AllowPar: True; ProcValue: Tag_IntOneBased_ProcValue),
-  (Ident: 'IMG'; Kind: ttImage; Single: True; AllowPar: True; ProcValue: Tag_IntZeroBased_ProcValue),
-  (Ident: 'IMGRES'; Kind: ttImageResource; Single: True; AllowPar: True),
-  (Ident: 'UL'; Kind: ttBulletList), //Unordered HTML List
-  (Ident: 'OL'; Kind: ttNumberList), //Ordered HTML List
-  (Ident: 'LI'; Kind: ttListItem), //HTML List Item
-  (Ident: 'FLOAT'; Kind: ttFloat; AllowPar: True), //Floating div
-  (Ident: 'SPOILER'; Kind: ttSpoilerTitle; AllowPar: True),
-  (Ident: 'SDETAIL'; Kind: ttSpoilerDetail; AllowPar: True),
-  (Ident: 'LS'; Kind: ttLineSpace; AllowPar: True; ProcValue: Tag_IntZeroBased_ProcValue),
-  (Ident: 'SUP'; Kind: ttSuperscript),
-  (Ident: 'SUB'; Kind: ttSubscript),
-  (Ident: 'LINE'; Kind: ttLine; Single: True; AllowPar: True),
-  (Ident: 'OFFSET'; Kind: ttOffset; AllowPar: True),
-  (Ident: 'VALIGN'; Kind: ttVAlign; AllowPar: True)
-);
-
-function TBuilder.ProcessTag(const Tag: string): Boolean;
-var
-  TOff, TOn, HasPar, ValidPar: Boolean;
-  Value: TTokenValue;
-  A, Par: string;
-  I: Integer;
-  Def: TDefToken;
-begin
-  //Result=True means valid tag
-  Result := False;
-  A := Tag;
-
-  TOff := False;
-  if A.StartsWith('/') then //closing tag
-  begin
-    TOff := True;
-    Delete(A, 1, 1);
-  end;
-  TOn := not TOff;
-
-  HasPar := False;
-  Par := EmptyStr;
-  I := Pos(':', A); //find parameter
-  if I>0 then //has parameter
-  begin
-    HasPar := True;
-    Par := A.Substring(I); //zero-based
-    A := Copy(A, 1, I-1);
-  end;
-
-  if HasPar then
-  begin
-    if Par=EmptyStr then Exit; //blank parameter specified
-    if TOff then Exit; //tag closing with parameter
-  end;
-
-  A := UpperCase(A);
-
-  for Def in DEF_TOKENS do
-  begin
-    if Def.Ident=A then
-    begin
-      if TOn then
-      begin
-        if (not Def.AllowPar) and (HasPar) then Exit; //parameter not allowed
-        if (Def.AllowPar) and (not Def.OptionalPar) and (not HasPar) then Exit; //parameter required
-      end else
-      begin
-        if Def.Single then Exit; //close-tag on single tag        
-      end;
-
-      Value := 0;
-      if TOn and HasPar and Assigned(Def.ProcValue) then
-      begin
-        ValidPar := True;
-        Value := Def.ProcValue(Par, ValidPar);
-        if not ValidPar then Exit;
-      end;
-
-      AddToken(Def.Kind, TOff, Par, Value);
-      Result := True;
-      Exit;
-    end;
-  end;
-end;
-
-const
-  STR_SPACE = ' ';
-  INT_BREAKABLE_CHAR = -1;
-
-type
-  TCharUtils = class
-    class function FindNextWordBreakChar(const A: string): Integer; inline;
-    class function IsCJKChar(const C: Char): Boolean; inline;
-  end;
-
-class function TCharUtils.FindNextWordBreakChar(const A: string): Integer;
-var
-  I: Integer;
-  C: Char;
-begin
-  Result := 0;
-
-  for I := 1 to A.Length do
-  begin
-    C := A[I];
-
-    if CharInSet(C, [STR_SPACE,'<','>','/','\']) or IsCJKChar(C) then
-    begin // !!! should never find tags at first char
-      Result := I;
-      Break;
-    end;
-  end;
-end;
-
-class function TCharUtils.IsCJKChar(const C: Char): Boolean; //return if char is Chinese-Japanese-Korean
-begin
-//East Asian languages break lines in all chars, so each char must be considered as a full word.
-{
-Block                                   Range       Comment
-CJK Unified Ideographs                  4E00-9FFF   Common
-CJK Unified Ideographs Extension A      3400-4DBF   Rare
-CJK Unified Ideographs Extension B      20000-2A6DF Rare, historic
-CJK Unified Ideographs Extension C      2A700-2B73F Rare, historic
-CJK Unified Ideographs Extension D      2B740-2B81F Uncommon, some in current use
-CJK Unified Ideographs Extension E      2B820-2CEAF Rare, historic
-CJK Compatibility Ideographs            F900-FAFF   Duplicates, unifiable variants, corporate characters
-CJK Compatibility Ideographs Supplement 2F800-2FA1F Unifiable variants
-}
-  Result := False;
-  if C < #10000 then Exit; //fast check
-
-  case Integer(C) of
-    $4E00..$9FFF,
-    $3400..$4DBF,
-    $20000..$2A6DF,
-    $2A700..$2B73F,
-    $2B740..$2B81F,
-    $2B820..$2CEAF,
-    $F900..$FAFF,
-    $2F800..$2FA1F: Result := True;
-  end;
-end;
-
-procedure TBuilder.ReadTokens;
-var
-  Text, A: string;
-  CharIni: Char;
-  I, Jump: Integer;
-  BreakableChar: Boolean;
-begin
-  Text := Lb.FLines.Text; //when is not empty, always comes with a final line break
-
-  Text := StringReplace(Text, sLineBreak+'<NBR>', EmptyStr, [rfReplaceAll, rfIgnoreCase]); //ignore next break
-  Text := StringReplace(Text, sLineBreak, '<BR>', [rfReplaceAll]);
-
-  while not Text.IsEmpty do
-  begin
-    A := Text;
-    CharIni := A[1];
-
-    if CharIni = '<' then //starts with tag opening
-    begin
-      Delete(A, 1, 1);
-      I := Pos('>', A); //find tag closing
-      if I>0 then
-      begin
-        A := Copy(A, 1, I-1);
-        if not ProcessTag(A) then AddToken(ttInvalid);
-        Jump := 1+Length(A)+1;
-      end else
-      begin
-        //losted tag opening
-        AddToken(ttInvalid);
-        Jump := 1;
-      end;
-    end else
-    if CharIni = '>' then
-    begin
-      //losted tag closing
-      AddToken(ttInvalid);
-      Jump := 1;
-    end else
-    begin //all the rest is text
-      I := TCharUtils.FindNextWordBreakChar(A);
-      BreakableChar := (I=1);
-      //when word break at first char, let add the char itself alone.
-      //when word break at other next chars, consider until char before word-break char.
-      if I>1 then Dec(I) else
-        if I=0 then I := Length(A);
-
-      A := Copy(A, 1, I);
-      AddToken(ttText, False, TDzHTMLText.UnescapeHTMLToText(A), IfThen(BreakableChar, INT_BREAKABLE_CHAR));
-      Jump := I;
-    end;
-
-    Delete(Text, 1, Jump);
-  end;
-end;
-{$ENDREGION}
-
-{$REGION 'Engine process objects'}
-type
-  TListStack<T> = class(TList<T>)
-    procedure AddOrDel(Token: TToken; const XValue: T);
-  end;
-
-procedure TListStack<T>.AddOrDel(Token: TToken; const XValue: T);
-begin
-  if Token.TagClose then
-  begin
-    if Count>1 then
-      Delete(Count-1);
-  end else
-    Add(XValue);
-end;
-
-type
-  TObjectListStackItem = class(TObject);
-  TObjectListStackItemClass = class of TObjectListStackItem;
-  TObjectListStack<T: TObjectListStackItem{, constructor}> = class(TObjectList<T>)
-    OneItemRequired: Boolean;
-    constructor Create(OneItemRequired: Boolean = False);
-    procedure AddOrDel(Token: TToken; &Class: TObjectListStackItemClass);
-  end;
-
-  THTMLList = class(TObjectListStackItem);
-  THTMLList_Bullet = class(THTMLList);
-  THTMLList_Number = class(THTMLList)
-    Sequence: Integer;
-  end;
-
-  THTMLSpoilerDet = class(TObjectListStackItem)
-    Name: string;
-  end;
-  THTMLSpoilerDetList = class(TObjectListStack<THTMLSpoilerDet>)
-    function IsAllOpened(Lb: TDzHTMLText): Boolean;
-  end;
-
-  THTMLSupSubTag = class(TObjectListStackItem);
-  THTMLSupTag = class(THTMLSupSubTag);
-  THTMLSubTag = class(THTMLSupSubTag);
-
-  THTMLOffsetTag = class(TObjectListStackItem)
-    Top, Bottom: TPixels;
-  end;
-
-constructor TObjectListStack<T>.Create(OneItemRequired: Boolean);
-begin
-  inherited Create(True);
-  Self.OneItemRequired := OneItemRequired;
-end;
-
-procedure TObjectListStack<T>.AddOrDel(Token: TToken; &Class: TObjectListStackItemClass);
-begin
-  if Token.TagClose then
-  begin
-    if (Count>IfThen(OneItemRequired, 1, 0)) and (Last is &Class) then
-      Delete(Count-1);
-  end else
-  begin
-    Add(&Class.Create as T);
-  end;
-end;
-
-function THTMLSpoilerDetList.IsAllOpened(Lb: TDzHTMLText): Boolean;
-var
-  SpoilerDet: THTMLSpoilerDet;
-  DHSpoiler: TDHSpoiler;
-begin
-  for SpoilerDet in Self do
-  begin
-    DHSpoiler := Lb.LSpoiler.Find(SpoilerDet.Name);
-    if not ( (DHSpoiler<>nil) and (DHSpoiler.FExpanded) ) then Exit(False);
-  end;
-
-  Exit(True);
-end;
-
-type
-  TLineInfo = class
-    Height, Space: TPixels;
-  end;
-  TGroupBound = class
-    Right, Limit: TPixels;
-  end;
-
-  TPreObj = class(TObject);
-
-  TPreObj_Break = class(TPreObj)
-    Height: TPixels;
-  end;
-
-  TPreObj_Tab = class(TPreObj)
-    Position: TPixels;
-    Fixed: Boolean;
-  end;
-
-  TPreObj_Float = class(TPreObj)
-    Rect: TAnyRect;
-    Close: Boolean;
-  end;
-
-  TFixedPosition = record
-  private
-    Active: Boolean;
-    Left: TPixels;
-  end;
-
-  TPreObj_Visual = class(TPreObj)
-    Size: TAnySize;
-    Line: Integer; //line number
-    Group: Integer; //group number
-    {The group is isolated at each line or tabulation to delimit text horizontal align area}
-    FixedPos: TFixedPosition;
-    Align: TDHHorzAlign;
-    VertAlign: TDHVertAlign;
-    LineSpace: TPixels;
-    Space: Boolean;
-    Print: Boolean;
-    BreakableChar: Boolean; //text with only one letter using breakable char
-    BreakCheckDone: Boolean; //if already checked for break line behavior
-
-    Visual: TDHVisualItem;
-    destructor Destroy; override;
-  end;
-
-  TListPreObj = class(TObjectList<TPreObj>);
-
-destructor TPreObj_Visual.Destroy;
-begin
-  if Assigned(Visual) then Visual.Free;
-  inherited;
-end;
-{$ENDREGION}
-
-{$REGION 'THTMLTokenParams'}
-type
-  THTMLTokenParams = class
-  private
-    Token: TToken;
-    Params: TArray<string>;
-
-    procedure PreParse;
-  public
-    constructor Create(Token: TToken);
-
-    function GetParam(const Name: string): string;
-    function GetParamAsInteger(const Name: string; Def: Integer): Integer;
-    function GetParamAsFloat(const Name: string; Def: Extended): Extended;
-    function GetParamAsPixels(const Name: string; Def: TPixels): TPixels;
-  end;
-
-constructor THTMLTokenParams.Create(Token: TToken);
-begin
-  Self.Token := Token;
-  PreParse;
-end;
-
-procedure THTMLTokenParams.PreParse;
-begin
-  Params := Token.Text.Split([',']);
-end;
-
-function THTMLTokenParams.GetParam(const Name: string): string;
-var
-  Param: string;
-  Ar: TArray<string>;
-begin
-  Result := EmptyStr;
-
-  for Param in Params do
-  begin
-    Ar := Param.Split(['=']);
-    if Length(Ar) < 2 then Continue;
-
-    if SameText(Ar[0], Name) then
-    begin
-      Result := Ar[1];
-      Break;
-    end;
-  end;
-end;
-
-function THTMLTokenParams.GetParamAsInteger(const Name: string; Def: Integer): Integer;
-begin
-  Result := StrToIntDef(GetParam(Name), Def);
-end;
-
-function THTMLTokenParams.GetParamAsFloat(const Name: string; Def: Extended): Extended;
-begin
-  Result := StrToFloatDef(GetParam(Name), Def);
-end;
-
-function THTMLTokenParams.GetParamAsPixels(const Name: string; Def: TPixels): TPixels;
-begin
-  Result :=
-  {$IFDEF VCL}
-    GetParamAsInteger(Name, Def)
-  {$ELSE}
-    GetParamAsFloat(Name, Def)
-  {$ENDIF};
-end;
-{$ENDREGION}
-
-{$REGION 'TTokensProcess'}
-type
-  TTokensProcess = class
-    Builder: TBuilder;
-    Lb: TDzHTMLText;
-    C: TCanvas;
-
-    LLineInfo: TObjectList<TLineInfo>;
-    LGroupBound: TObjectList<TGroupBound>;
-
-    Items: TListPreObj;
-
-    CurrentProps: record
-      Offset: THTMLOffsetTag;
-      BackColor: TAnyColor;
-      Align: TDHHorzAlign;
-      VertAlign: TDHVertAlign;
-      LineSpace: TPixels;
-    end;
-
-    LOffset: TObjectListStack<THTMLOffsetTag>;
-    LBold: TListStack<Boolean>;
-    LItalic: TListStack<Boolean>;
-    LUnderline: TListStack<Boolean>;
-    LStrike: TListStack<Boolean>;
-    LFontName: TListStack<string>;
-    LFontHeightOrSize: TListStack<TFontPt>;
-    LFontColor: TListStack<TAnyColor>;
-    LBackColor: TListStack<TAnyColor>;
-    LAlign: TListStack<TDHHorzAlign>;
-    LVertAlign: TListStack<TDHVertAlign>;
-    LLineSpace: TListStack<TPixels>;
-    LHTMLList: TObjectListStack<THTMLList>;
-    LSupAndSubScript: TObjectListStack<THTMLSupSubTag>;
-    LSpoilerDet: THTMLSpoilerDetList;
-
-    CurrentLink: TDHBaseLink;
-
-    constructor Create(xBuilder: TBuilder);
-    destructor Destroy; override;
-    procedure Execute;
-
-    procedure DoOffset(T: TToken);
-    procedure DoTypographicalEmphasis(T: TToken);
-    procedure DoFontName(T: TToken);
-    procedure DoFontSize(T: TToken);
-    procedure DoFontColor(T: TToken);
-    procedure DoBackColor(T: TToken);
-    procedure DoSupOrSubScript(T: TToken);
-    procedure DoAlignment(T: TToken);
-    procedure DoVertAlign(T: TToken);
-    procedure DoLineSpace(T: TToken);
-    procedure DoTextAndRelated(T: TToken);
-    procedure DoLink(T: TToken);
-    procedure DoLists(T: TToken);
-    procedure DoFloat(T: TToken);
-    procedure DoSpoilerTitle(T: TToken);
-    procedure DoSpoilerDetail(T: TToken);
-    procedure DoTab(T: TToken);
-    procedure DoBreak;
-
-    procedure CheckSupSubScript(W: TDHVisualItem_Word; var Size: TAnySize);
-
-    procedure ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TAnySize);
-
-    procedure DefineVisualRect;
-    procedure Publish;
-
-    procedure CheckAlign(V: TPreObj_Visual);
-  end;
-
-procedure TBuilder.ProcessTokens;
-var
-  P: TTokensProcess;
-begin
-  P := TTokensProcess.Create(Self);
-  try
-    P.Execute;
-    P.DefineVisualRect;
-    P.Publish;
-  finally
-    P.Free;
-  end;
-end;
-
-constructor TTokensProcess.Create(xBuilder: TBuilder);
-var
-  vBool: Boolean; //Required for Lazarus
-begin
-  inherited Create;
-  Builder := xBuilder;
-  Lb := Builder.Lb;
-  C := {$IFDEF FMX}TCanvasManager.MeasureCanvas{$ELSE}Lb.Canvas{$ENDIF};
-  C.Font.Assign(Lb.Font);
-  {$IFDEF FMX}
-  C.Stroke.Color := Lb.FFontColor;
-  {$ELSE}
-    {$IFDEF DCC}
-    if TStyleManager.IsCustomStyleActive and (seFont in Lb.StyleElements) and not (csDesigning in Lb.ComponentState) then
-      C.Font.Color := TStyleManager.ActiveStyle.GetStyleFontColor(TStyleFont.sfWindowTextNormal);
-    {$ENDIF}
-  {$ENDIF}
-
-  CurrentProps.Offset := THTMLOffsetTag.Create;
-  CurrentProps.Offset.Top := Lb.FOffset.FTop;
-  CurrentProps.Offset.Bottom := Lb.FOffset.FBottom;
-
-  CurrentProps.BackColor := clNone;
-  CurrentProps.Align := haLeft;
-  CurrentProps.VertAlign := Lb.FLineVertAlign;
-  CurrentProps.LineSpace := Lb.FLineSpacing;
-
-  Items := TListPreObj.Create;
-  LLineInfo := TObjectList<TLineInfo>.Create;
-  LGroupBound := TObjectList<TGroupBound>.Create;
-
-  LBold := TListStack<Boolean>.Create;
-  LItalic := TListStack<Boolean>.Create;
-  LUnderline := TListStack<Boolean>.Create;
-  LStrike := TListStack<Boolean>.Create;
-  LFontName := TListStack<string>.Create;
-  LFontHeightOrSize := TListStack<TFontPt>.Create;
-  LFontColor := TListStack<TAnyColor>.Create;
-  LBackColor := TListStack<TAnyColor>.Create;
-  LAlign := TListStack<TDHHorzAlign>.Create;
-  LVertAlign := TListStack<TDHVertAlign>.Create;
-  LLineSpace := TListStack<TPixels>.Create;
-
-  LHTMLList := TObjectListStack<THTMLList>.Create;
-  LSupAndSubScript := TObjectListStack<THTMLSupSubTag>.Create;
-  LSpoilerDet := THTMLSpoilerDetList.Create;
-
-  LOffset := TObjectListStack<THTMLOffsetTag>.Create(True);
-  LOffset.Add(CurrentProps.Offset);
-
-  vBool := TFontStyle.fsBold in C.Font.Style; LBold.Add(vBool);
-  vBool := TFontStyle.fsItalic in C.Font.Style; LItalic.Add(vBool);
-  vBool := TFontStyle.fsUnderline in C.Font.Style; LUnderline.Add(vBool);
-  vBool := TFontStyle.fsStrikeOut in C.Font.Style; LStrike.Add(vBool);
-  LFontName.Add(GetGenericFontName(C.Font));
-  LFontHeightOrSize.Add(GetGenericFontPt(C.Font));
-  LFontColor.Add(GetGenericFontColor(C));
-  LBackColor.Add(CurrentProps.BackColor);
-  LAlign.Add(CurrentProps.Align);
-  LVertAlign.Add(CurrentProps.VertAlign);
-  LLineSpace.Add(CurrentProps.LineSpace);
-end;
-
-destructor TTokensProcess.Destroy;
-begin
-  Items.Free;
-  LLineInfo.Free;
-  LGroupBound.Free;
-
-  LOffset.Free;
-  LBold.Free;
-  LItalic.Free;
-  LUnderline.Free;
-  LStrike.Free;
-  LFontName.Free;
-  LFontHeightOrSize.Free;
-  LFontColor.Free;
-  LBackColor.Free;
-  LAlign.Free;
-  LVertAlign.Free;
-  LLineSpace.Free;
-
-  LHTMLList.Free;
-  LSupAndSubScript.Free;
-  LSpoilerDet.Free;
-  inherited;
-end;
-
-procedure TTokensProcess.Execute;
-var
-  T: TToken;
-  ListItemAlreadyInThisLine: Boolean;
-begin
-  ListItemAlreadyInThisLine := False;
-
-  for T in Builder.LToken do
-  begin
-    if not (T.Kind in [ttSpoilerTitle, ttSpoilerDetail]) then
-    begin
-      //Bypass when inside a closed spoiler detail tag
-      if LSpoilerDet.Count>0 then
-        if not LSpoilerDet.IsAllOpened(Lb) then Continue;
-    end;
-
-    if (T.Kind = ttListItem) and not T.TagClose then
-    begin
-      if ListItemAlreadyInThisLine then DoBreak;
-      ListItemAlreadyInThisLine := True;
-    end;
-
-    case T.Kind of
-      ttOffset: DoOffset(T);
-      ttBold, ttItalic, ttUnderline, ttStrike: DoTypographicalEmphasis(T);
-      ttFontName: DoFontName(T);
-      ttFontSize: DoFontSize(T);
-      ttFontColor: DoFontColor(T);
-      ttBackColor: DoBackColor(T);
-      ttSuperscript, ttSubscript: DoSupOrSubScript(T);
-      ttAlignLeft, ttAlignCenter, ttAlignRight: DoAlignment(T);
-      ttVAlign: DoVertAlign(T);
-      ttLineSpace: DoLineSpace(T);
-      ttText, ttInvalid, ttImage, ttImageResource, ttListItem, ttLine: DoTextAndRelated(T);
-      ttLink: DoLink(T);
-      ttBulletList, ttNumberList: DoLists(T);
-      ttFloat: DoFloat(T);
-      ttSpoilerTitle: DoSpoilerTitle(T);
-      ttSpoilerDetail: DoSpoilerDetail(T);
-      ttTab, ttTabF: DoTab(T);
-      ttBreak:
-        begin
-          DoBreak;
-          ListItemAlreadyInThisLine := False;
-        end;
-    end;
-  end;
-end;
-
-procedure TTokensProcess.DoOffset(T: TToken);
-var
-  Item: THTMLOffsetTag;
-  P: THTMLTokenParams;
-begin
-  LOffset.AddOrDel(T, THTMLOffsetTag);
-  Item := LOffset.Last;
-
-  if not T.TagClose then
-  begin
-    P := THTMLTokenParams.Create(T);
-    try
-      Item.Top := P.GetParamAsPixels('Top', CurrentProps.Offset.Top);
-      Item.Bottom := P.GetParamAsPixels('Bottom', CurrentProps.Offset.Bottom);
-    finally
-      P.Free;
-    end;
-  end;
-
-  CurrentProps.Offset := Item;
-end;
-
-procedure TTokensProcess.DoTypographicalEmphasis(T: TToken);
-var
-  FS: TFontStyles;
-begin
-  case T.Kind of
-    ttBold: LBold.AddOrDel(T, True);
-    ttItalic: LItalic.AddOrDel(T, True);
-    ttUnderline: LUnderline.AddOrDel(T, True);
-    ttStrike: LStrike.AddOrDel(T, True);
-    else raise EInternalExcept.Create('Invalid typographical emphasis token kind');
-  end;
-
-  FS := [];
-  if LBold.Last then Include(FS, TFontStyle.fsBold);
-  if LItalic.Last then Include(FS, TFontStyle.fsItalic);
-  if LUnderline.Last then Include(FS, TFontStyle.fsUnderline);
-  if LStrike.Last then Include(FS, TFontStyle.fsStrikeOut);
-  C.Font.Style := FS;
-end;
-
-procedure TTokensProcess.DoFontName(T: TToken);
-begin
-  LFontName.AddOrDel(T, T.Text);
-  DefineFontName(C.Font, LFontName.Last);
-end;
-
-procedure TTokensProcess.DoFontSize(T: TToken);
-var
-  FontVal: TFontPt;
-begin
-  FontVal := 0;
-  if not T.TagClose then
-    FontVal :=
-      {$IFDEF FMX}
-      T.Value //font size
-      {$ELSE}
-      CalcFontHeight(T.Value, {$IFDEF USE_SCALING}Lb.Scaling.Ctrl.MonitorPPI{$ELSE}DEFAULT_PPI{$ENDIF}) //font height
-      {$ENDIF};
-
-  LFontHeightOrSize.AddOrDel(T, FontVal);
-  DefineFontPt(C.Font, LFontHeightOrSize.Last);
-end;
-
-procedure TTokensProcess.DoFontColor(T: TToken);
-begin
-  LFontColor.AddOrDel(T, T.Value);
-  DefineFontColor(C, LFontColor.Last);
-end;
-
-procedure TTokensProcess.DoBackColor(T: TToken);
-begin
-  LBackColor.AddOrDel(T, T.Value);
-  CurrentProps.BackColor := LBackColor.Last;
-end;
-
-procedure TTokensProcess.DoAlignment(T: TToken);
-var
-  Align: TDHHorzAlign;
-begin
-  case T.Kind of
-    ttAlignLeft: Align := haLeft;
-    ttAlignCenter: Align := haCenter;
-    ttAlignRight: Align := haRight;
-    else raise EInternalExcept.Create('Invalid align token kind');
-  end;
-  LAlign.AddOrDel(T, Align);
-  CurrentProps.Align := LAlign.Last;
-end;
-
-procedure TTokensProcess.DoVertAlign(T: TToken);
-var
-  Align: TDHVertAlign;
-begin
-  if SameText(T.Text, 'top') then Align := vaTop else
-  if SameText(T.Text, 'center') then Align := vaCenter else
-  if SameText(T.Text, 'bottom') then Align := vaBottom else
-    Align := vaTop; //default
-
-  LVertAlign.AddOrDel(T, Align);
-  CurrentProps.VertAlign := LVertAlign.Last;
-end;
-
-procedure TTokensProcess.DoLineSpace(T: TToken);
-begin
-  LLineSpace.AddOrDel(T, T.Value);
-  CurrentProps.LineSpace := LLineSpace.Last;
-end;
-
-procedure TTokensProcess.DoTextAndRelated(T: TToken);
-var
-  Ex: TAnySize;
-  Z: TPreObj_Visual;
-  W: TDHVisualItem;
-  FixedPos: TFixedPosition;
-begin
-  Ex := TAnySize.Create(0, 0);
-  FixedPos := Default(TFixedPosition);
-
-  case T.Kind of
-    ttInvalid: T.Text := '<?>';
-    ttListItem:
-    begin
-      if T.TagClose then Exit;
-      if LHTMLList.Count=0 then Exit;
-
-      if LHTMLList.Last is THTMLList_Number then
-        Inc(THTMLList_Number(LHTMLList.Last).Sequence);
-
-      if LHTMLList.Last is THTMLList_Bullet then T.Text := '• ' else
-      if LHTMLList.Last is THTMLList_Number then T.Text := IntToStr(THTMLList_Number(LHTMLList.Last).Sequence)+'. ' else
-        raise EInternalExcept.Create('Invalid HTML List object');
-
-      FixedPos.Active := True;
-      FixedPos.Left := LHTMLList.Count * Lb.Scaling.Calc(Lb.FListLevelPadding);
-    end;
-  end;
-
-  case T.Kind of
-    ttImage:
-    begin
-      W := TDHVisualItem_Image.Create;
-      with TDHVisualItem_Image(W) do
-      begin
-        ImageIndex := T.Value;
-      end;
-
-      {$IFDEF USE_IMGLST}
-      if Assigned(Lb.FImages) then
-      begin
-        {$IFDEF FMX}
-        with Lb.FImages.Destination[T.Value].Layers[0].SourceRect do
-          Ex := TAnySize.Create(Width, Height);
-        {$ELSE}
-        Ex := TAnySize.Create(Lb.FImages.Width, Lb.FImages.Height);
-        {$ENDIF}
-      end;
-      {$ENDIF}
-    end;
-
-    ttImageResource:
-    begin
-      W := TDHVisualItem_ImageResource.Create;
-      with TDHVisualItem_ImageResource(W) do
-      begin
-        Load(Lb, T.Text);
-
-        Ex := TAnySize.Create(Picture.Width, Picture.Height);
-      end;
-    end;
-
-    ttLine:
-    begin
-      W := TDHVisualItem_Line.Create;
-      ParseLineParams(T, TDHVisualItem_Line(W), Ex);
-    end;
-
-    else
-    begin
-      W := TDHVisualItem_Word.Create;
-      with TDHVisualItem_Word(W) do
-      begin
-        Text := T.Text;
-        Font.Assign(C.Font);
-        {$IFDEF FMX}
-        FontColor := C.Stroke.Color;
-        {$ENDIF}
-
-        Ex := TAnySize.Create(C.TextWidth(Text), C.TextHeight(Text));
-
-        CheckSupSubScript(TDHVisualItem_Word(W), Ex);
-      end;
-    end;
-  end;
-
-  if not (W is TDHVisualItem_Word) then
-  begin
-    Ex.Width := Lb.Scaling.Calc(Ex.Width);
-    Ex.Height := Lb.Scaling.Calc(Ex.Height);
-  end;
-
-  if Assigned(CurrentLink) and (CurrentLink is TDHLinkRef) and (T.Kind=ttText) then
-    with TDHLinkRef(CurrentLink) do FText := FText + T.Text; //set link display text on the link data object
-
-  W.BColor := CurrentProps.BackColor;
-  W.Link := CurrentLink;
-
-  W.OffsetTop := Lb.Scaling.Calc(CurrentProps.Offset.Top);
-  W.OffsetBottom := Lb.Scaling.Calc(CurrentProps.Offset.Bottom);
-
-  Ex.Height := Ex.Height + W.OffsetTop + W.OffsetBottom;
-
-  Z := TPreObj_Visual.Create;
-  Z.Size := Ex;
-  Z.Align := CurrentProps.Align;
-  Z.VertAlign := CurrentProps.VertAlign;
-  Z.LineSpace := Lb.Scaling.Calc(CurrentProps.LineSpace);
-  Z.Space := (T.Kind=ttText) and (T.Text=STR_SPACE);
-  Z.BreakableChar := (T.Kind=ttText) and (T.Value=INT_BREAKABLE_CHAR);
-  Z.FixedPos := FixedPos;
-  Z.Visual := W;
-
-  Items.Add(Z);
-end;
-
-procedure TTokensProcess.CheckSupSubScript(W: TDHVisualItem_Word; var Size: TAnySize);
-var
-  OriginalFontPt, OriginalFontSize: TFontPt;
-  I: Integer;
-  Tag: THTMLSupSubTag;
-  H, Y, TextH, OuterY: TPixels;
-begin
-  if LSupAndSubScript.Count=0 then Exit;
-
-  OriginalFontPt := GetGenericFontPt(C.Font);
-  OriginalFontSize := C.Font.Size;
-
-  H := Size.Height; //initial height
-  OuterY := 0;
-
-  for I := 0 to LSupAndSubScript.Count-1 do
-  begin
-    Tag := LSupAndSubScript[I];
-
-    C.Font.Size := {$IFDEF VCL}Round{$ENDIF}(OriginalFontSize * Power(0.75, I+1));
-    TextH := C.TextHeight(STR_SPACE);
-
-    if Tag is THTMLSupTag then Y := 0 else
-    if Tag is THTMLSubTag then Y := H - TextH else
-      raise EInternalExcept.Create('Invalid sup/sub object');
-
-    H := TextH;
-    OuterY := OuterY + Y;
-  end;
-
-  //keep height but adjust new text width
-  Size.Width := C.TextWidth(W.Text);
-  W.Font.Size := C.Font.Size;
-  W.YPos := OuterY;
-
-  //restore canvas original font size
-  DefineFontPt(C.Font, OriginalFontPt);
-end;
-
-procedure TTokensProcess.DoLink(T: TToken);
-var
-  LinkRef: TDHLinkRef;
-begin
-  if T.TagClose then
-    CurrentLink := nil
-  else
-  begin
-    LinkRef := TDHLinkRef.Create;
-    LinkRef.FTarget := T.Text;
-    Lb.LLinkRef.Add(LinkRef); //add target of the link on list
-
-    CurrentLink := LinkRef;
-  end;
-end;
-
-procedure TTokensProcess.DoLists(T: TToken);
-var
-  &Class: TObjectListStackItemClass;
-begin
-  case T.Kind of
-    ttBulletList: &Class := THTMLList_Bullet;
-    ttNumberList: &Class := THTMLList_Number;
-    else raise EInternalExcept.Create('Invalid HTML List token kind');
-  end;
-
-  LHTMLList.AddOrDel(T, &Class);
-end;
-
-procedure TTokensProcess.DoSupOrSubScript(T: TToken);
-var
-  &Class: TObjectListStackItemClass;
-begin
-  case T.Kind of
-    ttSuperscript: &Class := THTMLSupTag;
-    ttSubscript: &Class := THTMLSubTag;
-    else raise EInternalExcept.Create('Invalid sup/sub token kind');
-  end;
-
-  LSupAndSubScript.AddOrDel(T, &Class);
-end;
-
-procedure TTokensProcess.ParseLineParams(T: TToken; V: TDHVisualItem_Line; var Size: TAnySize);
-var
-  P: THTMLTokenParams;
-begin
-  P := THTMLTokenParams.Create(T);
-  try
-    Size.Width := P.GetParamAsPixels('width', 100);
-    Size.Height := P.GetParamAsPixels('height', 1);
-
-    V.Full := SameText(P.GetParam('width'), 'full');
-
-    V.Color := ParamToColor(P.GetParam('color'));
-    V.ColorAlt := ParamToColor(P.GetParam('coloralt'));
-
-    if V.Color = clNone then V.Color := GetGenericFontColor(C);
-    if V.ColorAlt <> clNone then Size.Height := Size.Height * 2;
-  finally
-    P.Free;
-  end;
-end;
-
-procedure TTokensProcess.DoFloat(T: TToken);
-var
-  Z: TPreObj_Float;
-  Ar: TArray<string>;
-begin
-  Z := TPreObj_Float.Create;
-  if not T.TagClose then
-  begin
-    Ar := T.Text.Split([',']);
-    if Length(Ar)>=2 then
-    begin
-      Z.Rect.Left := Lb.Scaling.Calc(StrToIntDef(Ar[0], 0));
-      Z.Rect.Top := Lb.Scaling.Calc(StrToIntDef(Ar[1], 0));
-      if Length(Ar)>=3 then
-        Z.Rect.Width := Lb.Scaling.Calc(StrToIntDef(Ar[2], 0));
-    end;
-  end;
-  Z.Close := T.TagClose;
-  Items.Add(Z);
-end;
-
-procedure TTokensProcess.DoSpoilerTitle(T: TToken);
-var
-  DHSpoiler: TDHSpoiler;
-begin
-  //When first time rebuild (or after text changes), the LSpoiler is empty.
-  //If rebuilding by spoiler click, the LSpoiler already contains all items.
-  //Anyway, we need to check if spoiler exists because it could already exists
-  //even at first building if there are multiple spoilers with same name.
-
-  if T.TagClose then
-    CurrentLink := nil
-  else
-  begin
-    DHSpoiler := Lb.LSpoiler.Find(T.Text);
-    if DHSpoiler=nil then
-    begin
-      DHSpoiler := TDHSpoiler.Create;
-      DHSpoiler.FName := T.Text;
-      Lb.LSpoiler.Add(DHSpoiler);
-    end;
-    CurrentLink := DHSpoiler;
-  end;
-end;
-
-procedure TTokensProcess.DoSpoilerDetail(T: TToken);
-begin
-  LSpoilerDet.AddOrDel(T, THTMLSpoilerDet);
-  if not T.TagClose then
-    LSpoilerDet.Last.Name := T.Text;
-end;
-
-procedure TTokensProcess.DoTab(T: TToken);
-var
-  Z: TPreObj_Tab;
-begin
-  Z := TPreObj_Tab.Create;
-  Z.Position := Lb.Scaling.Calc(T.Value);
-  Z.Fixed := (T.Kind=ttTabF);
-  Items.Add(Z);
-end;
-
-procedure TTokensProcess.DoBreak;
-var
-  Z: TPreObj_Break;
-begin
-  Z := TPreObj_Break.Create;
-  Z.Height := C.TextHeight(STR_SPACE);
-  Items.Add(Z);
-end;
-
-//
-
-procedure TTokensProcess.DefineVisualRect;
-type TSizes = record
-  LineHeight, LineSpace, OverallWidth, OverallHeight: TPixels;
-end;
-var
-  Z: TPreObj;
-  V: TPreObj_Visual;
-  I: Integer;
-  X, Y: TPixels;
-  Max, OldMax: TSizes;
-  LastTabX: TPixels; LastTabF: Boolean;
-  PrevPos: TAnyPoint; PrevLine, CurLine, LineCount: Integer;
-  FloatRect: TAnyRect; InFloat: Boolean;
-
-  procedure IncPreviousGroup(Right, Limit: TPixels);
-  var
-    B: TGroupBound;
-  begin
-    B := TGroupBound.Create;
-    B.Right := Right;
-    B.Limit := Limit;
-    LGroupBound.Add(B);
-  end;
-
-  function GetXbnd: TPixels;
-  begin
-    Result := FloatRect.Left + LastTabX;
-  end;
-
-  function IsToWrapText: Boolean;
-  var
-    J: Integer;
-    EndPos: TPixels;
-    PV: TPreObj_Visual;
-  begin
-    if TPreObj_Visual(Z).BreakCheckDone then Exit(False); //avoid re-break continuous text
-
-    EndPos := X + TPreObj_Visual(Z).Size.Width;
-    //if tags are used in the middle of a word, we need to check where text ends by breakable char
-    for J := I+1 to Items.Count-1 do
-    begin
-      if not (Items[J] is TPreObj_Visual) then Break;
-      PV := TPreObj_Visual(Items[J]);
-      if PV.Space or PV.BreakableChar then Break; //Space always BreakableChar now?
-      EndPos := EndPos + PV.Size.Width;
-      PV.BreakCheckDone := True;
-    end;
-
-    if FloatRect.Width>0 then Exit(EndPos>FloatRect.Right);
-
-    Result :=
-      ( (Lb.FAutoWidth) and (Lb.FMaxWidth>0) and (EndPos>(Lb.Scaling.Calc(Lb.FMaxWidth)-Lb.FBorders.GetHorizontalScaled)) )
-      or
-      ( (not Lb.FAutoWidth) and (EndPos>Lb.GetAreaWidth) );
-  end;
-
-  procedure CheckPriorSpace;
-  var
-    PV: TPreObj_Visual;
-  begin
-    if (I>0) and (Items[I-1] is TPreObj_Visual) then
-    begin
-      PV := TPreObj_Visual(Items[I-1]);
-      if PV.Space and (PV.Visual.Rect.Left>GetXbnd) then
-      begin //space remains at previous line before line break
-        PV.Print := False;
-        X := PV.Visual.Rect.Left;
-        Max := OldMax; //revert bounds
-      end;
-    end;
-  end;
-
-  procedure BreakGroupAndLineCtrl(Forward: Boolean; NewPoint: TAnyPoint);
-  var
-    GrpLim: TPixels;
-    LI: TLineInfo;
-  begin
-    GrpLim := -1;
-    if FloatRect.Width>0 then GrpLim := FloatRect.Right;
-    IncPreviousGroup(X, GrpLim);
-
-    LI := TLineInfo.Create;
-    LI.Height := Max.LineHeight;
-    LI.Space := Max.LineSpace;
-    LLineInfo.Add(LI);
-    if Forward then
-    begin
-      CurLine := LLineInfo.Count;
-      Max.LineHeight := 0;
-      Max.LineSpace := 0;
-    end else
-    begin
-      //restore line info
-      CurLine := PrevLine;
-      Max.LineHeight := LLineInfo[CurLine].Height;
-      Max.LineSpace := LLineInfo[CurLine].Space;
-    end;
-
-    X := NewPoint.X;
-    Y := NewPoint.Y;
-  end;
-
-begin
-  X := 0;
-  Y := 0;
-  LineCount := 0;
-  CurLine := 0;
-  PrevLine := -1;
-  PrevPos := TAnyPoint.Create(0, 0);
-  FloatRect := TAnyRect.Empty;
-  LastTabX := 0;
-  LastTabF := False;
-  InFloat := False;
-
-  Max := Default(TSizes);
-  OldMax := Default(TSizes);
-
-  for I := 0 to Items.Count-1 do
-  begin
-    Z := Items[I];
-
-    if Z is TPreObj_Float then
-    begin
-      if TPreObj_Float(Z).Close<>InFloat then Continue; //avoid float inside float
-      if TPreObj_Float(Z).Close then
-      begin
-        BreakGroupAndLineCtrl(False, PrevPos);
-        FloatRect := TAnyRect.Empty;
-        InFloat := False;
-      end else
-      begin
-        PrevLine := CurLine; //save current line
-        PrevPos := TAnyPoint.Create(X, Y); //save current position
-        BreakGroupAndLineCtrl(True, TPreObj_Float(Z).Rect.Location);
-        FloatRect := TPreObj_Float(Z).Rect;
-        InFloat := True;
-      end;
-      Continue;
-    end;
-
-    if Z is TPreObj_Tab then
-    begin
-      LastTabX := TPreObj_Tab(Z).Position;
-      LastTabF := TPreObj_Tab(Z).Fixed;
-
-      IncPreviousGroup(X, GetXbnd);
-      X := GetXbnd;
-      Continue;
-    end;
-
-    if (Z is TPreObj_Break) or
-      ((Z is TPreObj_Visual) {and (X>GetXbnd)} and IsToWrapText) then
-    begin //LINE BREAK
-      if Z is TPreObj_Break then
-      begin
-        if Max.LineHeight=0 then Max.LineHeight := TPreObj_Break(Z).Height; //line without content
-      end else
-      if not TPreObj_Visual(Z).Space then //avoid duplicate space missing
-        CheckPriorSpace; //remove space at previous line if is the last obj
-
-      if not InFloat then Inc(LineCount);
-      BreakGroupAndLineCtrl(True, TAnyPoint.Create(FloatRect.Left, Y+Max.LineHeight+Max.LineSpace));
-      //if line is empty, there is no visual item to check overall height
-      if Y>Max.OverallHeight then Max.OverallHeight := Y;
-
-      if (Z is TPreObj_Break) then
-      begin
-        LastTabX := 0;
-        LastTabF := False;
-        Continue;
-      end;
-      if LastTabF then X := GetXbnd;
-      if TPreObj_Visual(Z).Space then Continue; //space made a line break
-    end;
-
-    if not (Z is TPreObj_Visual) then
-      raise EInternalExcept.Create('Unexpected object');
-
-    V := TPreObj_Visual(Z);
-
-    if V.FixedPos.Active then X := V.FixedPos.Left;
-
-    if (V.Visual is TDHVisualItem_Line) and TDHVisualItem_Line(V.Visual).Full and not Lb.FAutoWidth then
-      V.Size.Width := Lb.GetAreaWidth - X;
-
-    V.Visual.Rect := TAnyRect.Create(X, Y, X+V.Size.Width, Y+V.Size.Height);
-    V.Line := CurLine;
-    V.Group := LGroupBound.Count;
-    V.Print := True;
-
-    OldMax := Max;
-    if V.Visual.Rect.Right>Max.OverallWidth then Max.OverallWidth := V.Visual.Rect.Right;
-    if V.Visual.Rect.Bottom>Max.OverallHeight then Max.OverallHeight := V.Visual.Rect.Bottom;
-    if V.Visual.Rect.Height>Max.LineHeight then Max.LineHeight := V.Visual.Rect.Height;
-    if V.LineSpace>Max.LineSpace then Max.LineSpace := V.LineSpace;
-
-    X := V.Visual.Rect.Right;
-  end;
-
-  Lb.SetTextSize(Max.OverallWidth, Max.OverallHeight);
-  Lb.FLineCount := LineCount;
-end;
-
-procedure TTokensProcess.CheckAlign(V: TPreObj_Visual);
-type
-  TFuncAlignResult = record
-    Outside, Inside: TPixels;
-  end;
-
-  function funcAlignHorz: TFuncAlignResult;
-  var
-    B: TGroupBound;
-    GrpLim: TPixels;
-  begin
-    B := LGroupBound[V.Group];
-    if B.Limit = -1 then
-    begin //group has no limit
-      if Lb.FOverallHorzAlign in [haCenter, haRight] then
-        GrpLim := Lb.FTextWidth
-      else
-        GrpLim := Lb.GetAreaWidth;
-    end
-      else GrpLim := B.Limit;
-
-    Result.Outside := GrpLim;
-    Result.Inside := B.Right;
-  end;
-
-  function funcAlignVert: TFuncAlignResult;
-  begin
-    Result.Outside := LLineInfo[V.Line].Height;
-    Result.Inside := V.Visual.Rect.Height;
-  end;
-
-  function funcOverallAlignHorz: TFuncAlignResult;
-  begin
-    Result.Outside := Lb.GetAreaWidth;
-    Result.Inside := Lb.FTextWidth;
-  end;
-
-  function funcOverallAlignVert: TFuncAlignResult;
-  begin
-    Result.Outside := Lb.GetAreaHeight;
-    Result.Inside := Lb.FTextHeight;
-  end;
-
-  procedure Check(fnIndex: Byte; horz: Boolean; prop: Variant);
-  var
-    R: TFuncAlignResult;
-    P: TAnyPoint;
-    Offset: TPixels;
-  begin
-    if prop>0 then //center or right
-    begin
-      case fnIndex of
-        0: R := funcAlignHorz;
-        1: R := funcAlignVert;
-        2: R := funcOverallAlignHorz;
-        3: R := funcOverallAlignVert;
-      end;
-
-      Offset := R.Outside - R.Inside;
-      if prop=1 then Offset := {$IFDEF VCL}Round{$ENDIF}(Offset / 2); //center
-
-      P := TAnyPoint.Create(0, 0);
-      if horz then
-        P.X := Offset
-      else
-        P.Y := Offset;
-
-      V.Visual.Rect.Offset(P);
-    end;
-  end;
-
-begin
-  Check(0, True, V.Align);
-  Check(1, False, V.VertAlign);
-
-  Check(2, True, Lb.FOverallHorzAlign);
-  Check(3, False, Lb.FOverallVertAlign);
-end;
-
-procedure TTokensProcess.Publish;
-var
-  Z: TPreObj;
-  V: TPreObj_Visual;
-begin
-  for Z in Items do
-  begin
-    if not (Z is TPreObj_Visual) then Continue;
-    V := TPreObj_Visual(Z);
-    if not V.Print then Continue;
-
-    CheckAlign(V);
-
-    Lb.LVisualItem.Add(V.Visual);
-    V.Visual := nil;
-  end;
 end;
 {$ENDREGION}
 
@@ -3317,22 +1924,6 @@ begin
     Lb.BuildAndPaint;
   end;
 end;
-
-function TDHBorders.GetHorizontalScaled: TPixels;
-begin
-  Result := Lb.Scaling.Calc(FLeft + FRight);
-end;
-
-function TDHBorders.GetVerticalScaled: TPixels;
-begin
-  Result := Lb.Scaling.Calc(FTop + FBottom);
-end;
-
-function TDHBorders.GetRealRect(R: TAnyRect): TAnyRect;
-begin
-  Result := R;
-  Result.Offset(Lb.Scaling.Calc(FLeft), Lb.Scaling.Calc(FTop));
-end;
 {$ENDREGION}
 
 {$REGION 'TDHOffset'}
@@ -3377,6 +1968,271 @@ begin
 
     Lb.BuildAndPaint;
   end;
+end;
+{$ENDREGION}
+
+{$REGION 'TDHCustomStyles'}
+constructor TDHCustomStyles.Create(Lb: TDzHTMLText);
+begin
+  inherited Create(TDHCustomStyle);
+  Self.Lb := Lb;
+end;
+
+function TDHCustomStyles.GetOwner: TPersistent;
+begin
+  Result := Lb;
+end;
+
+procedure TDHCustomStyles.Update(Item: TCollectionItem);
+begin
+  Lb.BuildAndPaint;
+end;
+
+function TDHCustomStyles.FindByIdent(const Ident: string): TDHCustomStyle;
+var
+  Item: TCollectionItem;
+  Style: TDHCustomStyle;
+begin
+  for Item in Self do
+  begin
+    Style := TDHCustomStyle(Item);
+    if SameText(Style.FIdent, Ident) then Exit(Style);
+  end;
+
+  Result := nil;
+end;
+{$ENDREGION}
+
+{$REGION 'TDHCustomStyle'}
+constructor TDHCustomStyle.Create(Collection: TCollection);
+begin
+  inherited;
+
+  FFontColor := clNone;
+  FBackColor := clNone;
+
+  FOffsetTop := -1;
+  FOffsetBottom := -1;
+
+  FLineSpacing := -1;
+  FParagraphSpacing := -1;
+  FParagraphIndent := -1;
+end;
+
+function TDHCustomStyle.GetDisplayName: string;
+begin
+  Result := FIdent;
+end;
+
+procedure TDHCustomStyle.Modified;
+begin
+  Changed(False);
+end;
+
+procedure TDHCustomStyle.SetIdent(const Value: string);
+begin
+  if Value <> FIdent then
+  begin
+    FIdent := Value;
+
+    Modified; //style name changed - rebuild because of tag property
+  end;
+end;
+
+procedure TDHCustomStyle.SetFontName(const Value: string);
+begin
+  if Value <> FFontName then
+  begin
+    FFontName := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetFontSize(const Value: TPixels);
+begin
+  if Value <> FFontSize then
+  begin
+    FFontSize := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetStyleBold(const Value: TDHCustomStyleBoolValue);
+begin
+  if Value <> FStyleBold then
+  begin
+    FStyleBold := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetStyleItalic(const Value: TDHCustomStyleBoolValue);
+begin
+  if Value <> FStyleItalic then
+  begin
+    FStyleItalic := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetStyleUnderline(const Value: TDHCustomStyleBoolValue);
+begin
+  if Value <> FStyleUnderline then
+  begin
+    FStyleUnderline := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetStyleStrikeout(const Value: TDHCustomStyleBoolValue);
+begin
+  if Value <> FStyleStrikeout then
+  begin
+    FStyleStrikeout := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetFontColor(const Value: TAnyColor);
+begin
+  if Value <> FFontColor then
+  begin
+    FFontColor := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetBackColor(const Value: TAnyColor);
+begin
+  if Value <> FBackColor then
+  begin
+    FBackColor := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetHorzAlign(const Value: TDHCustomStyleHorzAlignValue);
+begin
+  if Value <> FHorzAlign then
+  begin
+    FHorzAlign := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetVertAlign(const Value: TDHCustomStyleVertAlignValue);
+begin
+  if Value <> FVertAlign then
+  begin
+    FVertAlign := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetOffsetTop(const Value: TPixels);
+begin
+  if Value <> FOffsetTop then
+  begin
+    FOffsetTop := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetOffsetBottom(const Value: TPixels);
+begin
+  if Value <> FOffsetBottom then
+  begin
+    FOffsetBottom := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetLineSpacing(const Value: TPixels);
+begin
+  if Value <> FLineSpacing then
+  begin
+    FLineSpacing := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetParagraphSpacing(const Value: TPixels);
+begin
+  if Value <> FParagraphSpacing then
+  begin
+    FParagraphSpacing := Value;
+
+    Modified;
+  end;
+end;
+
+procedure TDHCustomStyle.SetParagraphIndent(const Value: TPixels);
+begin
+  if Value <> FParagraphIndent then
+  begin
+    FParagraphIndent := Value;
+
+    Modified;
+  end;
+end;
+
+function TDHCustomStyle.GetStoredOffsetTop: Boolean;
+begin
+  Result := FOffsetTop<>-1;
+end;
+
+function TDHCustomStyle.GetStoredOffsetBottom: Boolean;
+begin
+  Result := FOffsetBottom<>-1;
+end;
+
+function TDHCustomStyle.GetStoredLineSpacing: Boolean;
+begin
+  Result := FLineSpacing<>-1;
+end;
+
+function TDHCustomStyle.GetStoredParagraphSpacing: Boolean;
+begin
+  Result := FParagraphSpacing<>-1;
+end;
+
+function TDHCustomStyle.GetStoredParagraphIndent: Boolean;
+begin
+  Result := FParagraphIndent<>-1;
+end;
+{$ENDREGION}
+
+{$REGION 'TDHLinkRef'}
+constructor TDHLinkRef.Create(const Target: string);
+begin
+  FTarget := Target;
+  FText := TStringBuilder.Create;
+end;
+
+destructor TDHLinkRef.Destroy;
+begin
+  FText.Free;
+end;
+{$ENDREGION}
+
+{$REGION 'TDHSpoiler'}
+constructor TDHSpoiler.Create(const Name: string; Expanded: Boolean);
+begin
+  FName := Name;
+  FExpanded := Expanded;
 end;
 {$ENDREGION}
 

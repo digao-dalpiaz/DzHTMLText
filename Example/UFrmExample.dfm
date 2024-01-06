@@ -12,9 +12,7 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object Lb: TDzHTMLText
     Left = 8
@@ -50,10 +48,10 @@ object Form1: TForm1
     LineVertAlign = vaCenter
   end
   object Lb2: TDzHTMLText
-    Left = 352
+    Left = 351
     Top = 8
     Width = 337
-    Height = 273
+    Height = 274
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -63,11 +61,23 @@ object Form1: TForm1
     ParentColor = False
     ParentFont = False
     Lines.Strings = (
-      'You can use tab align too:<fc:$EF7769>'
-      '<t:10>1<t:30>JHON<t:100><r>100,000</r><t:150>'
-      '<t:10>2<t:30>SARAH<t:100><r>1,150,000</r><t:150>'
-      '<t:10>3<t:30>ERIC<t:100><r>180,000</r><t:150></fc>'
-      ''
+      'You can use divs too:<fc:$EF7769>'
+      '<div:align=center,width=full>'
+      
+        '<nbr><div:width=50,lncolor=clGray,thick=1><c>1</c></div><div:wid' +
+        'th=200,lncolor=clGray,thick=1,thick_left=0>JOHN</div><div:width=' +
+        '75,lncolor=clGray,thick=1,thick_left=0><r>100,000</r></div>'
+      
+        '<div:width=50,lncolor=clGray,thick=1,thick_top=0><c>2</c></div><' +
+        'div:width=200,lncolor=clGray,thick=1,thick_left=0,thick_top=0>SA' +
+        'RAH</div><div:width=75,lncolor=clGray,thick=1,thick_left=0,thick' +
+        '_top=0><r>180,000</r></div>'
+      
+        '<div:width=50,lncolor=clGray,thick=1,thick_top=0><c>3</c></div><' +
+        'div:width=200,lncolor=clGray,thick=1,thick_left=0,thick_top=0>ER' +
+        'IC</div><div:width=75,lncolor=clGray,thick=1,thick_left=0,thick_' +
+        'top=0,color=clLime><r>1.150,000</r></div>'
+      '</div></fc>'
       'HTML Lists:<fc:$2768EF>'
       '<nbr><ul>'
       '<li>Item 1</li>'
@@ -84,8 +94,9 @@ object Form1: TForm1
       '<li>Item 3</li>'
       '<nbr></ul></fc>'
       
-        '<nbr><float:200,100,120><c>This is a <b>floating area</b>, where' +
-        ' you can write any text and even use tags!!!<c></float>')
+        '<nbr><div:x=200,y=100,width=120><c>This is a <b>floating div are' +
+        'a</b>, where you can write any text and even use tags!!!</c></di' +
+        'v>')
     LineVertAlign = vaCenter
   end
   object Lb3: TDzHTMLText
@@ -104,7 +115,7 @@ object Form1: TForm1
         '<c>Please note that components above have <b>White</b> backgound' +
         ' only because I want to show the bounds, to understand line brea' +
         'ks and alignments. Of course you can use parent backgound (defau' +
-        'lt), like this.<c>')
+        'lt), like this.</c>')
   end
   object MyImages: TImageList
     Height = 24
