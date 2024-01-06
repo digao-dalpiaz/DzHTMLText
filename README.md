@@ -452,7 +452,7 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 
 `Borders: TDHBorders` = Defines `Left`, `Top`, `Right` and `Bottom` sub-properties, specifying the text area margins.
 
-`Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background. In VCL environment, transparency is not available.
+`Color: TColor` = Background color of control. In FMX environment, `Null` represents transparent background.
 
 `CustomStyles: TDHHeaderStyles` = Collection of header styles to use with tag `<H:ident>`, where `ident` is Ident property of a header style in collection list.
 
