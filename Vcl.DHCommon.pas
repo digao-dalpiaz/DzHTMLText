@@ -203,27 +203,57 @@ begin
 end;
 
 function ParamToColor(const Param: string): TAnyColor;
-var
-  A: string;
-begin
-  A := Param;
-  if A.IsEmpty then Exit(clNone);
 
-  if A.StartsWith('#') then A[1] := '$';
-
-  if A.StartsWith('$') then
+  function FillParts(const Value: string; var P1: string; var P2: string; var P3: string; var P4: string): Boolean;
   begin
-    if A.Length=7 then Insert({$IFDEF FMX}'FF'{$ELSE}'00'{$ENDIF}, A, 2);
-    //Allow 6-digit (HTML) or 8-digit (Delphi) color notation
-    //The firsts two digits in 8-digit format represents the alpha channel in FMX
+    if Value.Length<>9 then Exit(False);
 
-    if A.Length<>9 then Exit(clNone);
+    P1 := Copy(Value, 2, 2);
+    P2 := Copy(Value, 4, 2);
+    P3 := Copy(Value, 6, 2);
+    P4 := Copy(Value, 8, 2);
+
+    Result := True;
   end;
+
+const
+  SOLID_VCL = '00';
+  SOLID_FMX = 'FF';
+var
+  A, Alpha, R, G, B: string;
+  IsHex: Boolean;
+begin
+  Result := clNone;
+
+  A := Param;
+  if A.IsEmpty then Exit;
+
+  IsHex := False;
+  case A[1] of
+    '$': //Delphi VCL notation (BGR)
+    begin
+      if not FillParts(A, Alpha, B, G, R) then Exit;
+      if Alpha<>SOLID_VCL then Exit; //vcl only supports solid colors
+      {$IFDEF FMX}Alpha := SOLID_FMX;{$ENDIF}
+      IsHex := True;
+    end;
+
+    '#': //HTML notation or Delphi FMX notation (RGB)
+    begin
+      if A.Length=7 then Insert(SOLID_FMX, A, 2);
+      if not FillParts(A, Alpha, R, G, B) then Exit;
+      {$IFDEF VCL}if Alpha<>SOLID_FMX then Exit;{$ENDIF} //vcl only supports solid colors
+      IsHex := True;
+    end;
+  end;
+
+  if IsHex then
+    A := '$'+{$IFDEF FMX}Alpha+R+G+B{$ELSE}SOLID_VCL+B+G+R{$ENDIF};
 
   try
     Result := {$IFDEF FMX}StringToAlphaColor(A){$ELSE}StringToColor(A){$ENDIF};
   except
-    Result := clNone;
+    //invalid color
   end;
 end;
 
