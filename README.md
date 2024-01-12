@@ -27,10 +27,18 @@
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Auto Scaling](#auto-scaling)
+- [Color Notation](#color-notation)
 - [Formatted Message Dialog Component](#formatted-message-dialog-component)
 - [Donate](#donate)
 
 ## What's New
+
+- 01/12/2024 (Version 5.1)
+
+   - Improved VCL x FMX x HTML color notation. Please read Color Notation topic.
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
 
 - 01/05/2024 (Version 5.0)
 
@@ -70,9 +78,6 @@
    - Tag `<BR>` now supports parameter to specify if a new paragraph or a continuous line
    - New Tag `<PI>` - paragraph indent
    - New Transparent property for VCL
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 12/05/2023 (Version 4.4)
 
@@ -409,7 +414,7 @@ This visual component allows you to specify a formatted text in a label, using a
 <OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
   Offset margins are memorized if a new offset tag is specifyed without same parameter name
 
-* COLOR_VALUE - clColor(VCL)|Color(FMX)|$123456|$12345678|#123456|#12345678
+* COLOR_VALUE - clColor(VCL)|Color(FMX)|$00GGBBRR|#AARRGGBB|#RRGGBB
 * When FMX, all sizes (TPixels) use the "." notation as a decimal separator
 ```
 
@@ -714,6 +719,18 @@ If using Windows previous version, the scaling will be based on the default moni
 ### FMX
 
 In FMX environment, auto scaling is controled by Fire Monkey framework, automatically scaling the entire form layout and its components.
+
+## Color Notation
+
+When using tags like `<fc:color>` or `<bc:color>`, you can specify these color notation options:
+
+- VCL Style: `$00BBGGRR`, where BB=Blue Color, GG=Green Color, RR=Red Color.
+- VCL Literal: `clColor` -> example: clBlack, or clWindowText.
+- FMX Style: `#AARRGGBB`, where AA=Alpha Chanel, RR=Red, GG=Green, BB=Blue.
+- FMX Literal: `Color` -> example: Black (FMX TAlphaColor does not support system colors).
+- HTML Style: `#RRGGBB`, where RR=Red, GG=Green, BB=Blue (when using in FMX, alpha channel will be set to `FF` - solid).
+
+You can specify VCL notation when using FMX component, or even using FMX notation when using VCL component. The same for HTML notation.
 
 ## Formatted Message Dialog Component
 
