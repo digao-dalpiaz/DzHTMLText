@@ -726,7 +726,7 @@ When using tags like `<fc:color>` or `<bc:color>`, you can specify these color n
 
 - VCL Style: `$00BBGGRR`, where BB=Blue Color, GG=Green Color, RR=Red Color.
 - VCL Literal: `clColor` -> example: clBlack, or clWindowText.
-- FMX Style: `#AARRGGBB`, where AA=Alpha Chanel, RR=Red, GG=Green, BB=Blue.
+- FMX Style: `#AARRGGBB`, where AA=Alpha Chanel, RR=Red, GG=Green, BB=Blue (when using in VLC, alpha channel only supports `FF` value).
 - FMX Literal: `Color` -> example: Black (FMX TAlphaColor does not support system colors).
 - HTML Style: `#RRGGBB`, where RR=Red, GG=Green, BB=Blue (when using in FMX, alpha channel will be set to `FF` - solid).
 
