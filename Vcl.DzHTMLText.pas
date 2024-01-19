@@ -1,4 +1,4 @@
-{------------------------------------------------------------------------------
+﻿{------------------------------------------------------------------------------
 TDzHTMLText component
 Developed by Rodrigo Depine Dalpiaz (digao dalpiaz)
 Label with formatting tags support
@@ -29,7 +29,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 707; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 708; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -652,7 +652,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '5.1';
+const STR_VERSION = '5.2';
 
 const DEFAULT_PPI = 96;
 
