@@ -428,6 +428,11 @@ This visual component allows you to specify a formatted text in a label, using a
 
 > The tags notation is case-insensitive, so you can use `<B>Text</B>` or `<b>Text</b>`.
 
+Tags must follow the hierarchy as they were opened: 
+
+- `<b><i>text</i></b>` = CORRECT
+- `<b><i>text</b></i>` = WRONG
+
 ![Runtime example](images/runtime_print.png)
 
 ## Installing
