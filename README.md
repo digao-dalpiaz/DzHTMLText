@@ -24,6 +24,7 @@
 - [Link object](#link-object)
 - [Image Tag](#image-tag)
 - [Div Tag](#div-tag)
+- [Tab Tag])#tab-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Auto Scaling](#auto-scaling)
@@ -33,19 +34,24 @@
 
 ## What's New
 
-- 01/12/2024 (Version 5.1)
+- 01/19/2024 (Version 5.2)
 
-   - Improved VCL x FMX x HTML color notation. Please read Color Notation topic.
+   - Fixed left margin after List tags (Unordered and Ordered lists).
+   - Reintroduced `<T>` and `<TF>` tags.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
 
+- 01/12/2024 (Version 5.1)
+
+   - Improved VCL x FMX x HTML color notation. Please read Color Notation topic.
+
 - 01/05/2024 (Version 5.0)
 
-   | :exclamation: Component breaking changes           |
-   |----------------------------------------------------|
-   | Tags `<T>`, `<TF>` and `<FLOAT>` have been removed |
-   | Please use new tag `<DIV>`                         |
+   | :exclamation: Component breaking changes                                                          |
+   |---------------------------------------------------------------------------------------------------|
+   | Tags `<T>`, `<TF>` and `<FLOAT>` have been removed (`<T>` and `<TF>` reintroduced in version 5.2) |
+   | Please use new tag `<DIV>`                                                                        |
 
    - **NEW COMPONENT ENGINE!!!**
    - Improved token processing performance
@@ -413,6 +419,8 @@ This visual component allows you to specify a formatted text in a label, using a
 <VALIGN:top|center|bottom></VALIGN> - Aligning content vertically to the line
 <OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
   Offset margins are memorized if a new offset tag is specifyed without same parameter name
+<T:123> = Tab - left margin offset
+<TF:123> = Tab with continuous lines aligned
 
 * COLOR_VALUE - clColor(VCL)|Color(FMX)|$00GGBBRR|#AARRGGBB|#RRGGBB
 * When FMX, all sizes (TPixels) use the "." notation as a decimal separator
@@ -681,6 +689,13 @@ The component is based in Div areas. This mean the main area of component is a D
 The div tag may be floating, using specific X and Y position, or docked to the current text, when not specifying any position.
 
 Please, refer to all possible parameters in [Available tags](#available-tags).
+
+## Tab Tag
+
+There are two **tab** tags you can use:
+
+- `<t:nnn>` = Allow you to positioning text exactly on "nnn" position in pixels starting on the left border of component. If the text wraps to a new line, it will be return aligned at left border of component.
+- `<tf:nnn>` = The same as above, but if the text wraps to a new line, it will be aligned in the same position as the first line which the tab started. This tag will produce a better visual text alignment.
 
 ## Literal tag character
 
