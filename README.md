@@ -24,7 +24,7 @@
 - [Link object](#link-object)
 - [Image Tag](#image-tag)
 - [Div Tag](#div-tag)
-- [Tab Tag])#tab-tag)
+- [Tab Tag](#tab-tag)
 - [Literal tag character](#literal-tag-character)
 - [Chinese/Japanese/Korean line break](#chinesejapanesekorean-line-break)
 - [Auto Scaling](#auto-scaling)
