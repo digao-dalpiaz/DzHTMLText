@@ -34,10 +34,11 @@
 
 ## What's New
 
-- 01/19/2024 (Version 5.2)
+- 01/21/2024 (Version 5.2)
 
    - Fixed left margin after List tags (Unordered and Ordered lists).
    - Reintroduced `<T>` and `<TF>` tags.
+   - New PlainText and GeneratePlainText properties (public) - removed HTMLToPlainText method.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
