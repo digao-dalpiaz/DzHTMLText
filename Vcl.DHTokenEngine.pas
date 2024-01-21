@@ -2120,10 +2120,13 @@ var
 
 var
   Line: TDHDivAreaLine;
+  WrPlainText: Boolean;
 begin
   PDiv := DivArea.GetAbsoluteStartingPos;
 
   ProcessFloatingDivs(True);
+
+  WrPlainText := Lb.GeneratePlainText and (DivArea = MainDiv);
 
   for Line in DivArea.Lines do
   begin
@@ -2137,9 +2140,14 @@ begin
         Item.SelfDiv.FixedSize.Height := Item.Size.Height; //size of div area for align children
       end;
 
+      if WrPlainText and (Item.VisualObject is TDHVisualItem_Word) then
+        Lb.PlainText.Append(TDHVisualItem_Word(Item.VisualObject).Text);
+
       CheckAlign(Item, Line, DivArea);
       DoItem;
     end;
+
+    if WrPlainText then Lb.PlainText.Append(sLineBreak);
   end;
 
   ProcessFloatingDivs(False);
