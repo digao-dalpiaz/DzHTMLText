@@ -1,4 +1,4 @@
-{------------------------------------------------------------------------------
+﻿{------------------------------------------------------------------------------
 TDzHTMLText component
 Developed by Rodrigo Depine Dalpiaz (digao dalpiaz)
 Label with formatting tags support
@@ -29,7 +29,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 707; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 708; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -363,6 +363,9 @@ type
     ParentForm: TCustomForm;
     {$ENDIF}
 
+    FGeneratePlainText: Boolean;
+    FPlainText: TStringBuilder;
+
     procedure OnLinesChange(Sender: TObject);
     procedure SetLines(const Value: TStrings);
     function GetText: string;
@@ -457,6 +460,9 @@ type
     procedure SetParent(AParent: TWinControl); override;
     {$ENDIF}
   public
+    property GeneratePlainText: Boolean read FGeneratePlainText write FGeneratePlainText;
+    property PlainText: TStringBuilder read FPlainText;
+
     property Spoilers: TDHSpoilerList read LSpoiler;
     property LinkRefs: TDHLinkRefList read LLinkRef;
 
@@ -481,7 +487,6 @@ type
 
     class function UnescapeHTMLToText(const aHTML: string): string;
     class function EscapeTextToHTML(const aText: string): string;
-    class function HTMLToPlainText(const aHTML: string): string;
   published
     property Align;
     property Anchors;
@@ -652,7 +657,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '5.1';
+const STR_VERSION = '5.2';
 
 const DEFAULT_PPI = 96;
 
@@ -797,26 +802,6 @@ begin
 
   Result := StringReplace(Result, '&amp;', '&', [rfReplaceAll]);
 end;
-
-class function TDzHTMLText.HTMLToPlainText(const aHTML: string): string;
-var
-  X, XEnd: Integer;
-begin
-  Result := aHTML;
-
-  while True do
-  begin
-    X := Pos('<', Result);
-    if X=0 then Break;
-
-    XEnd := PosEx('>', Result, X+1);
-    if XEnd=0 then Break;
-
-    Delete(Result, X, XEnd-X+1);
-  end;
-
-  Result := UnescapeHTMLToText(Result);
-end;
 {$ENDREGION}
 
 {$REGION 'TDzHTMLText'}
@@ -847,6 +832,8 @@ begin
   FOffset := TDHOffset.Create(Self);
   FCustomStyles := TDHCustomStyles.Create(Self);
 
+  FPlainText := TStringBuilder.Create;
+
   FCursor := crDefault;
 
   {$IFDEF FMX}
@@ -876,6 +863,7 @@ begin
   VisualItems.Free;
   LLinkRef.Free;
   LSpoiler.Free;
+  FPlainText.Free;
   inherited;
 end;
 
@@ -1696,6 +1684,8 @@ begin
 
   VisualItems.Clear; //clean visual items
   LLinkRef.Clear; //clean old links
+
+  FPlainText.Clear;
 
   B := TDHBuilder.Create(Self,
     {$IFDEF FMX}TCanvasManager.MeasureCanvas{$ELSE}Canvas{$ENDIF},

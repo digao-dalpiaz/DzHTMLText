@@ -1,4 +1,4 @@
-{$IFNDEF FMX}unit Vcl.DHCommon;{$ENDIF}
+﻿{$IFNDEF FMX}unit Vcl.DHCommon;{$ENDIF}
 
 {$INCLUDE Defines.inc}
 

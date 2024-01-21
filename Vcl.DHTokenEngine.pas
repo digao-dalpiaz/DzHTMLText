@@ -1,4 +1,4 @@
-{$IFNDEF FMX}unit Vcl.DHTokenEngine;{$ENDIF}
+﻿{$IFNDEF FMX}unit Vcl.DHTokenEngine;{$ENDIF}
 
 {$INCLUDE Defines.inc}
 
@@ -150,12 +150,24 @@ type
     procedure ReadParam; override;
     procedure Process; override;
   end;
+
+  TDHToken_TabBase = class abstract(TDHTokenSingle)
+  private
+    Margin: TPixels;
+
+    procedure ReadParam; override;
+    procedure Process; override;
+
+    function IsBreakableToken: Boolean; override;
+  end;
+  TDHToken_Tab = class(TDHToken_TabBase);
+  TDHToken_TabF = class(TDHToken_TabBase);
   {$ENDREGION}
 
   {$REGION 'Token block classes'}
   TDHToken_Main = class(TDHTokenBlock);
 
-  TDHToken_FontStyleItem = class(TDHTokenBlock)
+  TDHToken_FontStyleItem = class abstract(TDHTokenBlock)
   private
     Disabled: Boolean;
 
@@ -184,7 +196,7 @@ type
     procedure Process; override;
   end;
 
-  TDHToken_Color = class(TDHTokenBlock)
+  TDHToken_Color = class abstract(TDHTokenBlock)
   private
     Color: TAnyColor;
 
@@ -257,7 +269,7 @@ type
     procedure Process; override;
   end;
 
-  TDHToken_Spoiler = class(TDHTokenBlock)
+  TDHToken_Spoiler = class abstract(TDHTokenBlock)
   private
     Ident: string;
   end;
@@ -274,14 +286,14 @@ type
     procedure Process; override;
   end;
 
-  TDHToken_SuperOrSubScript = class(TDHTokenBlock)
+  TDHToken_SuperOrSubScript = class abstract(TDHTokenBlock)
   private
     procedure Process; override;
   end;
   TDHToken_Superscript = class(TDHToken_SuperOrSubScript);
   TDHToken_Subscript = class(TDHToken_SuperOrSubScript);
 
-  TDHToken_List = class(TDHTokenBlock)
+  TDHToken_List = class abstract(TDHTokenBlock)
   private
     procedure Process; override;
   end;
@@ -492,12 +504,14 @@ type
   end;
 
 const
-  TOKENS_OBJECTS: array[0..29] of TDHTokenObjectDef = (
+  TOKENS_OBJECTS: array[0..31] of TDHTokenObjectDef = (
     //single
     (Ident: 'BR'; Clazz: TDHToken_Break; AllowPar: True; OptionalPar: True), //breakable!
     (Ident: 'LINE'; Clazz: TDHToken_Line; AllowPar: True; OptionalPar: True),
     (Ident: 'IMG'; Clazz: TDHToken_Image; AllowPar: True),
     (Ident: 'IMGRES'; Clazz: TDHToken_ImageResource; AllowPar: True),
+    (Ident: 'T'; Clazz: TDHToken_Tab; AllowPar: True), //breakable!
+    (Ident: 'TF'; Clazz: TDHToken_TabF; AllowPar: True), //breakable!
 
     //block
     (Ident: 'B'; Clazz: TDHToken_Bold; AllowPar: True; OptionalPar: True),
@@ -968,6 +982,33 @@ begin
   Builder.AddVisualItemToQueue(V, Size);
 end;
 
+{ TDHToken_TabBase }
+
+function TDHToken_TabBase.IsBreakableToken: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TDHToken_TabBase.ReadParam;
+begin
+  Margin := Lb.CalcScale(StrToPixels(Param, -1));
+  ValidParam := Margin>=0;
+end;
+
+procedure TDHToken_TabBase.Process;
+var
+  DivMargin: TPixels;
+begin
+  Builder.CurrentDiv.Point.X := Margin;
+
+  if Self is TDHToken_TabF then
+    DivMargin := Margin
+  else
+    DivMargin := 0;
+
+  Builder.CurrentDiv.LeftMargin := DivMargin;
+end;
+
 { TDHToken_AlignLeft }
 
 procedure TDHToken_AlignLeft.Process;
@@ -1359,7 +1400,7 @@ end;
 destructor TDHPreVisualItem.Destroy;
 begin
   if VisualObject<>nil then VisualObject.Free;
-  if SelfDiv<>nil then SelfDiv.Free;  
+  if SelfDiv<>nil then SelfDiv.Free;
 
   inherited;
 end;
@@ -1892,6 +1933,9 @@ function TDHBuilder.JumpLine(Continuous: Boolean): TDHDivAreaLine;
 begin
   EndOfLine; //must always contains lines here
 
+  if not Continuous and (Props.List_Level=0) then
+    CurrentDiv.LeftMargin := 0;
+
   Result := AddNewLineObject(Continuous);
 end;
 
@@ -2076,10 +2120,13 @@ var
 
 var
   Line: TDHDivAreaLine;
+  WrPlainText: Boolean;
 begin
   PDiv := DivArea.GetAbsoluteStartingPos;
 
   ProcessFloatingDivs(True);
+
+  WrPlainText := Lb.GeneratePlainText and (DivArea = MainDiv);
 
   for Line in DivArea.Lines do
   begin
@@ -2093,9 +2140,14 @@ begin
         Item.SelfDiv.FixedSize.Height := Item.Size.Height; //size of div area for align children
       end;
 
+      if WrPlainText and (Item.VisualObject is TDHVisualItem_Word) then
+        Lb.PlainText.Append(TDHVisualItem_Word(Item.VisualObject).Text);
+
       CheckAlign(Item, Line, DivArea);
       DoItem;
     end;
+
+    if WrPlainText then Lb.PlainText.Append(sLineBreak);
   end;
 
   ProcessFloatingDivs(False);
