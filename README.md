@@ -34,14 +34,18 @@
 
 ## What's New
 
+- 01/23/2024 (Version 5.3)
+
+   - Reorganization of component folders (Please completely delete the previous component folder). 
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 01/21/2024 (Version 5.2)
 
    - Fixed left margin after List tags (Unordered and Ordered lists).
    - Reintroduced `<T>` and `<TF>` tags.
    - New PlainText and GeneratePlainText properties (public) - removed HTMLToPlainText method.
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 01/12/2024 (Version 5.1)
 
