@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <PathDelim Value="\"/>
     <Name Value="LazDzHTMLText"/>
     <Type Value="RunAndDesignTime"/>
@@ -8,28 +8,38 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
+        <OtherUnitFiles Value="Source"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
         <CompilerMessages>
-          <IgnoredMessages idx3124="True" idx3123="True"/>
+          <IgnoredMessages idx6058="True" idx5091="True" idx5024="True" idx3177="True" idx3124="True" idx3123="True"/>
         </CompilerMessages>
+        <CustomOptions Value="-Sd"/>
       </Other>
     </CompilerOptions>
-    <Files Count="1">
-      <Item1>
-        <Filename Value="Vcl.DzHTMLText.pas"/>
+    <Files>
+      <Item>
+        <Filename Value="Source\Vcl.DzHTMLText.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="Vcl.DzHTMLText"/>
-      </Item1>
+      </Item>
+      <Item>
+        <Filename Value="Source\Vcl.DHCommon.pas"/>
+        <UnitName Value="Vcl.DHCommon"/>
+      </Item>
+      <Item>
+        <Filename Value="Source\Vcl.DHTokenEngine.pas"/>
+        <UnitName Value="Vcl.DHTokenEngine"/>
+      </Item>
     </Files>
-    <RequiredPkgs Count="2">
-      <Item1>
+    <RequiredPkgs>
+      <Item>
         <PackageName Value="LCLBase"/>
-      </Item1>
-      <Item2>
+      </Item>
+      <Item>
         <PackageName Value="FCL"/>
-      </Item2>
+      </Item>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>

@@ -3,10 +3,10 @@
         <ProjectGuid>{7B7BCD1A-B004-4D21-80FB-86256C40BA70}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="DzHTMLText_VCL.dproj">
+        <Projects Include="Source\DzHTMLText_VCL.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="DzHTMLText_FMX.dproj">
+        <Projects Include="Source\DzHTMLText_FMX.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -18,22 +18,22 @@
         </BorlandProject>
     </ProjectExtensions>
     <Target Name="DzHTMLText_VCL">
-        <MSBuild Projects="DzHTMLText_VCL.dproj"/>
+        <MSBuild Projects="Source\DzHTMLText_VCL.dproj"/>
     </Target>
     <Target Name="DzHTMLText_VCL:Clean">
-        <MSBuild Projects="DzHTMLText_VCL.dproj" Targets="Clean"/>
+        <MSBuild Projects="Source\DzHTMLText_VCL.dproj" Targets="Clean"/>
     </Target>
     <Target Name="DzHTMLText_VCL:Make">
-        <MSBuild Projects="DzHTMLText_VCL.dproj" Targets="Make"/>
+        <MSBuild Projects="Source\DzHTMLText_VCL.dproj" Targets="Make"/>
     </Target>
     <Target Name="DzHTMLText_FMX">
-        <MSBuild Projects="DzHTMLText_FMX.dproj"/>
+        <MSBuild Projects="Source\DzHTMLText_FMX.dproj"/>
     </Target>
     <Target Name="DzHTMLText_FMX:Clean">
-        <MSBuild Projects="DzHTMLText_FMX.dproj" Targets="Clean"/>
+        <MSBuild Projects="Source\DzHTMLText_FMX.dproj" Targets="Clean"/>
     </Target>
     <Target Name="DzHTMLText_FMX:Make">
-        <MSBuild Projects="DzHTMLText_FMX.dproj" Targets="Make"/>
+        <MSBuild Projects="Source\DzHTMLText_FMX.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
         <CallTarget Targets="DzHTMLText_VCL;DzHTMLText_FMX"/>
