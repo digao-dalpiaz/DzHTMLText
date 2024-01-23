@@ -36,7 +36,7 @@
 
 - 01/23/2024 (Version 5.3)
 
-   - Reorganization of component folders (Please completely delete the previous component folder). 
+   - Reorganization of component folders (Please completely delete the previous component folder). **WARNING! DCU output folder changed. Now output directory is `Lib\{Platform}\{Config}`. Please review your Library Paths.**
 
 <details>
   <summary>Click here to view the entire changelog</summary>
@@ -456,7 +456,7 @@ Tags must follow the hierarchy as they were opened:
 2. Ensure **Win32** Platform and **Release** config are selected in VCL and FMX packages.
 3. Then **Build** and **Install** all packages.
 4. If you want to use Win64 platform, select this platform and Build again.
-5. Add sub-path Win32\Release to the Library paths at Tools\Options using 32-bit option, and if you have compiled to 64 bit platform, add sub-path Win64\Release using 64-bit option.
+5. Add Library Path according to the platform in Tools\Options. Example: If you are using Win32, set path = `Lib\Win32\Release`.
 
 Supports Delphi XE3..Delphi 12
 
