@@ -34,7 +34,7 @@
 
 ## What's New
 
-- 01/25/2024 (Version 5.3)
+- 01/27/2024 (Version 5.3)
 
    - Reorganization of component folders (Please completely delete the previous component folder). **WARNING! DCU output folder changed. Now output directory is `Lib\{Platform}\{Config}`. Please review your Library Paths.**
    - Auto-install now supports Delphi 12.
