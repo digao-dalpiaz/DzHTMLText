@@ -2,10 +2,8 @@ unit UFrmExample;
 
 interface
 
-uses Vcl.Forms, Vcl.ImgList, Vcl.Controls, System.Classes, Vcl.DzHTMLText,
-  {$IF CompilerVersion >= 29}System.ImageList,{$ENDIF}
-  //
-  Vcl.Graphics;
+uses Vcl.Forms, Vcl.ImgList, Vcl.Controls, System.Classes, System.ImageList,
+  Vcl.DzHTMLText, Vcl.Graphics;
 
 type
   TForm1 = class(TForm)
@@ -15,7 +13,7 @@ type
     Lb3: TDzHTMLText;
     procedure FormCreate(Sender: TObject);
     procedure LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
-      Picture: TAnyPicture; var Handled: Boolean);
+      Picture: TPicture; var Handled: Boolean);
     procedure LbLinkClick(Sender: TObject; Link: TDHBaseLink;
       var Handled: Boolean);
   end;
@@ -45,7 +43,7 @@ begin
 end;
 
 procedure TForm1.LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
-  Picture: TAnyPicture; var Handled: Boolean);
+  Picture: TPicture; var Handled: Boolean);
 begin
   if ResourceName='LOGO' then
   begin

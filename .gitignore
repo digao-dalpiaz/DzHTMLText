@@ -1,6 +1,8 @@
 *.~*
 *.identcache
 *.local
-*.stat
 lib/
 backup/
+**/Win32
+*.rc
+*.dres

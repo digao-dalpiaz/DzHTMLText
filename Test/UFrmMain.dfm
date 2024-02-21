@@ -195,7 +195,7 @@ object FrmMain: TFrmMain
     CustomStyles = <
       item
         Ident = 'Custom'
-        FontColor = clDarkorange
+        FontColor = 33023
       end
       item
         Ident = 'Other'
@@ -248,8 +248,8 @@ object FrmMain: TFrmMain
         '<offset:top=10><bc:clYellow>new line with specific offset</bc></' +
         'offset>'
       
-        '<offset:top=5,bottom=10><bc:clCyan>new line with specific full o' +
-        'ffset</bc></offset>')
+        '<offset:top=5,bottom=10><bc:clPurple>new line with specific full' +
+        ' offset</bc></offset>')
     AutoHeight = True
     Offset.Top = 20
     Offset.Bottom = 50
