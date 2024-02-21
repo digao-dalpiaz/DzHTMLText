@@ -2,7 +2,7 @@
     <PropertyGroup>
         <ProjectGuid>{50D42D48-A4FC-4D2B-B355-507FA7D263DF}</ProjectGuid>
         <MainSource>DzHTMLText_FMX.dpk</MainSource>
-        <ProjectVersion>20.1</ProjectVersion>
+        <ProjectVersion>19.5</ProjectVersion>
         <FrameworkType>FMX</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Release</Config>
