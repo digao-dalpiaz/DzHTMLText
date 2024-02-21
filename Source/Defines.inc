@@ -1,0 +1,16 @@
+{$IFDEF FMX}
+  {$IF CompilerVersion >= 26} //XE5
+    {$DEFINE USE_NEW_UNITS}
+  {$ENDIF}
+  {$IF CompilerVersion >= 29} //XE8
+    {$DEFINE USE_NEW_ENV}
+    {$DEFINE USE_IMGLST}
+  {$ENDIF}
+{$ELSE}
+  {$DEFINE VCL}
+  {$DEFINE USE_NEW_ENV}
+  {$DEFINE USE_IMGLST}
+{$ENDIF}
+
+{$ZEROBASEDSTRINGS OFF}
+
