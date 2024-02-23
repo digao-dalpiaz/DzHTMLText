@@ -8,7 +8,7 @@ unit LazDzHTMLText;
 interface
 
 uses
-  Vcl.DHCommon, Vcl.DHTokenEngine, Vcl.DzHTMLTextReg, Vcl.DzHTMLText, 
+  Vcl.DzHTMLText, Vcl.DHCommon, Vcl.DHTokenEngine, Vcl.DzHTMLTextReg, 
   LazarusPackageIntf;
 
 implementation
