@@ -65,7 +65,7 @@ begin
       SB.Append('No syntax errors')
     else
     begin
-      SB.AppendLine('Errors:');
+      SB.AppendLine(Format('Errors (%d):', [Lb.SyntaxErrors.Count]));
       for Error in Lb.SyntaxErrors do
       begin
         if Error.Position>0 then
@@ -73,7 +73,7 @@ begin
         else
           Line := Error.Description;
 
-        SB.AppendLine(Line);
+        SB.AppendLine('- ' + Line);
       end;
     end;
 

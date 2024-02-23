@@ -1295,7 +1295,8 @@ begin
 
       if Length(OldAr)>=3 then
         Size.Width := Lb.CalcScale(StrToPixels(OldAr[2], 0));
-    end;
+    end
+      else ValidParam := False;
 
     if Size.Width>0 then WidthType := TDHDivSizeType.Outer else WidthType := TDHDivSizeType.Auto;
     HeightType := TDHDivSizeType.Auto;
@@ -1743,7 +1744,8 @@ begin
   Block := CurrentBlock;
   while Block<>MainToken do
   begin
-    AddInvalidToken(-1, 'Missing closing tag ' + GetTokenIdentFromClass(TDHTokenClass(Block.ClassType)));
+    AddInvalidToken(0, Format('Missing closing tag <%s>',
+      [GetTokenIdentFromClass(TDHTokenClass(Block.ClassType)).ToLower]));
     Block := Block.Parent;
   end;
 end;
@@ -1788,7 +1790,7 @@ begin
       begin
         Tag := Copy(Text, CurPos+1, I-CurPos-1);
         TagResult := ProcessTag(Tag);
-        if TagResult<>'OK' then AddInvalidToken(CurPos, '<'+Tag+'>' + ' - ' + TagResult);
+        if TagResult<>'OK' then AddInvalidToken(CurPos, Format('<%s> - %s', [Tag.ToLower, TagResult]));
         CurPos := I+1;
       end else
       begin
@@ -1866,7 +1868,7 @@ begin
   if CloseTag then
   begin
     if not Block then Exit('Single tag does not allow closing tag');
-    if CurrentBlock.ClassType <> TokenClass then Exit('Closing another tag');
+    if CurrentBlock.ClassType <> TokenClass then Exit('Not the current tag to close');
 
     CurrentBlock := CurrentBlock.Parent;
   end else
