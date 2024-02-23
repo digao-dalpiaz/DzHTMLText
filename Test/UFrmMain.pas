@@ -14,6 +14,7 @@ type
     DzHTMLText6: TDzHTMLText;
     DzHTMLText7: TDzHTMLText;
     DzHTMLText8: TDzHTMLText;
+    procedure FormCreate(Sender: TObject);
   end;
 
 var
@@ -22,5 +23,10 @@ var
 implementation
 
 {$R *.dfm}
+
+procedure TFrmMain.FormCreate(Sender: TObject);
+begin
+  ReportMemoryLeaksOnShutdown := True;
+end;
 
 end.

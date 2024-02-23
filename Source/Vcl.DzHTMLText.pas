@@ -304,6 +304,10 @@ type
   private
     FAbout: string;
 
+    {$IFDEF FMX}
+    FirstRebuild: Boolean;
+    {$ENDIF}
+
     VisualItems: TDHVisualItemList;
 
     LSpoiler: TDHSpoilerList;
@@ -383,7 +387,7 @@ type
     function GetStoredOffset: Boolean;
     function GetStoredCustomStyles: Boolean;
 
-    procedure DoPaint; {$IFDEF FMX}reintroduce;{$ENDIF}
+    procedure ExecPaint;
     procedure CanvasProcess(C: TCanvas);
     procedure Paint_VisualItem(W: TDHVisualItem; C: TCanvas);
     procedure Paint_Div(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Div);
@@ -1200,10 +1204,15 @@ end;
 procedure TDzHTMLText.Paint;
 begin
   inherited;
-  DoPaint;
+
+  {$IFDEF FMX}
+  if not FirstRebuild then Rebuild;
+  {$ENDIF}
+
+  ExecPaint;
 end;
 
-procedure TDzHTMLText.DoPaint;
+procedure TDzHTMLText.ExecPaint;
 {$IFDEF VCL}
 var
   B: TAnyBitmap;
@@ -1682,13 +1691,20 @@ var
 begin
   if csLoading in ComponentState then Exit;
 
+  {$IFDEF FMX}
+  //when using component inside a Frame, canvas is not available imediatelly
+  //so this var controls when canvas becomes available
+  if Canvas = nil then Exit;
+  FirstRebuild := True;
+  {$ENDIF}
+
   VisualItems.Clear; //clean visual items
   LLinkRef.Clear; //clean old links
 
   FPlainText.Clear;
 
   B := TDHBuilder.Create(Self,
-    {$IFDEF FMX}TCanvasManager.MeasureCanvas{$ELSE}Canvas{$ENDIF},
+    Canvas,
     VisualItems, SetTextSizeAndLineCount);
   try
     B.Execute;

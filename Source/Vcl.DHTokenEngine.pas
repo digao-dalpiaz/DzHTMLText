@@ -352,6 +352,7 @@ type
   TDHDivAreaLine = class
   private
     Continuous: Boolean; //when this line is a continuation of the previous one
+    TabUsed: Boolean; //when a tab is used in the line
     Items: TDHPreVisualItemList;
     YPos: TPixels;
 
@@ -386,7 +387,10 @@ type
 
     FixedSize, TextSize: TAnySize;
 
+    LeftMarginOn: Boolean;
     LeftMargin: TPixels;
+
+    procedure SetLeftMargin(Flag: Boolean; Value: TPixels = 0);
 
     procedure CalcTextSize;
     function GetParagraphCount: Integer;
@@ -398,8 +402,9 @@ type
     function GetAreaSize: TAnySize;
     function GetAbsoluteStartingPos: TAnyPoint;
 
-    function GetLastLine: TDHDivAreaLine;
     function GetLastItem: TDHPreVisualItem;
+
+    function ClearLinesIfNoItems: Boolean;
   public
     constructor Create(Parent: TDHDivArea);
     destructor Destroy; override;
@@ -453,7 +458,6 @@ type
     procedure AddInvalidToken;
 
     function CalcTextHeight(const Text: string): TPixels;
-    procedure CheckForLinesInitialization;
     procedure EndOfLine;
     function JumpLine(Continuous: Boolean): TDHDivAreaLine;
     function AddNewLineObject(Continuous: Boolean): TDHDivAreaLine;
@@ -941,7 +945,6 @@ begin
     Exit;
   end;
 
-  Builder.CheckForLinesInitialization;
   Builder.JumpLine(Continuous);
 end;
 
@@ -996,17 +999,15 @@ begin
 end;
 
 procedure TDHToken_TabBase.Process;
-var
-  DivMargin: TPixels;
 begin
   Builder.CurrentDiv.Point.X := Margin;
 
   if Self is TDHToken_TabF then
-    DivMargin := Margin
+    Builder.CurrentDiv.SetLeftMargin(True, Margin)
   else
-    DivMargin := 0;
+    Builder.CurrentDiv.SetLeftMargin(False);
 
-  Builder.CurrentDiv.LeftMargin := DivMargin;
+  Builder.CurrentDiv.Lines.Last.TabUsed := True;
 end;
 
 { TDHToken_AlignLeft }
@@ -1135,8 +1136,8 @@ var
   Token: TDHToken_Word;
   Line: TDHDivAreaLine;
 begin
-  Line := Builder.CurrentDiv.GetLastLine;
-  if (Line<>nil) and (Line.Items.Count>0) then //line already contains items
+  Line := Builder.CurrentDiv.Lines.Last;
+  if Line.Items.Count>0 then //line already contains items
     Builder.JumpLine(True);
 
   Inc(Props.List_Number);
@@ -1157,7 +1158,7 @@ begin
     Token.Free;
   end;
 
-  Builder.CurrentDiv.LeftMargin := Builder.CurrentDiv.Point.X; //to next lines
+  Builder.CurrentDiv.SetLeftMargin(True, Builder.CurrentDiv.Point.X); //to next lines
 end;
 
 { TDHToken_LineSpace }
@@ -1194,7 +1195,8 @@ procedure TDHToken_ParagraphIndent.Process;
 begin
   Props.ParagraphIndent := Indent;
 
-  Builder.ApplyLineMargin;
+  if not Builder.CurrentDiv.Lines.Last.TabUsed then
+    Builder.ApplyLineMargin;
 end;
 
 { TDHToken_Div }
@@ -1384,6 +1386,7 @@ begin
   end;
 
   Builder.CurrentDiv := D; //change current div!
+  Builder.AddNewLineObject(False); //always start with one line
 end;
 
 {$ENDREGION}
@@ -1471,20 +1474,12 @@ begin
   Result := Borders.Top.Margin + Borders.Bottom.Margin;
 end;
 
-function TDHDivArea.GetLastLine: TDHDivAreaLine;
-begin
-  if Lines.Count>0 then
-    Exit(Lines.Last);
-
-  Result := nil;
-end;
-
 function TDHDivArea.GetLastItem: TDHPreVisualItem;
 var
   Line: TDHDivAreaLine;
 begin
-  Line := GetLastLine;
-  if (Line<>nil) and (Line.Items.Count>0) then
+  Line := Lines.Last;
+  if Line.Items.Count>0 then
     Exit(Line.Items.Last);
 
   Result := nil;
@@ -1520,6 +1515,23 @@ begin
   Result := 0;
   for Line in Lines do
     if not Line.Continuous then Inc(Result);
+end;
+
+procedure TDHDivArea.SetLeftMargin(Flag: Boolean; Value: TPixels);
+begin
+  LeftMarginOn := Flag;
+  LeftMargin := Value;
+end;
+
+function TDHDivArea.ClearLinesIfNoItems: Boolean;
+begin
+  if (Lines.Count=1) and (Lines[0].Items.Count=0) then
+  begin
+    Lines.Clear;
+    Exit(True);
+  end;
+
+  Result := False;
 end;
 
 { TDHDivAreaLine }
@@ -1668,11 +1680,12 @@ begin
   CurrentBlock := nil;
 
   CurrentDiv := MainDiv;
+  AddNewLineObject(False); //always start with one line
   ProcessChildrenTokens(MainToken);
   ProcessPendingObjects; //process remaining objects in queue list
   if CurrentDiv<>MainDiv then raise EDHInternalExcept.Create('Incorrect final div');
-  if (Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak then AddNewLineObject(False); //allow one blank line
-  EndOfLine;
+  if ((Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak) //allow one blank line
+    or not CurrentDiv.ClearLinesIfNoItems then EndOfLine;
   CurrentDiv := nil;
 
   MainDiv.CalcTextSize;
@@ -1898,12 +1911,6 @@ begin
     Result := Canvas.TextHeight(Text);
 end;
 
-procedure TDHBuilder.CheckForLinesInitialization;
-begin
-  if CurrentDiv.Lines.Count=0 then
-    AddNewLineObject(False);
-end;
-
 function TDHBuilder.AddNewLineObject(Continuous: Boolean): TDHDivAreaLine;
 begin
   Result := TDHDivAreaLine.Create;
@@ -1919,8 +1926,6 @@ procedure TDHBuilder.EndOfLine;
 var
   Line: TDHDivAreaLine;
 begin
-  if CurrentDiv.Lines.Count=0 then Exit;
-
   Line := CurrentDiv.Lines.Last;
   Line.TextSize := TAnySize.Create(CurrentDiv.Point.X, Line.GetHighHeight);
   if Line.Items.Count=0 then //line without visual items
@@ -1934,7 +1939,7 @@ begin
   EndOfLine; //must always contains lines here
 
   if not Continuous and (Props.List_Level=0) then
-    CurrentDiv.LeftMargin := 0;
+    CurrentDiv.SetLeftMargin(False);
 
   Result := AddNewLineObject(Continuous);
 end;
@@ -1944,17 +1949,16 @@ var
   X: TPixels;
   Line: TDHDivAreaLine;
 begin
-  //here line may be nil, when processing first line and does not yet contain objects
-  Line := CurrentDiv.GetLastLine;
-  if (Line<>nil) and (Line.Items.Count>0) then Exit; //only apply once per line
+  Line := CurrentDiv.Lines.Last;
+  if Line.Items.Count>0 then Exit; //only apply once per line by items
 
   X := 0;
-  if CurrentDiv.LeftMargin > 0 then
+  if CurrentDiv.LeftMarginOn then
     X := CurrentDiv.LeftMargin
   else
-    if (Line=nil) or not Line.Continuous then X := Props.ParagraphIndent;
+    if not Line.Continuous then X := Props.ParagraphIndent;
 
-  CurrentDiv.Point.X := X; //do not use offset because may apply twice
+  CurrentDiv.Point.X := X; //do not use offset because may apply multiple times
 end;
 
 procedure TDHBuilder.ApplyLineSpace;
@@ -1965,13 +1969,13 @@ begin
   if CurrentDiv.Lines.Count<=1 then Exit; //only apply space after second line
 
   Line := CurrentDiv.Lines.Last;
-  if Line.Items.Count>0 then Exit; //only apply once per line
+  if Line.Items.Count>0 then Exit; //only apply once per line by items
 
   Space := Props.LineSpace;
   if not Line.Continuous then
     Space := Space + Props.ParagraphSpace;
 
-  CurrentDiv.Point.Y := Line.YPos + Space; //do not use offset because may apply twice
+  CurrentDiv.Point.Y := Line.YPos + Space; //do not use offset because may apply multiple times
 end;
 
 function TDHBuilder.CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
@@ -2037,8 +2041,6 @@ var
   PrevSpaceRemoved: Boolean;
 begin
   PrevSpaceRemoved := False;
-
-  CheckForLinesInitialization;
 
   Line := CurrentDiv.Lines.Last;
   if Line.Items.Count>0 then
