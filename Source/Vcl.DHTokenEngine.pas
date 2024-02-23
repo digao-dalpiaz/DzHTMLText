@@ -345,6 +345,7 @@ type
     procedure Process; override;
     function IsBreakableToken: Boolean; override;
   end;
+  TDHToken_Float = class(TDHToken_Div);
   {$ENDREGION}
 
   TDHPreVisualItem = class;
@@ -352,6 +353,7 @@ type
   TDHDivAreaLine = class
   private
     Continuous: Boolean; //when this line is a continuation of the previous one
+    TabUsed: Boolean; //when a tab is used in the line
     Items: TDHPreVisualItemList;
     YPos: TPixels;
 
@@ -386,7 +388,10 @@ type
 
     FixedSize, TextSize: TAnySize;
 
+    LeftMarginOn: Boolean;
     LeftMargin: TPixels;
+
+    procedure SetLeftMargin(Flag: Boolean; Value: TPixels = 0);
 
     procedure CalcTextSize;
     function GetParagraphCount: Integer;
@@ -398,8 +403,9 @@ type
     function GetAreaSize: TAnySize;
     function GetAbsoluteStartingPos: TAnyPoint;
 
-    function GetLastLine: TDHDivAreaLine;
     function GetLastItem: TDHPreVisualItem;
+
+    function ClearLinesIfNoItems: Boolean;
   public
     constructor Create(Parent: TDHDivArea);
     destructor Destroy; override;
@@ -450,16 +456,15 @@ type
     LastNoBreak: Boolean;
 
     function AddToken<T: TDHToken, constructor>: T;
-    procedure AddInvalidToken;
+    procedure AddInvalidToken(Position: Integer; const ErrorDescription: string);
 
     function CalcTextHeight(const Text: string): TPixels;
-    procedure CheckForLinesInitialization;
     procedure EndOfLine;
     function JumpLine(Continuous: Boolean): TDHDivAreaLine;
     function AddNewLineObject(Continuous: Boolean): TDHDivAreaLine;
 
     procedure ReadTokens;
-    function ProcessTag(const Tag: string): Boolean;
+    function ProcessTag(const Tag: string): string;
     procedure ProcessChildrenTokens(Block: TDHTokenBlock);
     procedure SendObjectsToComponent(DivArea: TDHDivArea);
     procedure CheckAlign(Item: TDHPreVisualItem; Line: TDHDivAreaLine; DivArea: TDHDivArea);
@@ -472,6 +477,8 @@ type
     procedure ProcessPendingObjects;
     procedure ProcessOneObject(Item: TDHPreVisualItem);
     procedure ProcessSpecificObjects(List: TDHPreVisualItemList);
+
+    procedure CheckMissingClosingTags;
   public
     constructor Create(Lb: TDzHTMLText; Canvas: TCanvas;
       VisualItems: TDHVisualItemList; ProcBoundsAndLines: TDHProcBoundsAndLines);
@@ -504,14 +511,14 @@ type
   end;
 
 const
-  TOKENS_OBJECTS: array[0..31] of TDHTokenObjectDef = (
+  TOKENS_OBJECTS: array[0..32] of TDHTokenObjectDef = (
     //single
     (Ident: 'BR'; Clazz: TDHToken_Break; AllowPar: True; OptionalPar: True), //breakable!
     (Ident: 'LINE'; Clazz: TDHToken_Line; AllowPar: True; OptionalPar: True),
     (Ident: 'IMG'; Clazz: TDHToken_Image; AllowPar: True),
     (Ident: 'IMGRES'; Clazz: TDHToken_ImageResource; AllowPar: True),
-    (Ident: 'T'; Clazz: TDHToken_Tab; AllowPar: True), //breakable!
-    (Ident: 'TF'; Clazz: TDHToken_TabF; AllowPar: True), //breakable!
+    (Ident: 'T'; Clazz: TDHToken_Tab; AllowPar: True), //breakable! {OBSOLETE}
+    (Ident: 'TF'; Clazz: TDHToken_TabF; AllowPar: True), //breakable! {OBSOLETE}
 
     //block
     (Ident: 'B'; Clazz: TDHToken_Bold; AllowPar: True; OptionalPar: True),
@@ -539,7 +546,8 @@ const
     (Ident: 'OL'; Clazz: TDHToken_OrderedList),
     (Ident: 'LI'; Clazz: TDHToken_ListItem), //breakable!
     (Ident: 'LS'; Clazz: TDHToken_LineSpace; AllowPar: True),
-    (Ident: 'PI'; Clazz: TDHToken_ParagraphIndent; AllowPar: True)
+    (Ident: 'PI'; Clazz: TDHToken_ParagraphIndent; AllowPar: True),
+    (Ident: 'FLOAT'; Clazz: TDHToken_Float; AllowPar: True) {OBSOLETE}
   );
 
 function GetTokenObjectDefIndexFromIdent(const Ident: string): Integer;
@@ -550,6 +558,16 @@ begin
     if TOKENS_OBJECTS[I].Ident = Ident then Exit(I);
 
   Result := -1;
+end;
+
+function GetTokenIdentFromClass(Clazz: TDHTokenClass): string;
+var
+  I: Integer;
+begin
+  for I := Low(TOKENS_OBJECTS) to High(TOKENS_OBJECTS) do
+    if TOKENS_OBJECTS[I].Clazz = Clazz then Exit(TOKENS_OBJECTS[I].Ident);
+
+  raise EDHInternalExcept.CreateFmt('Token class "%s" invalid', [Clazz.ClassName]);
 end;
 
 procedure SetWhenBigger(var V: TPixels; This: TPixels);
@@ -941,7 +959,6 @@ begin
     Exit;
   end;
 
-  Builder.CheckForLinesInitialization;
   Builder.JumpLine(Continuous);
 end;
 
@@ -996,17 +1013,15 @@ begin
 end;
 
 procedure TDHToken_TabBase.Process;
-var
-  DivMargin: TPixels;
 begin
   Builder.CurrentDiv.Point.X := Margin;
 
   if Self is TDHToken_TabF then
-    DivMargin := Margin
+    Builder.CurrentDiv.SetLeftMargin(True, Margin)
   else
-    DivMargin := 0;
+    Builder.CurrentDiv.SetLeftMargin(False);
 
-  Builder.CurrentDiv.LeftMargin := DivMargin;
+  Builder.CurrentDiv.Lines.Last.TabUsed := True;
 end;
 
 { TDHToken_AlignLeft }
@@ -1135,8 +1150,8 @@ var
   Token: TDHToken_Word;
   Line: TDHDivAreaLine;
 begin
-  Line := Builder.CurrentDiv.GetLastLine;
-  if (Line<>nil) and (Line.Items.Count>0) then //line already contains items
+  Line := Builder.CurrentDiv.Lines.Last;
+  if Line.Items.Count>0 then //line already contains items
     Builder.JumpLine(True);
 
   Inc(Props.List_Number);
@@ -1157,7 +1172,7 @@ begin
     Token.Free;
   end;
 
-  Builder.CurrentDiv.LeftMargin := Builder.CurrentDiv.Point.X; //to next lines
+  Builder.CurrentDiv.SetLeftMargin(True, Builder.CurrentDiv.Point.X); //to next lines
 end;
 
 { TDHToken_LineSpace }
@@ -1194,7 +1209,8 @@ procedure TDHToken_ParagraphIndent.Process;
 begin
   Props.ParagraphIndent := Indent;
 
-  Builder.ApplyLineMargin;
+  if not Builder.CurrentDiv.Lines.Last.TabUsed then
+    Builder.ApplyLineMargin;
 end;
 
 { TDHToken_Div }
@@ -1266,7 +1282,34 @@ var
     end;
   end;
 
+var
+  OldAr: TArray<string>;
 begin
+  if Self is TDHToken_Float then //old FLOAT tag
+  begin
+    OldAr := Param.Split([',']);
+    if Length(OldAr)>=2 then
+    begin
+      FloatPos := TAnyPoint.Create(Lb.CalcScale(StrToPixels(OldAr[0], 0)), Lb.CalcScale(StrToPixels(OldAr[1], 0)));
+      Floating := True;
+
+      if Length(OldAr)>=3 then
+        Size.Width := Lb.CalcScale(StrToPixels(OldAr[2], 0));
+    end
+      else ValidParam := False;
+
+    if Size.Width>0 then WidthType := TDHDivSizeType.Outer else WidthType := TDHDivSizeType.Auto;
+    HeightType := TDHDivSizeType.Auto;
+
+    HorzAlign := haLeft;
+    VertAlign := vaTop;
+    KeepProps := True;
+    BackColor := clNone;
+    BorderColor := clNone;
+
+    Exit;
+  end;
+
   P := TDHMultipleTokenParams.Create(Param);
   try
     Size.Width := DetectSizeType(P.GetParam('width'), WidthType, False);
@@ -1384,6 +1427,7 @@ begin
   end;
 
   Builder.CurrentDiv := D; //change current div!
+  Builder.AddNewLineObject(False); //always start with one line
 end;
 
 {$ENDREGION}
@@ -1471,20 +1515,12 @@ begin
   Result := Borders.Top.Margin + Borders.Bottom.Margin;
 end;
 
-function TDHDivArea.GetLastLine: TDHDivAreaLine;
-begin
-  if Lines.Count>0 then
-    Exit(Lines.Last);
-
-  Result := nil;
-end;
-
 function TDHDivArea.GetLastItem: TDHPreVisualItem;
 var
   Line: TDHDivAreaLine;
 begin
-  Line := GetLastLine;
-  if (Line<>nil) and (Line.Items.Count>0) then
+  Line := Lines.Last;
+  if Line.Items.Count>0 then
     Exit(Line.Items.Last);
 
   Result := nil;
@@ -1520,6 +1556,23 @@ begin
   Result := 0;
   for Line in Lines do
     if not Line.Continuous then Inc(Result);
+end;
+
+procedure TDHDivArea.SetLeftMargin(Flag: Boolean; Value: TPixels);
+begin
+  LeftMarginOn := Flag;
+  LeftMargin := Value;
+end;
+
+function TDHDivArea.ClearLinesIfNoItems: Boolean;
+begin
+  if (Lines.Count=1) and (Lines[0].Items.Count=0) then
+  begin
+    Lines.Clear;
+    Exit(True);
+  end;
+
+  Result := False;
 end;
 
 { TDHDivAreaLine }
@@ -1664,15 +1717,16 @@ procedure TDHBuilder.Execute;
 begin
   CurrentBlock := MainToken;
   ReadTokens;
-  if CurrentBlock<>MainToken then AddInvalidToken; //missing some tag closing
+  CheckMissingClosingTags;
   CurrentBlock := nil;
 
   CurrentDiv := MainDiv;
+  AddNewLineObject(False); //always start with one line
   ProcessChildrenTokens(MainToken);
   ProcessPendingObjects; //process remaining objects in queue list
   if CurrentDiv<>MainDiv then raise EDHInternalExcept.Create('Incorrect final div');
-  if (Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak then AddNewLineObject(False); //allow one blank line
-  EndOfLine;
+  if ((Lb.Lines.Count=1) and Lb.Lines[0].IsEmpty and Lb.AutoBreak) //allow one blank line
+    or not CurrentDiv.ClearLinesIfNoItems then EndOfLine;
   CurrentDiv := nil;
 
   MainDiv.CalcTextSize;
@@ -1683,13 +1737,28 @@ begin
   SendObjectsToComponent(MainDiv);
 end;
 
-procedure TDHBuilder.AddInvalidToken;
+procedure TDHBuilder.CheckMissingClosingTags;
+var
+  Block: TDHTokenBlock;
+begin
+  Block := CurrentBlock;
+  while Block<>MainToken do
+  begin
+    AddInvalidToken(0, Format('Missing closing tag <%s>',
+      [GetTokenIdentFromClass(TDHTokenClass(Block.ClassType)).ToLower]));
+    Block := Block.Parent;
+  end;
+end;
+
+procedure TDHBuilder.AddInvalidToken(Position: Integer; const ErrorDescription: string);
 var
   Token: TDHToken_Word;
 begin
   Token := AddToken<TDHToken_Word>;
   Token.Word := '<?>';
   Token.Breakable := True;
+
+  Lb.SyntaxErrors.Add(TDHSyntaxError.Create(Position, ErrorDescription));
 end;
 
 function TDHBuilder.AddToken<T>: T;
@@ -1702,7 +1771,7 @@ end;
 procedure TDHBuilder.ReadTokens;
 const NBR_TAG = '<NBR>';
 var
-  Text: string;
+  Text, Tag, TagResult: string;
   CharIni: Char;
   I, CurPos, Len: Integer;
   BreakableChar, Nbr: Boolean;
@@ -1719,19 +1788,21 @@ begin
       I := PosEx('>', Text, CurPos+1); //find tag closing
       if I>0 then
       begin
-        if not ProcessTag(Copy(Text, CurPos+1, I-CurPos-1)) then AddInvalidToken;
+        Tag := Copy(Text, CurPos+1, I-CurPos-1);
+        TagResult := ProcessTag(Tag);
+        if TagResult<>'OK' then AddInvalidToken(CurPos, Format('<%s> - %s', [Tag.ToLower, TagResult]));
         CurPos := I+1;
       end else
       begin
         //losted tag opening
-        AddInvalidToken;
+        AddInvalidToken(CurPos, 'Char "<" left alone');
         Inc(CurPos);
       end;
     end else
     if CharIni = '>' then
     begin
       //losted tag closing
-      AddInvalidToken;
+      AddInvalidToken(CurPos, 'Char ">" left alone');
       Inc(CurPos);
     end else
     if (CharIni = #13) or (CharIni = #10) then
@@ -1763,7 +1834,7 @@ begin
   end;
 end;
 
-function TDHBuilder.ProcessTag(const Tag: string): Boolean;
+function TDHBuilder.ProcessTag(const Tag: string): string;
 var
   CloseTag, HasPar, Block: Boolean;
   A, Par: string;
@@ -1772,7 +1843,7 @@ var
   TokenClass: TDHTokenClass;
   Token: TDHToken;
 begin
-  Result := False;
+  Result := 'unknown';
   A := Tag;
 
   CloseTag := A.StartsWith('/');
@@ -1781,14 +1852,14 @@ begin
   HasPar := SplitStr(A, ':', A, Par);
   if HasPar then
   begin
-    if Par.IsEmpty then Exit; //blank parameter specified
-    if CloseTag then Exit; //tag closing with parameter
+    if Par.IsEmpty then Exit('Blank parameter specified');
+    if CloseTag then Exit('Parameter not allowed in closing tag');
   end;
 
-  if A.IsEmpty then Exit; //blank tag
+  if A.IsEmpty then Exit('Blank tag');
 
   I := GetTokenObjectDefIndexFromIdent(UpperCase(A));
-  if I = -1 then Exit; //invalid tag
+  if I = -1 then Exit('Invalid tag');
 
   Def := TOKENS_OBJECTS[I];
   TokenClass := Def.Clazz;
@@ -1796,14 +1867,14 @@ begin
 
   if CloseTag then
   begin
-    if not Block then Exit; //close-tag on single tag
-    if CurrentBlock.ClassType <> TokenClass then Exit; //closing different tag
+    if not Block then Exit('Single tag does not allow closing tag');
+    if CurrentBlock.ClassType <> TokenClass then Exit('Not the current tag to close');
 
     CurrentBlock := CurrentBlock.Parent;
   end else
   begin
-    if (not Def.AllowPar) and (HasPar) then Exit; //parameter not allowed
-    if (Def.AllowPar) and (not Def.OptionalPar) and (not HasPar) then Exit; //parameter required
+    if (not Def.AllowPar) and (HasPar) then Exit('Parameter not allowed');
+    if (Def.AllowPar) and (not Def.OptionalPar) and (not HasPar) then Exit('Parameter required');
 
     Token := TokenClass.Create;
     Token.Init(Self);
@@ -1815,14 +1886,14 @@ begin
       if not Token.ValidParam then
       begin
         CurrentBlock.Children.Remove(Token);
-        Exit;
+        Exit('Invalid parameter');
       end;
     end;
 
     if Block then CurrentBlock := TDHTokenBlock(Token);
   end;
 
-  Result := True;
+  Result := 'OK';
 end;
 {$ENDREGION}
 
@@ -1898,12 +1969,6 @@ begin
     Result := Canvas.TextHeight(Text);
 end;
 
-procedure TDHBuilder.CheckForLinesInitialization;
-begin
-  if CurrentDiv.Lines.Count=0 then
-    AddNewLineObject(False);
-end;
-
 function TDHBuilder.AddNewLineObject(Continuous: Boolean): TDHDivAreaLine;
 begin
   Result := TDHDivAreaLine.Create;
@@ -1919,8 +1984,6 @@ procedure TDHBuilder.EndOfLine;
 var
   Line: TDHDivAreaLine;
 begin
-  if CurrentDiv.Lines.Count=0 then Exit;
-
   Line := CurrentDiv.Lines.Last;
   Line.TextSize := TAnySize.Create(CurrentDiv.Point.X, Line.GetHighHeight);
   if Line.Items.Count=0 then //line without visual items
@@ -1934,7 +1997,7 @@ begin
   EndOfLine; //must always contains lines here
 
   if not Continuous and (Props.List_Level=0) then
-    CurrentDiv.LeftMargin := 0;
+    CurrentDiv.SetLeftMargin(False);
 
   Result := AddNewLineObject(Continuous);
 end;
@@ -1944,17 +2007,16 @@ var
   X: TPixels;
   Line: TDHDivAreaLine;
 begin
-  //here line may be nil, when processing first line and does not yet contain objects
-  Line := CurrentDiv.GetLastLine;
-  if (Line<>nil) and (Line.Items.Count>0) then Exit; //only apply once per line
+  Line := CurrentDiv.Lines.Last;
+  if Line.Items.Count>0 then Exit; //only apply once per line by items
 
   X := 0;
-  if CurrentDiv.LeftMargin > 0 then
+  if CurrentDiv.LeftMarginOn then
     X := CurrentDiv.LeftMargin
   else
-    if (Line=nil) or not Line.Continuous then X := Props.ParagraphIndent;
+    if not Line.Continuous then X := Props.ParagraphIndent;
 
-  CurrentDiv.Point.X := X; //do not use offset because may apply twice
+  CurrentDiv.Point.X := X; //do not use offset because may apply multiple times
 end;
 
 procedure TDHBuilder.ApplyLineSpace;
@@ -1965,13 +2027,13 @@ begin
   if CurrentDiv.Lines.Count<=1 then Exit; //only apply space after second line
 
   Line := CurrentDiv.Lines.Last;
-  if Line.Items.Count>0 then Exit; //only apply once per line
+  if Line.Items.Count>0 then Exit; //only apply once per line by items
 
   Space := Props.LineSpace;
   if not Line.Continuous then
     Space := Space + Props.ParagraphSpace;
 
-  CurrentDiv.Point.Y := Line.YPos + Space; //do not use offset because may apply twice
+  CurrentDiv.Point.Y := Line.YPos + Space; //do not use offset because may apply multiple times
 end;
 
 function TDHBuilder.CreatePreVisualItem(V: TDHVisualItem; Size: TAnySize): TDHPreVisualItem;
@@ -2037,8 +2099,6 @@ var
   PrevSpaceRemoved: Boolean;
 begin
   PrevSpaceRemoved := False;
-
-  CheckForLinesInitialization;
 
   Line := CurrentDiv.Lines.Last;
   if Line.Items.Count>0 then

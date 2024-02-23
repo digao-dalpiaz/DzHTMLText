@@ -61,7 +61,7 @@ object Form1: TForm1
     ParentColor = False
     ParentFont = False
     Lines.Strings = (
-      'You can use divs too:<fc:$EF7769>'
+      'You can use divs too:<fc:#EF7769>'
       '<div:align=center,width=full>'
       
         '<nbr><div:width=50,lncolor=clGray,thick=1><c>1</c></div><div:wid' +
@@ -78,7 +78,7 @@ object Form1: TForm1
         'IC</div><div:width=75,lncolor=clGray,thick=1,thick_left=0,thick_' +
         'top=0,color=clLime><r>1.150,000</r></div>'
       '</div></fc>'
-      'HTML Lists:<fc:$2768EF>'
+      'HTML Lists:<fc:#2768EF>'
       '<nbr><ul>'
       '<li>Item 1</li>'
       '<li>Item 2</li>'

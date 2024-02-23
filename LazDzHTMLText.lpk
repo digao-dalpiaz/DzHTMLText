@@ -8,7 +8,7 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <OtherUnitFiles Value="Source"/>
+        <OtherUnitFiles Value="Source;Source\Design"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
@@ -21,7 +21,6 @@
     <Files>
       <Item>
         <Filename Value="Source\Vcl.DzHTMLText.pas"/>
-        <HasRegisterProc Value="True"/>
         <UnitName Value="Vcl.DzHTMLText"/>
       </Item>
       <Item>
@@ -32,8 +31,16 @@
         <Filename Value="Source\Vcl.DHTokenEngine.pas"/>
         <UnitName Value="Vcl.DHTokenEngine"/>
       </Item>
+      <Item>
+        <Filename Value="Source\Design\Vcl.DzHTMLTextReg.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="Vcl.DzHTMLTextReg"/>
+      </Item>
     </Files>
     <RequiredPkgs>
+      <Item>
+        <PackageName Value="IDEIntf"/>
+      </Item>
       <Item>
         <PackageName Value="LCLBase"/>
       </Item>
