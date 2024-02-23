@@ -34,7 +34,7 @@
 
 ## What's New
 
-- 02/21/2024 (Version 5.4)
+- 02/22/2024 (Version 5.4)
 
    - Fixed word bounds size calculation for some platforms in FMX environment, like Android. The component was using MeasureCanvas to calculate bounds before canvas becomes available. Some platforms return wrong size (smaller) when using generic MeasureCanvas. Now we are using original Canvas, building tokens when Canvas becomes available. **This fix resolves the issue of characters cut in half at the end of the word.**
    - Fixed Tab margin on first line and Tab x Line Item x Paragraph Indent margin overload.
