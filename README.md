@@ -42,13 +42,13 @@
    - Fixed Tab margin on first line and Tab x Line Item x Paragraph Indent margin overload.
    - Reintroduced `<FLOAT>` tag (as obsolete tag).
 
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 02/20/2024 (Version 5.3)
 
    - Reorganization of component folders (Please completely delete the previous component folder). **WARNING! DCU output folder changed. Now output directory is `Lib\{Platform}\{Config}`. Please review your Library Paths.**
    - Auto-install now supports Delphi 12.
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 01/21/2024 (Version 5.2)
 
