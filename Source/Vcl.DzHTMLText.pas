@@ -284,6 +284,18 @@ type
     function FindByIdent(const Ident: string): TDHCustomStyle;
   end;
 
+  TDHSyntaxError = class
+  private
+    FPosition: Integer;
+    FDescription: string;
+  public
+    property Position: Integer read FPosition;
+    property Description: string read FDescription;
+
+    constructor Create(Position: Integer; const Description: string);
+  end;
+  TDHSyntaxErrorList = class(TObjectList<TDHSyntaxError>);
+
   TDHEvLink = procedure(Sender: TObject; Link: TDHBaseLink) of object;
   TDHEvLinkClick = procedure(Sender: TObject; Link: TDHBaseLink; var Handled: Boolean) of object;
 
@@ -309,6 +321,8 @@ type
     {$ENDIF}
 
     VisualItems: TDHVisualItemList;
+
+    LError: TDHSyntaxErrorList;
 
     LSpoiler: TDHSpoilerList;
     LLinkRef: TDHLinkRefList;
@@ -470,6 +484,8 @@ type
     property Spoilers: TDHSpoilerList read LSpoiler;
     property LinkRefs: TDHLinkRefList read LLinkRef;
 
+    property SyntaxErrors: TDHSyntaxErrorList read LError;
+
     {$IFDEF VCL}
     function CalcMulDiv(Size, DesignPPI: Integer; IsFont: Boolean): Integer;
     function CalcFontHeight(Size: Integer): Integer;
@@ -629,8 +645,6 @@ type
     constructor Create(const Msg: string);
   end;
 
-procedure Register;
-
 implementation
 
 uses
@@ -661,20 +675,22 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '5.4';
+const STR_VERSION = '6.0';
 
 const DEFAULT_PPI = 96;
-
-procedure Register;
-begin
-  {$IFDEF FPC}{$I DzHTMLText.lrs}{$ENDIF}
-  RegisterComponents('Digao', [TDzHTMLText]);
-end;
 
 {$REGION 'EDHInternalExcept'}
 constructor EDHInternalExcept.Create(const Msg: string);
 begin
   inherited CreateFmt('%s internal error: %s', [TDzHTMLText.ClassName, Msg]);
+end;
+{$ENDREGION}
+
+{$REGION 'TDHSyntaxError'}
+constructor TDHSyntaxError.Create(Position: Integer; const Description: string);
+begin
+  FPosition := Position;
+  FDescription := Description;
 end;
 {$ENDREGION}
 
@@ -827,6 +843,7 @@ begin
   VisualItems := TDHVisualItemList.Create;
   LLinkRef := TDHLinkRefList.Create;
   LSpoiler := TDHSpoilerList.Create;
+  LError := TDHSyntaxErrorList.Create;
 
   FAutoBreak := True;
   FAutoOpenLink := True;
@@ -867,6 +884,7 @@ begin
   VisualItems.Free;
   LLinkRef.Free;
   LSpoiler.Free;
+  LError.Free;
   FPlainText.Free;
   inherited;
 end;
@@ -1275,11 +1293,11 @@ begin
     C.Stroke.Thickness := 0.5;
     C.Stroke.Kind := TBrushKind.{$IF CompilerVersion >= 27}{XE6}Solid{$ELSE}bkSolid{$ENDIF};
     C.Stroke.Dash := TStrokeDash.{$IF CompilerVersion >= 27}{XE6}Dash{$ELSE}sdDash{$ENDIF};
-    C.Stroke.Color := TAlphaColors.Black;
+    if LError.Count>0 then C.Stroke.Color := TAlphaColors.Red else C.Stroke.Color := TAlphaColors.Black;
     C.DrawRect(LocalRect, 0, 0, [], 1);
     {$ELSE}
     C.Pen.Style := psDot;
-    C.Pen.Color := clBtnShadow;
+    if LError.Count>0 then C.Pen.Color := clRed else C.Pen.Color := clBtnShadow;
     C.Brush.Style := bsClear;
     C.Rectangle(ClientRect);
     {$ENDIF}
@@ -1700,6 +1718,7 @@ begin
 
   VisualItems.Clear; //clean visual items
   LLinkRef.Clear; //clean old links
+  LError.Clear; //clean syntax errors
 
   FPlainText.Clear;
 

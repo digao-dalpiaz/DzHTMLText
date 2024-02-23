@@ -9,6 +9,12 @@
         <Projects Include="Source\DzHTMLText_FMX.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Source\Design\DzHTMLTextDesign_VCL.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Source\Design\DzHTMLTextDesign_FMX.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +41,32 @@
     <Target Name="DzHTMLText_FMX:Make">
         <MSBuild Projects="Source\DzHTMLText_FMX.dproj" Targets="Make"/>
     </Target>
+    <Target Name="DzHTMLTextDesign_VCL">
+        <MSBuild Projects="Source\Design\DzHTMLTextDesign_VCL.dproj"/>
+    </Target>
+    <Target Name="DzHTMLTextDesign_VCL:Clean">
+        <MSBuild Projects="Source\Design\DzHTMLTextDesign_VCL.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DzHTMLTextDesign_VCL:Make">
+        <MSBuild Projects="Source\Design\DzHTMLTextDesign_VCL.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DzHTMLTextDesign_FMX">
+        <MSBuild Projects="Source\Design\DzHTMLTextDesign_FMX.dproj"/>
+    </Target>
+    <Target Name="DzHTMLTextDesign_FMX:Clean">
+        <MSBuild Projects="Source\Design\DzHTMLTextDesign_FMX.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DzHTMLTextDesign_FMX:Make">
+        <MSBuild Projects="Source\Design\DzHTMLTextDesign_FMX.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="DzHTMLText_VCL;DzHTMLText_FMX"/>
+        <CallTarget Targets="DzHTMLText_VCL;DzHTMLText_FMX;DzHTMLTextDesign_VCL;DzHTMLTextDesign_FMX"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DzHTMLText_VCL:Clean;DzHTMLText_FMX:Clean"/>
+        <CallTarget Targets="DzHTMLText_VCL:Clean;DzHTMLText_FMX:Clean;DzHTMLTextDesign_VCL:Clean;DzHTMLTextDesign_FMX:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DzHTMLText_VCL:Make;DzHTMLText_FMX:Make"/>
+        <CallTarget Targets="DzHTMLText_VCL:Make;DzHTMLText_FMX:Make;DzHTMLTextDesign_VCL:Make;DzHTMLTextDesign_FMX:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

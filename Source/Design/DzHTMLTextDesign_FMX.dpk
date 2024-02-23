@@ -1,6 +1,7 @@
-package DzHTMLText_VCL;
+package DzHTMLTextDesign_FMX;
 
 {$R *.res}
+{$R 'DzHTMLText.dcr'}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -25,18 +26,15 @@ package DzHTMLText_VCL;
 {$IMAGEBASE $400000}
 {$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
-{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText Component - VCL Runtime'}
-{$RUNONLY}
+{$DESCRIPTION 'Digao Dalpiaz - DzHTMLText Component - FMX Designtime'}
+{$DESIGNONLY}
 {$IMPLICITBUILD ON}
 
 requires
-  rtl,
-  vcl,
-  vclimg;
+  designide,
+  DzHTMLText_FMX;
 
 contains
-  Vcl.DHCommon in 'Vcl.DHCommon.pas',
-  Vcl.DHTokenEngine in 'Vcl.DHTokenEngine.pas',
-  Vcl.DzHTMLText in 'Vcl.DzHTMLText.pas';
+  FMX.DzHTMLTextReg in 'FMX.DzHTMLTextReg.pas';
 
 end.

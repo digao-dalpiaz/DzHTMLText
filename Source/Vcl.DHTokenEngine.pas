@@ -345,6 +345,7 @@ type
     procedure Process; override;
     function IsBreakableToken: Boolean; override;
   end;
+  TDHToken_Float = class(TDHToken_Div);
   {$ENDREGION}
 
   TDHPreVisualItem = class;
@@ -455,7 +456,7 @@ type
     LastNoBreak: Boolean;
 
     function AddToken<T: TDHToken, constructor>: T;
-    procedure AddInvalidToken;
+    procedure AddInvalidToken(Position: Integer; const ErrorDescription: string);
 
     function CalcTextHeight(const Text: string): TPixels;
     procedure EndOfLine;
@@ -463,7 +464,7 @@ type
     function AddNewLineObject(Continuous: Boolean): TDHDivAreaLine;
 
     procedure ReadTokens;
-    function ProcessTag(const Tag: string): Boolean;
+    function ProcessTag(const Tag: string): string;
     procedure ProcessChildrenTokens(Block: TDHTokenBlock);
     procedure SendObjectsToComponent(DivArea: TDHDivArea);
     procedure CheckAlign(Item: TDHPreVisualItem; Line: TDHDivAreaLine; DivArea: TDHDivArea);
@@ -476,6 +477,8 @@ type
     procedure ProcessPendingObjects;
     procedure ProcessOneObject(Item: TDHPreVisualItem);
     procedure ProcessSpecificObjects(List: TDHPreVisualItemList);
+
+    procedure CheckMissingClosingTags;
   public
     constructor Create(Lb: TDzHTMLText; Canvas: TCanvas;
       VisualItems: TDHVisualItemList; ProcBoundsAndLines: TDHProcBoundsAndLines);
@@ -508,14 +511,14 @@ type
   end;
 
 const
-  TOKENS_OBJECTS: array[0..31] of TDHTokenObjectDef = (
+  TOKENS_OBJECTS: array[0..32] of TDHTokenObjectDef = (
     //single
     (Ident: 'BR'; Clazz: TDHToken_Break; AllowPar: True; OptionalPar: True), //breakable!
     (Ident: 'LINE'; Clazz: TDHToken_Line; AllowPar: True; OptionalPar: True),
     (Ident: 'IMG'; Clazz: TDHToken_Image; AllowPar: True),
     (Ident: 'IMGRES'; Clazz: TDHToken_ImageResource; AllowPar: True),
-    (Ident: 'T'; Clazz: TDHToken_Tab; AllowPar: True), //breakable!
-    (Ident: 'TF'; Clazz: TDHToken_TabF; AllowPar: True), //breakable!
+    (Ident: 'T'; Clazz: TDHToken_Tab; AllowPar: True), //breakable! {OBSOLETE}
+    (Ident: 'TF'; Clazz: TDHToken_TabF; AllowPar: True), //breakable! {OBSOLETE}
 
     //block
     (Ident: 'B'; Clazz: TDHToken_Bold; AllowPar: True; OptionalPar: True),
@@ -543,7 +546,8 @@ const
     (Ident: 'OL'; Clazz: TDHToken_OrderedList),
     (Ident: 'LI'; Clazz: TDHToken_ListItem), //breakable!
     (Ident: 'LS'; Clazz: TDHToken_LineSpace; AllowPar: True),
-    (Ident: 'PI'; Clazz: TDHToken_ParagraphIndent; AllowPar: True)
+    (Ident: 'PI'; Clazz: TDHToken_ParagraphIndent; AllowPar: True),
+    (Ident: 'FLOAT'; Clazz: TDHToken_Float; AllowPar: True) {OBSOLETE}
   );
 
 function GetTokenObjectDefIndexFromIdent(const Ident: string): Integer;
@@ -554,6 +558,16 @@ begin
     if TOKENS_OBJECTS[I].Ident = Ident then Exit(I);
 
   Result := -1;
+end;
+
+function GetTokenIdentFromClass(Clazz: TDHTokenClass): string;
+var
+  I: Integer;
+begin
+  for I := Low(TOKENS_OBJECTS) to High(TOKENS_OBJECTS) do
+    if TOKENS_OBJECTS[I].Clazz = Clazz then Exit(TOKENS_OBJECTS[I].Ident);
+
+  raise EDHInternalExcept.CreateFmt('Token class "%s" invalid', [Clazz.ClassName]);
 end;
 
 procedure SetWhenBigger(var V: TPixels; This: TPixels);
@@ -1268,7 +1282,33 @@ var
     end;
   end;
 
+var
+  OldAr: TArray<string>;
 begin
+  if Self is TDHToken_Float then //old FLOAT tag
+  begin
+    OldAr := Param.Split([',']);
+    if Length(OldAr)>=2 then
+    begin
+      FloatPos := TAnyPoint.Create(Lb.CalcScale(StrToPixels(OldAr[0], 0)), Lb.CalcScale(StrToPixels(OldAr[1], 0)));
+      Floating := True;
+
+      if Length(OldAr)>=3 then
+        Size.Width := Lb.CalcScale(StrToPixels(OldAr[2], 0));
+    end;
+
+    if Size.Width>0 then WidthType := TDHDivSizeType.Outer else WidthType := TDHDivSizeType.Auto;
+    HeightType := TDHDivSizeType.Auto;
+
+    HorzAlign := haLeft;
+    VertAlign := vaTop;
+    KeepProps := True;
+    BackColor := clNone;
+    BorderColor := clNone;
+
+    Exit;
+  end;
+
   P := TDHMultipleTokenParams.Create(Param);
   try
     Size.Width := DetectSizeType(P.GetParam('width'), WidthType, False);
@@ -1676,7 +1716,7 @@ procedure TDHBuilder.Execute;
 begin
   CurrentBlock := MainToken;
   ReadTokens;
-  if CurrentBlock<>MainToken then AddInvalidToken; //missing some tag closing
+  CheckMissingClosingTags;
   CurrentBlock := nil;
 
   CurrentDiv := MainDiv;
@@ -1696,13 +1736,27 @@ begin
   SendObjectsToComponent(MainDiv);
 end;
 
-procedure TDHBuilder.AddInvalidToken;
+procedure TDHBuilder.CheckMissingClosingTags;
+var
+  Block: TDHTokenBlock;
+begin
+  Block := CurrentBlock;
+  while Block<>MainToken do
+  begin
+    AddInvalidToken(-1, 'Missing closing tag ' + GetTokenIdentFromClass(TDHTokenClass(Block.ClassType)));
+    Block := Block.Parent;
+  end;
+end;
+
+procedure TDHBuilder.AddInvalidToken(Position: Integer; const ErrorDescription: string);
 var
   Token: TDHToken_Word;
 begin
   Token := AddToken<TDHToken_Word>;
   Token.Word := '<?>';
   Token.Breakable := True;
+
+  Lb.SyntaxErrors.Add(TDHSyntaxError.Create(Position, ErrorDescription));
 end;
 
 function TDHBuilder.AddToken<T>: T;
@@ -1715,7 +1769,7 @@ end;
 procedure TDHBuilder.ReadTokens;
 const NBR_TAG = '<NBR>';
 var
-  Text: string;
+  Text, Tag, TagResult: string;
   CharIni: Char;
   I, CurPos, Len: Integer;
   BreakableChar, Nbr: Boolean;
@@ -1732,19 +1786,21 @@ begin
       I := PosEx('>', Text, CurPos+1); //find tag closing
       if I>0 then
       begin
-        if not ProcessTag(Copy(Text, CurPos+1, I-CurPos-1)) then AddInvalidToken;
+        Tag := Copy(Text, CurPos+1, I-CurPos-1);
+        TagResult := ProcessTag(Tag);
+        if TagResult<>'OK' then AddInvalidToken(CurPos, '<'+Tag+'>' + ' - ' + TagResult);
         CurPos := I+1;
       end else
       begin
         //losted tag opening
-        AddInvalidToken;
+        AddInvalidToken(CurPos, 'Char "<" left alone');
         Inc(CurPos);
       end;
     end else
     if CharIni = '>' then
     begin
       //losted tag closing
-      AddInvalidToken;
+      AddInvalidToken(CurPos, 'Char ">" left alone');
       Inc(CurPos);
     end else
     if (CharIni = #13) or (CharIni = #10) then
@@ -1776,7 +1832,7 @@ begin
   end;
 end;
 
-function TDHBuilder.ProcessTag(const Tag: string): Boolean;
+function TDHBuilder.ProcessTag(const Tag: string): string;
 var
   CloseTag, HasPar, Block: Boolean;
   A, Par: string;
@@ -1785,7 +1841,7 @@ var
   TokenClass: TDHTokenClass;
   Token: TDHToken;
 begin
-  Result := False;
+  Result := 'unknown';
   A := Tag;
 
   CloseTag := A.StartsWith('/');
@@ -1794,14 +1850,14 @@ begin
   HasPar := SplitStr(A, ':', A, Par);
   if HasPar then
   begin
-    if Par.IsEmpty then Exit; //blank parameter specified
-    if CloseTag then Exit; //tag closing with parameter
+    if Par.IsEmpty then Exit('Blank parameter specified');
+    if CloseTag then Exit('Parameter not allowed in closing tag');
   end;
 
-  if A.IsEmpty then Exit; //blank tag
+  if A.IsEmpty then Exit('Blank tag');
 
   I := GetTokenObjectDefIndexFromIdent(UpperCase(A));
-  if I = -1 then Exit; //invalid tag
+  if I = -1 then Exit('Invalid tag');
 
   Def := TOKENS_OBJECTS[I];
   TokenClass := Def.Clazz;
@@ -1809,14 +1865,14 @@ begin
 
   if CloseTag then
   begin
-    if not Block then Exit; //close-tag on single tag
-    if CurrentBlock.ClassType <> TokenClass then Exit; //closing different tag
+    if not Block then Exit('Single tag does not allow closing tag');
+    if CurrentBlock.ClassType <> TokenClass then Exit('Closing another tag');
 
     CurrentBlock := CurrentBlock.Parent;
   end else
   begin
-    if (not Def.AllowPar) and (HasPar) then Exit; //parameter not allowed
-    if (Def.AllowPar) and (not Def.OptionalPar) and (not HasPar) then Exit; //parameter required
+    if (not Def.AllowPar) and (HasPar) then Exit('Parameter not allowed');
+    if (Def.AllowPar) and (not Def.OptionalPar) and (not HasPar) then Exit('Parameter required');
 
     Token := TokenClass.Create;
     Token.Init(Self);
@@ -1828,14 +1884,14 @@ begin
       if not Token.ValidParam then
       begin
         CurrentBlock.Children.Remove(Token);
-        Exit;
+        Exit('Invalid parameter');
       end;
     end;
 
     if Block then CurrentBlock := TDHTokenBlock(Token);
   end;
 
-  Result := True;
+  Result := 'OK';
 end;
 {$ENDREGION}
 

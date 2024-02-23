@@ -34,10 +34,13 @@
 
 ## What's New
 
-- 02/22/2024 (Version 5.4)
+- 02/23/2024 (Version 6.0)
 
+   - New Design packages (build all packages and install only design packages).
+   - New Syntax Errors list (right click on component in design mode and choose "Show Syntax Errors"). The component border will appear red when syntax errors.
    - Fixed word bounds size calculation for some platforms in FMX environment, like Android. The component was using MeasureCanvas to calculate bounds before canvas becomes available. Some platforms return wrong size (smaller) when using generic MeasureCanvas. Now we are using original Canvas, building tokens when Canvas becomes available. **This fix resolves the issue of characters cut in half at the end of the word.**
    - Fixed Tab margin on first line and Tab x Line Item x Paragraph Indent margin overload.
+   - Reintroduced `<FLOAT>` tag (as obsolete tag).
 
 - 02/20/2024 (Version 5.3)
 
@@ -430,8 +433,13 @@ This visual component allows you to specify a formatted text in a label, using a
 <VALIGN:top|center|bottom></VALIGN> - Aligning content vertically to the line
 <OFFSET:[top=123],[bottom=456]></OFFSET> - Content margin spacing
   Offset margins are memorized if a new offset tag is specifyed without same parameter name
-<T:123> = Tab - left margin offset
-<TF:123> = Tab with continuous lines aligned
+  
+OBSOLETE TAGS:
+  <T:123> - Tab - left margin offset
+  <TF:123> - Tab with continuous lines aligned
+  <FLOAT:X,Y[,Width]></FLOAT> - Floating div area
+  
+----------
 
 * COLOR_VALUE - clColor(VCL)|Color(FMX)|$00GGBBRR|#AARRGGBB|#RRGGBB
 * When FMX, all sizes (TPixels) use the "." notation as a decimal separator
@@ -459,9 +467,9 @@ Tags must follow the hierarchy as they were opened:
 ### Manual install
 
 1. Open **DzHTMLText.groupproj** project in Delphi.
-2. Ensure **Win32** Platform and **Release** config are selected in VCL and FMX packages.
-3. Then **Build** and **Install** all packages.
-4. If you want to use Win64 platform, select this platform and Build again.
+2. Choose desired platform and ensure **Release** config are selected in all packages (Design packages must be compiled in Win32 platform).
+3. Right-click at root item in the tree and choose **Build All**.
+4. Right-click at **DzHTMLTextDesign_VCL** / **DzHTMLTextDesign_FMX** and choose **Install**.
 5. Add Library Path according to the platform in Tools\Options. Example: If you are using Win32, set path = `Lib\Win32\Release`.
 
 Supports Delphi XE3..Delphi 12
@@ -518,6 +526,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 
 `StyleLinkHover: TDHStyleLinkProp` = Properties to format a link when is selected by mouse.
+
+`SyntaxErrors: TDHSyntaxErrorList` (public) = List of syntax errors. Right click on component and choose "Show Syntax Errors" at design time to show syntax errors. **When any syntax error, at design time the border of the component will be draw with red color.**
 
 `Text: string` (public) = This property is a shortcut to `Lines` property. At run-time, you can read and write this property directly, but the component will store the text at `Lines` property.
 
