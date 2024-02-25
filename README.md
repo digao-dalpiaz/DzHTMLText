@@ -62,10 +62,11 @@
 
 - 01/05/2024 (Version 5.0)
 
-   | :exclamation: Component breaking changes                                                          |
-   |---------------------------------------------------------------------------------------------------|
-   | Tags `<T>`, `<TF>` and `<FLOAT>` have been removed (`<T>` and `<TF>` reintroduced in version 5.2) |
-   | Please use new tag `<DIV>`                                                                        |
+   | :exclamation: Component breaking changes                                              |
+   |---------------------------------------------------------------------------------------|
+   | Tags `<T>`, `<TF>` and `<FLOAT>` have been removed                                    |
+   | Please use new tag `<DIV>`                                                            |
+   | (`<T>` and `<TF>` reintroduced in version 5.2, `<FLOAT>` reintroduced in version 6.0) |
 
    - **NEW COMPONENT ENGINE!!!**
    - Improved token processing performance
