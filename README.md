@@ -1,4 +1,4 @@
-![Preview](images/preview.gif)
+[![YouTube](https://img.youtube.com/vi/rDRJqccQlkw/0.jpg)](https://www.youtube.com/watch?v=rDRJqccQlkw)
 
 # DzHTMLText
 ## Delphi and Lazarus HTML Label component
