@@ -29,7 +29,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 710; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 711; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -675,7 +675,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '6.0';
+const STR_VERSION = '6.1';
 
 const DEFAULT_PPI = 96;
 
@@ -1267,7 +1267,7 @@ begin
   if Color<>clNone then
   begin
     C.Fill.Color := FColor;
-    C.FillRect(LocalRect, 0, 0, [], 1);
+    C.FillRect(LocalRect, Opacity);
   end;
   {$ELSE}
   if not FTransparent then
@@ -1331,7 +1331,7 @@ begin
       FStyleLinkNormal.SetPropsToCanvas(C);
   end;
 
-  if GetGenericFillColor(C)<>clNone then GenericFillRect(C, R, True);
+  if GetGenericFillColor(C)<>clNone then GenericFillRect(Self, C, R, True);
 
   if W is TDHVisualItem_Div then
     Paint_Div(C, R, TDHVisualItem_Div(W))
@@ -1358,14 +1358,14 @@ procedure TDzHTMLText.Paint_Div(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Div);
     if (Side.Thick=0) or (Side.Color=clNone) then Exit;
 
     DefineFillColor(C, Side.Color);
-    GenericFillRect(C, TAnyRect.Create(TAnyPoint.Create(R.Left+X, R.Top+Y), W, H));
+    GenericFillRect(Self, C, TAnyRect.Create(TAnyPoint.Create(R.Left+X, R.Top+Y), W, H));
   end;
 
 begin
   if W.OuterColor<>clNone then
   begin
     DefineFillColor(C, W.OuterColor);
-    GenericFillRect(C, R);
+    GenericFillRect(Self, C, R);
   end;
 
   R.Left := R.Left + W.Left.Pad;
@@ -1376,7 +1376,7 @@ begin
   if W.InnerColor<>clNone then
   begin
     DefineFillColor(C, W.InnerColor);
-    GenericFillRect(C, R);
+    GenericFillRect(Self, C, R);
   end;
 
   PaintSide(W.Left, 0, 0, W.Left.Thick, R.Height);
@@ -1391,7 +1391,7 @@ begin
 
   {$IFDEF FMX}
   C.Fill.Color := C.Stroke.Color;
-  C.FillText(R, W.Text, False, 1, [],
+  C.FillText(R, W.Text, False, Opacity, [],
     TTextAlign.{$IF CompilerVersion >= 27}{XE6}Leading{$ELSE}taLeading{$ENDIF});
   {$ELSE}
   C.Brush.Style := bsClear;
@@ -1419,7 +1419,7 @@ begin
   if Assigned(FImages) then
   begin
     {$IFDEF FMX}
-    FImages.Draw(C, R, W.ImageIndex, 1);
+    FImages.Draw(C, R, W.ImageIndex, Opacity);
     {$ELSE}
       {$IFDEF FPC}
       FImages.StretchDraw(C, W.ImageIndex, R);
@@ -1440,7 +1440,7 @@ end;
 procedure TDzHTMLText.Paint_ImageResource(C: TCanvas; R: TAnyRect; W: TDHVisualItem_ImageResource);
 begin
   {$IFDEF FMX}
-  C.DrawBitmap(W.Picture, TAnyRect.Create(0, 0, W.Picture.Width, W.Picture.Height), R, 1);
+  C.DrawBitmap(W.Picture, TAnyRect.Create(0, 0, W.Picture.Width, W.Picture.Height), R, Opacity);
   {$ELSE}
   C.StretchDraw(R, W.Picture.Graphic);
   {$ENDIF}
@@ -1452,14 +1452,14 @@ begin
     R.Height := RoundIfVCL(R.Height / 2); //half height when double color
 
   DefineFillColor(C, W.Color);
-  GenericFillRect(C, R);
+  GenericFillRect(Self, C, R);
 
   if W.ColorAlt <> clNone then
   begin
     R.Offset(0, R.Height);
 
     DefineFillColor(C, W.ColorAlt);
-    GenericFillRect(C, R);
+    GenericFillRect(Self, C, R);
   end;
 end;
 

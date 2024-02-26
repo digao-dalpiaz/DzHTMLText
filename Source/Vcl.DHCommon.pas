@@ -54,7 +54,7 @@ function GetGenericFontName(F: TFont): string;
 procedure DefineFillColor(C: TCanvas; Color: TAnyColor);
 function GetGenericFillColor(C: TCanvas): TAnyColor;
 
-procedure GenericFillRect(C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
+procedure GenericFillRect(Lb: TDzHTMLText; C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
 
 function ParamToColor(const Param: string): TAnyColor;
 
@@ -299,7 +299,7 @@ begin
   Result := C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color;
 end;
 
-procedure GenericFillRect(C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
+procedure GenericFillRect(Lb: TDzHTMLText; C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
 begin
   {$IFDEF FMX}
   if FixPrecisionFMX then R.Left := Trunc(R.Left);
@@ -307,7 +307,7 @@ begin
 
   C.FillRect(
     {$IFDEF FMX}
-    R, 0, 0, [], 1
+    R, Lb.Opacity
     {$ELSE}
     R
     {$ENDIF});

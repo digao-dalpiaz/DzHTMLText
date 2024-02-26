@@ -36,6 +36,13 @@
 
 ## What's New
 
+- 02/26/2024 (Version 6.1)
+
+   - Opacity supporting in FMX environment.
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 02/23/2024 (Version 6.0)
 
    - New Design packages (build all packages and install only design packages). *The old packages were transformed into Runtime-only packages, so if you already had the component installed previously, you may receive an error message in Delphi saying that the package cannot be installed as it is Runtime-only. You can ignore this message, as the package will not be installed and will no longer be loaded at Designtime.*
@@ -43,9 +50,6 @@
    - Fixed word bounds size calculation for some platforms in FMX environment, like Android. The component was using MeasureCanvas to calculate bounds before canvas becomes available. Some platforms return wrong size (smaller) when using generic MeasureCanvas. Now we are using original Canvas, building tokens when Canvas becomes available. **This fix resolves the issue of characters cut in half at the end of the word.**
    - Fixed Tab margin on first line and Tab x Line Item x Paragraph Indent margin overload.
    - Reintroduced `<FLOAT>` tag (as obsolete tag).
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 02/20/2024 (Version 5.3)
 
