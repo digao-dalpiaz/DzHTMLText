@@ -1,4 +1,5 @@
 [![YouTube](https://img.youtube.com/vi/rDRJqccQlkw/0.jpg)](https://www.youtube.com/watch?v=rDRJqccQlkw)
+
 *Brazilian Portuguese video. Please select automatic translations on YouTube video options.*
 
 # DzHTMLText
