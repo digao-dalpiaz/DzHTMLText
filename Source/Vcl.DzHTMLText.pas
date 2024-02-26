@@ -1290,11 +1290,11 @@ begin
   if csDesigning in ComponentState then
   begin
     {$IFDEF FMX}
-    C.Stroke.Thickness := 0.5;
+    C.Stroke.Thickness := 0.6;
     C.Stroke.Kind := TBrushKind.{$IF CompilerVersion >= 27}{XE6}Solid{$ELSE}bkSolid{$ENDIF};
     C.Stroke.Dash := TStrokeDash.{$IF CompilerVersion >= 27}{XE6}Dash{$ELSE}sdDash{$ENDIF};
     if LError.Count>0 then C.Stroke.Color := TAlphaColors.Red else C.Stroke.Color := TAlphaColors.Black;
-    C.DrawRect(LocalRect, 0, 0, [], 1);
+    C.DrawRect(LocalRect, 1);
     {$ELSE}
     C.Pen.Style := psDot;
     if LError.Count>0 then C.Pen.Color := clRed else C.Pen.Color := clBtnShadow;
