@@ -719,7 +719,7 @@ In this example, the image tag should be `<imgres:test>`
 
 Syntax of the image above:
 
-```hmtl
+```html
 <div:
 margin=40,
 thick=5,
