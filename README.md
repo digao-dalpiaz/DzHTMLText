@@ -719,7 +719,16 @@ In this example, the image tag should be `<imgres:test>`
 
 Syntax of the image above:
 
-`<div:margin=40,thick=5,pad=20,lncolor=clGray,color=clWhite,outcolor=clLime><bc:clYellow>Some text inside a div</bc></div>`
+```hmtl
+<div:
+margin=40,
+thick=5,
+pad=20,
+lncolor=clGray,
+color=clWhite,
+outcolor=clLime
+><bc:clYellow>Some text inside a div</bc></div>
+```
 
 The component is based in Div areas. This mean the main area of component is a Div, and you can insert sub divs, and another divs inside divs, and so on. The div tag allows you to work with alignment, colors, borders, margin, and you can even make a table using multiple divs.
 
