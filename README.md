@@ -717,6 +717,9 @@ In this example, the image tag should be `<imgres:test>`
 
 ![Div Example](images/div.png)
 
+Syntax of the image above:
+`<div:margin=40,thick=5,pad=20,lncolor=clGray,color=clWhite,outcolor=clLime><bc:clYellow>Some text inside a div</bc></div>`
+
 The component is based in Div areas. This mean the main area of component is a Div, and you can insert sub divs, and another divs inside divs, and so on. The div tag allows you to work with alignment, colors, borders, margin, and you can even make a table using multiple divs.
 
 The div tag may be floating, using specific X and Y position, or docked to the current text, when not specifying any position.
