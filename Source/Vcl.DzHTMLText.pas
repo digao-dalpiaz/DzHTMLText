@@ -1261,6 +1261,10 @@ end;
 procedure TDzHTMLText.CanvasProcess(C: TCanvas);
 var
   W: TDHVisualItem;
+{$IFDEF FMX}
+  RectDsn: TRectF;
+  ColorDsn: TAlphaColor;
+{$ENDIF}
 begin
   //draw background color
   {$IFDEF FMX}
@@ -1290,11 +1294,13 @@ begin
   if csDesigning in ComponentState then
   begin
     {$IFDEF FMX}
-    C.Stroke.Thickness := 0.6;
-    C.Stroke.Kind := TBrushKind.{$IF CompilerVersion >= 27}{XE6}Solid{$ELSE}bkSolid{$ENDIF};
-    C.Stroke.Dash := TStrokeDash.{$IF CompilerVersion >= 27}{XE6}Dash{$ELSE}sdDash{$ENDIF};
-    if LError.Count>0 then C.Stroke.Color := TAlphaColors.Red else C.Stroke.Color := TAlphaColors.Black;
-    C.DrawRect(LocalRect, 1);
+    if not FLocked and not FInPaintTo then
+    begin
+      RectDsn := LocalRect;
+      System.Types.InflateRect(RectDsn, -0.5, -0.5);
+      if LError.Count>0 then ColorDsn := TAlphaColors.Red else ColorDsn := $A0909090;
+      Canvas.DrawDashRect(RectDsn, 0, 0, AllCorners, AbsoluteOpacity, ColorDsn);
+    end;
     {$ELSE}
     C.Pen.Style := psDot;
     if LError.Count>0 then C.Pen.Color := clRed else C.Pen.Color := clBtnShadow;
