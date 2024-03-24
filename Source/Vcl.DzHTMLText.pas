@@ -1310,7 +1310,7 @@ begin
       RectDsn := LocalRect;
       System.Types.InflateRect(RectDsn, -0.5, -0.5);
       if LError.Count>0 then ColorDsn := TAlphaColors.Red else ColorDsn := $A0909090;
-      Canvas.DrawDashRect(RectDsn, 0, 0, AllCorners, AbsoluteOpacity, ColorDsn);
+      C.DrawDashRect(RectDsn, 0, 0, AllCorners, AbsoluteOpacity, ColorDsn);
     end;
     {$ELSE}
     C.Pen.Style := psDot;
