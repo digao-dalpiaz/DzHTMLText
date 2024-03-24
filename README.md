@@ -36,12 +36,17 @@
 
 ## What's New
 
-- 02/26/2024 (Version 6.1)
+- 03/24/2024 (Version 6.2)
 
-   - Opacity supporting in FMX environment.
+   - Better design-time border (using the Delphi pattern).
+   - Keep Canvas properties state in FMX (font changes and other Canvas properties were retained and could affect the painting of other controls on the form)
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 02/26/2024 (Version 6.1)
+
+   - Opacity supporting in FMX environment.
 
 - 02/23/2024 (Version 6.0)
 

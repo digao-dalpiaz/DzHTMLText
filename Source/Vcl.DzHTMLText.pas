@@ -29,7 +29,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 711; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 712; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -679,7 +679,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '6.1';
+const STR_VERSION = '6.2';
 
 const DEFAULT_PPI = 96;
 
