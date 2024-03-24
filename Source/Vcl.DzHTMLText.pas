@@ -499,6 +499,10 @@ type
     property SelectedLink: TDHBaseLink read FSelectedLink;
 
     procedure Rebuild; //rebuild words
+    procedure CallTokenEngine;
+    {$IFDEF FMX}
+    procedure FMXCallTokenEngine;
+    {$ENDIF}
 
     procedure BeginUpdate; {$IFDEF FMX}reintroduce;{$ENDIF}
     procedure EndUpdate(ForceRepaint: Boolean = True); {$IFDEF FMX}reintroduce;{$ENDIF}
@@ -1231,9 +1235,11 @@ begin
 end;
 
 procedure TDzHTMLText.ExecPaint;
-{$IFDEF VCL}
 var
+{$IFDEF VCL}
   B: TAnyBitmap;
+{$ELSE}
+  State: TCanvasSaveState;
 {$ENDIF}
 begin
   {$IFDEF VCL}
@@ -1254,7 +1260,12 @@ begin
   {$ELSE}
   //In FMX, Paint method calls BeginScene/EndScene automatically,
   //so there is no need for Bitmap and there is no concern about flickering.
-  CanvasProcess(Canvas);
+  State := Canvas.SaveState;
+  try
+    CanvasProcess(Canvas);
+  finally
+    Canvas.RestoreState(State); //keep original canvas properties (FMX shares canvas with other controls)
+  end;
   {$ENDIF}
 end;
 
@@ -1710,7 +1721,6 @@ end;
 
 procedure TDzHTMLText.Rebuild;
 var
-  B: TDHBuilder;
   P: TAnyPoint;
 begin
   if csLoading in ComponentState then Exit;
@@ -1728,14 +1738,7 @@ begin
 
   FPlainText.Clear;
 
-  B := TDHBuilder.Create(Self,
-    Canvas,
-    VisualItems, SetTextSizeAndLineCount);
-  try
-    B.Execute;
-  finally
-    B.Free;
-  end;
+  {$IFDEF FMX}FMXCallTokenEngine{$ELSE}CallTokenEngine{$ENDIF};
 
   //reset selected link
   FSelectedLink := nil;
@@ -1750,6 +1753,37 @@ begin
     {$ENDIF};
   CheckMouse(P.X, P.Y);
 end;
+
+procedure TDzHTMLText.CallTokenEngine;
+var
+  B: TDHBuilder;
+begin
+  B := TDHBuilder.Create(Self, Canvas, VisualItems, SetTextSizeAndLineCount);
+  try
+    B.Execute;
+  finally
+    B.Free;
+  end;
+end;
+
+{$IFDEF FMX}
+procedure TDzHTMLText.FMXCallTokenEngine;
+var
+  OldFont: TFont;
+begin
+  OldFont := TFont.Create;
+  try
+    OldFont.Assign(Canvas.Font);
+    try
+      CallTokenEngine;
+    finally
+      Canvas.Font.Assign(OldFont); //keep original canvas font (FMX shares canvas with other controls)
+    end;
+  finally
+    OldFont.Free;
+  end;
+end;
+{$ENDIF}
 {$ENDREGION}
 
 {$REGION 'TDHStyleLinkProp'}
