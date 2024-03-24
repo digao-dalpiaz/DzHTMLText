@@ -38,7 +38,7 @@
 
 - 03/24/2024 (Version 6.2)
 
-   - Better design-time border (using the Delphi pattern).
+   - Better FMX design-time border (using the Delphi pattern).
    - Keep Canvas properties state in FMX (font changes and other Canvas properties were retained and could affect the painting of other controls on the form)
 
 <details>
