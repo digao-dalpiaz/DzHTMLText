@@ -29,7 +29,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 712; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 713; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -487,7 +487,7 @@ type
     property SyntaxErrors: TDHSyntaxErrorList read LError;
 
     {$IFDEF VCL}
-    function CalcMulDiv(Size, DesignPPI: Integer; IsFont: Boolean): Integer;
+    function CalcMulDiv(Size: Integer): Integer;
     function CalcFontHeight(Size: Integer): Integer;
     {$ENDIF}
     function CalcScale(Size: TPixels): TPixels;
@@ -679,7 +679,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '6.2';
+const STR_VERSION = '6.3';
 
 const DEFAULT_PPI = 96;
 
@@ -1651,27 +1651,32 @@ end;
 
 {$IFDEF VCL}
 type THackForm = class(TCustomForm); //older Delphi version - Scaled is a protected property
-function TDzHTMLText.CalcMulDiv(Size, DesignPPI: Integer; IsFont: Boolean): Integer;
+function TDzHTMLText.CalcMulDiv(Size: Integer): Integer;
 var
-  MonitorPPI: Integer;
+  MonitorPPI, DesignPPI: Integer;
 begin
-  MonitorPPI := DEFAULT_PPI;
   {$IF (Defined(DCC) and (CompilerVersion >= 30)) or Defined(FPC)} //D10 Seattle or Lazarus
-  if {$IFDEF DCC}not (csDesigning in ComponentState) and{$ENDIF} //design always based on Default PPI in Delphi
-    (ParentForm<>nil) and THackForm(ParentForm).Scaled then
+  if (ParentForm<>nil) and THackForm(ParentForm).Scaled
+    {$IFDEF DCC}and not (csDesigning in ComponentState){$ENDIF} //design always based on Default PPI in Delphi
+  then
+  begin
     MonitorPPI := ParentForm.Monitor.PixelsPerInch;
-  {$ENDIF}
+    DesignPPI := {$IFDEF FPC}ParentForm.PixelsPerInch{$ELSE}DEFAULT_PPI{$ENDIF};
+    //in Delphi, form PixelsPerInch changes by current monitor
+    //in Lazarus, form PixelsPerInch stay fixed by designer (default screen)
 
-  {$IFDEF FPC}
-  if not IsFont and (ParentForm<>nil) then DesignPPI := ParentForm.DesignTimePPI;
+    Result := Round(Size * MonitorPPI / DesignPPI); //MulDiv equivalent
+  end else
   {$ENDIF}
-
-  Result := Round(Size * MonitorPPI / DesignPPI); //MulDiv equivalent
+    Result := Size;
 end;
 
 function TDzHTMLText.CalcFontHeight(Size: Integer): Integer;
+var
+  H: Integer;
 begin
-  Result := -CalcMulDiv(Size, 72, True);
+  H := -Round(Size * Screen.PixelsPerInch / 72);
+  Result := CalcMulDiv(H);
 end;
 {$ENDIF}
 
@@ -1679,7 +1684,7 @@ function TDzHTMLText.CalcScale(Size: TPixels): TPixels;
 begin
   Result :=
   {$IFDEF VCL}
-    CalcMulDiv(Size, DEFAULT_PPI, False)
+    CalcMulDiv(Size)
   {$ELSE}
     Size
   {$ENDIF};

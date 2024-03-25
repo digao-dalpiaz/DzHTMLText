@@ -36,13 +36,17 @@
 
 ## What's New
 
+- 03/25/2024 (Version 6.3)
+
+   - VCL font scaling review (Height is calculated by default screen PPI)
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 03/24/2024 (Version 6.2)
 
    - Better FMX design-time border (using the Delphi pattern).
    - Keep Canvas properties state in FMX (font changes and other Canvas properties were retained and could affect the painting of other controls on the form)
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 02/26/2024 (Version 6.1)
 
