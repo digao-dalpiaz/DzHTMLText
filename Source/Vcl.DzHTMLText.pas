@@ -29,7 +29,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const DZHTMLTEXT_INTERNAL_VERSION = 713; //Synchronizes TDam component
+const DZHTMLTEXT_INTERNAL_VERSION = 714; //Synchronizes TDam component
 
 const _DEF_LISTLEVELPADDING = 20;
 
@@ -679,7 +679,7 @@ uses
   {$ENDIF}
 {$ENDIF};
 
-const STR_VERSION = '6.3';
+const STR_VERSION = '6.4';
 
 const DEFAULT_PPI = 96;
 
@@ -1282,7 +1282,7 @@ begin
   if Color<>clNone then
   begin
     C.Fill.Color := FColor;
-    C.FillRect(LocalRect, Opacity);
+    C.FillRect(LocalRect, 0, 0, [], Opacity);
   end;
   {$ELSE}
   if not FTransparent then
@@ -1650,12 +1650,17 @@ begin
 end;
 
 {$IFDEF VCL}
-type THackForm = class(TCustomForm); //older Delphi version - Scaled is a protected property
+  {$IF (Defined(DCC) and (CompilerVersion >= 30)) or Defined(FPC)} //D10 Seattle or Lazarus
+    {$DEFINE PPI_SCALING}
+  {$ENDIF}
+type THackForm = class(TCustomForm); //only in Delphi 11 the property "Scaled" is public (before is protected)
 function TDzHTMLText.CalcMulDiv(Size: Integer): Integer;
+{$IFDEF PPI_SCALING}
 var
   MonitorPPI, DesignPPI: Integer;
+{$ENDIF}
 begin
-  {$IF (Defined(DCC) and (CompilerVersion >= 30)) or Defined(FPC)} //D10 Seattle or Lazarus
+  {$IFDEF PPI_SCALING}
   if (ParentForm<>nil) and THackForm(ParentForm).Scaled
     {$IFDEF DCC}and not (csDesigning in ComponentState){$ENDIF} //design always based on Default PPI in Delphi
   then

@@ -36,12 +36,16 @@
 
 ## What's New
 
-- 03/25/2024 (Version 6.3)
+- 03/26/2024 (Version 6.4)
 
-   - VCL font scaling review (Height is calculated by default screen PPI)
+   - Fix Delphi XE3 compiling (Design packages and FMX FillRect)
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 03/25/2024 (Version 6.3)
+
+   - VCL font scaling review (Height is calculated by default screen PPI)
 
 - 03/24/2024 (Version 6.2)
 
@@ -783,8 +787,8 @@ When you type Chinese, Japanese or Korean characters, this behavior is quite dif
 All measurements will be calculated based on the Design DPI (always 96 pixels per inch), and applied to the current Monitor DPI. Example: if you specified a tab width as 60 pixels, at 96 DPI, when displaying the text on a 120 DPI monitor, the tab width will be larger (75 pixels).
 
 For automatic scaling by DPI to work correctly, it is necessary to use Windows 8.1 or higher, and Delphi 10 or higher, or Lazarus.
-If using Delphi previous version, the scaling will be based on default DPI (96).
-If using Windows previous version, the scaling will be based on the default monitor DPI.
+If using Delphi previous version, the scaling will be disabled.
+If using Windows previous version, the scaling will be based on the default monitor DPI, and not on application current monitor.
 
 ### FMX
 

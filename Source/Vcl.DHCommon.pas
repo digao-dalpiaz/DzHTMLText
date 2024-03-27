@@ -307,7 +307,7 @@ begin
 
   C.FillRect(
     {$IFDEF FMX}
-    R, Lb.Opacity
+    R, 0, 0, [], Lb.Opacity
     {$ELSE}
     R
     {$ENDIF});
