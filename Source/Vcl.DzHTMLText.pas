@@ -97,6 +97,7 @@ type
   public
     OuterColor, InnerColor: TAnyColor;
     Left, Top, Right, Bottom: TDHDivBorderLineAttrRec;
+    CornerRadius: TPixels;
   end;
 
   TDHVisualItem_Word = class(TDHVisualItem)
@@ -1314,6 +1315,7 @@ begin
     end;
     {$ELSE}
     C.Pen.Style := psDot;
+    C.Pen.Width := 1;
     if LError.Count>0 then C.Pen.Color := clRed else C.Pen.Color := clBtnShadow;
     C.Brush.Style := bsClear;
     C.Rectangle(ClientRect);
@@ -1390,16 +1392,49 @@ begin
   R.Right := R.Right - W.Right.Pad;
   R.Bottom := R.Bottom - W.Bottom.Pad;
 
-  if W.InnerColor<>clNone then
+  if W.CornerRadius>0 then
   begin
-    DefineFillColor(C, W.InnerColor);
-    GenericFillRect(Self, C, R);
-  end;
+    if (W.Left.Thick>0) and (W.Left.Color<>clNone) then
+    begin
+      {$IFDEF FMX}
+      C.Stroke.Thickness := W.Left.Thick;
+      C.Stroke.Color := W.Left.Color;
+      C.Stroke.Kind := TBrushKind.{$IF CompilerVersion >= 27}{XE6}Solid{$ELSE}bkSolid{$ENDIF};
+      {$ELSE}
+      C.Pen.Width := W.Left.Thick;
+      C.Pen.Color := W.Left.Color;
+      C.Pen.Style := psSolid;
+      {$ENDIF}
+    end else
+    begin
+      {$IFDEF FMX}
+      C.Stroke.Kind := TBrushKind.{$IF CompilerVersion >= 27}{XE6}None{$ELSE}bkNone{$ENDIF};
+      {$ELSE}
+      C.Pen.Style := psClear;
+      {$ENDIF}
+    end;
 
-  PaintSide(W.Left, 0, 0, W.Left.Thick, R.Height);
-  PaintSide(W.Top, 0, 0, R.Width, W.Top.Thick);
-  PaintSide(W.Right, R.Width-W.Right.Thick, 0, W.Right.Thick, R.Height);
-  PaintSide(W.Bottom, 0, R.Height-W.Bottom.Thick, R.Width, W.Bottom.Thick);
+    DefineFillColor(C, W.InnerColor);
+
+    {$IFDEF FMX}
+    C.FillRect(R, W.CornerRadius, W.CornerRadius, AllCorners, Opacity); //backgound
+    C.DrawRect(R, W.CornerRadius, W.CornerRadius, AllCorners, Opacity); //border
+    {$ELSE}
+    C.RoundRect(R, W.CornerRadius, W.CornerRadius);
+    {$ENDIF}
+  end else
+  begin
+    if W.InnerColor<>clNone then
+    begin
+      DefineFillColor(C, W.InnerColor);
+      GenericFillRect(Self, C, R);
+    end;
+
+    PaintSide(W.Left, 0, 0, W.Left.Thick, R.Height);
+    PaintSide(W.Top, 0, 0, R.Width, W.Top.Thick);
+    PaintSide(W.Right, R.Width-W.Right.Thick, 0, W.Right.Thick, R.Height);
+    PaintSide(W.Bottom, 0, R.Height-W.Bottom.Thick, R.Width, W.Bottom.Thick);
+  end;
 end;
 
 procedure TDzHTMLText.Paint_Word(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Word);

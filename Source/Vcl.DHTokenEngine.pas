@@ -338,6 +338,7 @@ type
     WidthType, HeightType: TDHDivSizeType;
     KeepProps: Boolean;
     FloatingBehind: Boolean;
+    CornerRadius: TPixels;
 
     Floating: Boolean;
 
@@ -1343,6 +1344,7 @@ begin
     BorderColor := P.GetParamAsColor('outcolor');
     KeepProps := P.ParamExists('holdprops');
     FloatingBehind := P.ParamExists('behind');
+    CornerRadius := Lb.CalcScale(P.GetParamAsPixels('radius', 0));
   finally
     P.Free;
   end;
@@ -1398,6 +1400,7 @@ begin
   V := TDHVisualItem_Div.Create;
   V.InnerColor := BackColor;
   V.OuterColor := BorderColor;
+  V.CornerRadius := CornerRadius;
 
   ToDivLineAttr(Borders.Left, V.Left);
   ToDivLineAttr(Borders.Top, V.Top);
