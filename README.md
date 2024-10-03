@@ -38,12 +38,16 @@
 
 ## What's New
 
-- 03/26/2024 (Version 6.4)
+- 10/01/2024 (Version 6.5)
 
-   - Fix Delphi XE3 compiling (Design packages and FMX FillRect)
+   - New Corner Radius ("radius") property for Div tag
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 03/26/2024 (Version 6.4)
+
+   - Fix Delphi XE3 compiling (Design packages and FMX FillRect)
 
 - 03/25/2024 (Version 6.3)
 
@@ -410,6 +414,7 @@ This visual component allows you to specify a formatted text in a label, using a
     [thick[_left|_top|_right|_bottom]=nnn] --> Border line size
     [pad[_left|_top|_right|_bottom]=nnn] --> Spacing between outter limit and border line
     [lncolor[_left|_top|_right|_bottom]={COLOR_VALUE}] --> Border line color
+    [radius=nnn] --> Corner radius of border line (when specified, thick and lncolor will not support left/top/right/bottom values)
     [color={COLOR_VALUE}] --> Color inside the border line
     [outcolor={COLOR_VALUE}] --> Color outside the border line
     [align=left|center|right] --> Horizontal overall alignment
