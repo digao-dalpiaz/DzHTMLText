@@ -38,7 +38,7 @@
 
 ## What's New
 
-- 10/01/2024 (Version 6.5)
+- 10/14/2024 (Version 6.5)
 
    - New Corner Radius ("radius") property for Div tag
 
