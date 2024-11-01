@@ -1390,7 +1390,6 @@ var
   Pen: TGPPen;
   Path: TGPGraphicsPath;
   Brush: TGPSolidBrush;
-  DoubleRad: Single;
 begin
   Gpx := TGPGraphics.Create(Canvas.Handle);
   Pen := TGPPen.Create(ToGPColor(PenColor), Thick);
@@ -1399,11 +1398,10 @@ begin
   try
     Gpx.SetSmoothingMode(SmoothingModeAntiAlias);
 
-    DoubleRad := Radius * 2;
-    Path.AddArc(Rect.Left, Rect.Top, DoubleRad, DoubleRad, 180, 90);
-    Path.AddArc(Rect.Left + Rect.Width - DoubleRad, Rect.Top, DoubleRad, DoubleRad, 270, 90);
-    Path.AddArc(Rect.Left + Rect.Width - DoubleRad, Rect.Top + Rect.Height - DoubleRad, DoubleRad, DoubleRad, 0, 90);
-    Path.AddArc(Rect.Left, Rect.Top + Rect.Height - DoubleRad, DoubleRad, DoubleRad, 90, 90);
+    Path.AddArc(Rect.Left, Rect.Top, Radius, Radius, 180, 90);
+    Path.AddArc(Rect.Left + Rect.Width - Radius, Rect.Top, Radius, Radius, 270, 90);
+    Path.AddArc(Rect.Left + Rect.Width - Radius, Rect.Top + Rect.Height - Radius, Radius, Radius, 0, 90);
+    Path.AddArc(Rect.Left, Rect.Top + Rect.Height - Radius, Radius, Radius, 90, 90);
     Path.CloseFigure;
 
     if BrushColor<>clNone then Gpx.FillPath(Brush, Path);
