@@ -35,6 +35,8 @@ const _DEF_LISTLEVELPADDING = 20;
 
 {$INCLUDE Types.inc}
 type
+  TMyFontStyle = TFontStyle;
+
   TDzHTMLText = class;
 
   TDHLinkKind = (lkLinkRef, lkSpoiler);
@@ -678,6 +680,9 @@ uses
   {$IFDEF MSWINDOWS}
   , Winapi.Windows, Winapi.ShellAPI
   {$ENDIF}
+{$ENDIF}
+{$IFDEF USE_GDI}
+  , Winapi.GDIPOBJ, Winapi.GDIPAPI
 {$ENDIF};
 
 const STR_VERSION = '6.5';
@@ -1370,6 +1375,48 @@ begin
     raise EDHInternalExcept.Create('Invalid visual item object');
 end;
 
+{$IFDEF USE_GDI}
+function ToGPColor(Color: TColor): TGPColor;
+var
+  ColRef: COLORREF;
+begin
+  ColRef := ColorToRGB(Color);
+  Result := MakeColor(GetRValue(ColRef), GetGValue(ColRef), GetBValue(ColRef));
+end;
+
+procedure PaintRoundRectangleUsingWindowsGDI(Canvas: TCanvas; Thick, Radius: Single; Rect: TRect; PenColor, BrushColor: TColor);
+var
+  Gpx: TGPGraphics;
+  Pen: TGPPen;
+  Path: TGPGraphicsPath;
+  Brush: TGPSolidBrush;
+  DoubleRad: Single;
+begin
+  Gpx := TGPGraphics.Create(Canvas.Handle);
+  Pen := TGPPen.Create(ToGPColor(PenColor), Thick);
+  Brush := TGPSolidBrush.Create(ToGPColor(BrushColor));
+  Path := TGPGraphicsPath.Create;
+  try
+    Gpx.SetSmoothingMode(SmoothingModeAntiAlias);
+
+    DoubleRad := Radius * 2;
+    Path.AddArc(Rect.Left, Rect.Top, DoubleRad, DoubleRad, 180, 90);
+    Path.AddArc(Rect.Left + Rect.Width - DoubleRad, Rect.Top, DoubleRad, DoubleRad, 270, 90);
+    Path.AddArc(Rect.Left + Rect.Width - DoubleRad, Rect.Top + Rect.Height - DoubleRad, DoubleRad, DoubleRad, 0, 90);
+    Path.AddArc(Rect.Left, Rect.Top + Rect.Height - DoubleRad, DoubleRad, DoubleRad, 90, 90);
+    Path.CloseFigure;
+
+    if BrushColor<>clNone then Gpx.FillPath(Brush, Path);
+    if (PenColor<>clNone) and (Thick>0) then Gpx.DrawPath(Pen, Path);
+  finally
+    Path.Free;
+    Brush.Free;
+    Pen.Free;
+    Gpx.Free;
+  end;
+end;
+{$ENDIF}
+
 procedure TDzHTMLText.Paint_Div(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Div);
 
   procedure PaintSide(var Side: TDHDivBorderLineAttrRec; X, Y, W, H: TPixels);
@@ -1394,6 +1441,9 @@ begin
 
   if W.CornerRadius>0 then
   begin
+   {$IFDEF USE_GDI}
+    PaintRoundRectangleUsingWindowsGDI(C, W.Left.Thick, W.CornerRadius, R, W.Left.Color, W.InnerColor);
+   {$ELSE}
     if (W.Left.Thick>0) and (W.Left.Color<>clNone) then
     begin
       {$IFDEF FMX}
@@ -1422,6 +1472,7 @@ begin
     {$ELSE}
     C.RoundRect(R, W.CornerRadius, W.CornerRadius);
     {$ENDIF}
+   {$ENDIF}
   end else
   begin
     if W.InnerColor<>clNone then
@@ -1894,7 +1945,7 @@ procedure TDHStyleLinkProp.SetPropsToCanvas(C: TCanvas);
 begin
   if FFontColor<>clNone then DefineFontColor(C, FFontColor);
   if FBackColor<>clNone then DefineFillColor(C, FBackColor);
-  if FUnderline then C.Font.Style := C.Font.Style + [TFontStyle.fsUnderline];
+  if FUnderline then C.Font.Style := C.Font.Style + [TMyFontStyle.fsUnderline];
 end;
 
 procedure TDHStyleLinkProp.Assign(Source: TPersistent);
