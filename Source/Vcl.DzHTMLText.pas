@@ -1745,7 +1745,7 @@ var
 {$ENDIF}
 begin
   {$IFDEF PPI_SCALING}
-  if (ParentForm<>nil) and THackForm(ParentForm).Scaled
+  if (ParentForm<>nil) and THackForm(ParentForm).Scaled and (ParentForm.Monitor<>nil)
     {$IFDEF DCC}and not (csDesigning in ComponentState){$ENDIF} //design always based on Default PPI in Delphi
   then
   begin
