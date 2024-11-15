@@ -38,12 +38,17 @@
 
 ## What's New
 
-- 10/14/2024 (Version 6.5)
+- 11/14/2024 (Version 6.6)
 
-   - New Corner Radius ("radius") property for Div tag
+   - Use GDI painting from Windows API when using VCL + Windows to draw rounded div
+   - Fix access violation when DPI Scaling in VCL (early access to TForm.Monitor)
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 10/14/2024 (Version 6.5)
+
+   - New Corner Radius ("radius") property for Div tag
 
 - 03/26/2024 (Version 6.4)
 
