@@ -38,13 +38,18 @@
 
 ## What's New
 
+- 12/15/2024 (Version 6.7)
+
+   - Right-to-left (RTL) text supporting.
+   - When using a Div without "keep properties" (default), now Horizontal Text Alignment get the same value as component pre-defined Horizontal Alignment.
+   
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 11/14/2024 (Version 6.6)
 
    - Use GDI painting from Windows API when using VCL + Windows to draw rounded div
    - Fix access violation when DPI Scaling in VCL (early access to TForm.Monitor)
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 10/14/2024 (Version 6.5)
 
@@ -554,6 +559,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 `ParagraphIndent: TPixels` = Default left margin of a new paragraph.
 
 `ParagraphSpacing: TPixels` = Specify the default paragraph spacing in overall text. The paragraph spacing is added to original line spacing. You can use `<LS>` tag to determine paragraph spacing at specific lines.
+
+`RightToLeftText: Boolean` = Enables Right-to-left text notation.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 
