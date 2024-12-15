@@ -480,6 +480,7 @@ type
     procedure ProcessSpecificObjects(List: TDHPreVisualItemList);
 
     procedure CheckMissingClosingTags;
+    function GetDefaultHorzTextAlign: TDHHorzAlign;
   public
     constructor Create(Lb: TDzHTMLText; Canvas: TCanvas;
       VisualItems: TDHVisualItemList; ProcBoundsAndLines: TDHProcBoundsAndLines);
@@ -1422,7 +1423,7 @@ begin
     Props.Offset.Top := 0;
     Props.Offset.Bottom := 0;
     Props.BackColor := clNone;
-    Props.HorzAlign := haLeft;
+    Props.HorzAlign := Builder.GetDefaultHorzTextAlign;
     Props.VertAlign := vaTop;
     Props.LineSpace := 0;
     Props.ParagraphSpace := 0;
@@ -1677,7 +1678,7 @@ begin
   Props.Offset.Bottom := Lb.CalcScale(Lb.Offset.Bottom);
 
   Props.VertAlign := Lb.LineVertAlign;
-  Props.HorzAlign := Lb.LineHorzAlign;
+  Props.HorzAlign := GetDefaultHorzTextAlign;
 
   Props.LineSpace := Lb.CalcScale(Lb.LineSpacing);
   Props.ParagraphSpace := Lb.CalcScale(Lb.ParagraphSpacing);
@@ -1751,6 +1752,12 @@ begin
       [GetTokenIdentFromClass(TDHTokenClass(Block.ClassType)).ToLower]));
     Block := Block.Parent;
   end;
+end;
+
+function TDHBuilder.GetDefaultHorzTextAlign: TDHHorzAlign;
+begin
+  Result := Lb.LineHorzAlign;
+  if Lb.RightToLeftText and (Result = haLeft) then Result := haRight;
 end;
 
 procedure TDHBuilder.AddInvalidToken(Position: Integer; const ErrorDescription: string);
@@ -2282,6 +2289,9 @@ type
   end;
 
 begin
+  if Lb.RightToLeftText then
+    Item.Position.X := Line.TextSize.Width - (Item.Position.X + Item.Size.Width);
+
   Check(0, True, Item.HorzAlign);
   Check(1, False, Item.VertAlign);
 

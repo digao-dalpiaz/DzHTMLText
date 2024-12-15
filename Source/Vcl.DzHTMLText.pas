@@ -377,6 +377,8 @@ type
 
     FCursor: TCursor;
 
+    FRightToLeftText: Boolean;
+
     UpdatingSemaphore: Integer;
     InternalResizing: Boolean;
 
@@ -434,6 +436,8 @@ type
     procedure SetParagraphSpacing(const Value: TPixels);
     procedure SetParagraphIndent(const Value: TPixels);
     procedure SetCustomStyles(const Value: TDHCustomStyles);
+
+    procedure SetRightToLeftText(const Value: Boolean);
 
     {$IFDEF USE_IMGLST}
     procedure SetImages(const Value: TCustomImageList);
@@ -643,6 +647,8 @@ type
     property LineSpacing: TPixels read FLineSpacing write SetLineSpacing {$IFDEF VCL}default 0{$ENDIF};
     property ParagraphSpacing: TPixels read FParagraphSpacing write SetParagraphSpacing {$IFDEF VCL}default 0{$ENDIF};
     property ParagraphIndent: TPixels read FParagraphIndent write SetParagraphIndent {$IFDEF VCL}default 0{$ENDIF};
+
+    property RightToLeftText: Boolean read FRightToLeftText write SetRightToLeftText default False;
 
     property About: string read FAbout;
   end;
@@ -1084,6 +1090,16 @@ begin
   if Value<>FParagraphIndent then
   begin
     FParagraphIndent := Value;
+
+    BuildAndPaint;
+  end;
+end;
+
+procedure TDzHTMLText.SetRightToLeftText(const Value: Boolean);
+begin
+  if Value<>FRightToLeftText then
+  begin
+    FRightToLeftText := Value;
 
     BuildAndPaint;
   end;
