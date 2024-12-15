@@ -1836,7 +1836,7 @@ begin
       with AddToken<TDHToken_Word> do
       begin
         Word := TDzHTMLText.UnescapeHTMLToText(Copy(Text, CurPos, I-CurPos));
-        Breakable := BreakableChar;
+        Breakable := BreakableChar and not TDHCharUtils.IsPunctuationChar(CharIni);
       end;
       
       CurPos := I;
