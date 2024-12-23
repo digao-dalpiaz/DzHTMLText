@@ -139,8 +139,17 @@ begin
 end;
 
 class function TDHCharUtils.IsPunctuationChar(const C: Char): Boolean;
+
+  function IsArabic: Boolean;
+  begin
+    case Integer(C) of
+      $060C: Result := True; //comma
+      else Result := False;
+    end;
+  end;
+
 begin
-  Result := CharInSet(C, ['?','.',':',',',';','!']);
+  Result := CharInSet(C, ['?','.',':',',',';','!']) or IsArabic;
 end;
 
 class function TDHCharUtils.IsCJKChar(const C: Char): Boolean; //return if char is Chinese-Japanese-Korean
