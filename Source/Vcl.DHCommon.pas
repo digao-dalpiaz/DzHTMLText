@@ -142,9 +142,11 @@ class function TDHCharUtils.IsPunctuationChar(const C: Char): Boolean;
 
   function IsArabic: Boolean;
   begin
+    Result := False;
     case Integer(C) of
-      $060C: Result := True; //comma
-      else Result := False;
+      $060C, //comma
+      $061B //semicolon
+        : Result := True;
     end;
   end;
 
