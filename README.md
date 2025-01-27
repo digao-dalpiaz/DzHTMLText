@@ -38,13 +38,17 @@
 
 ## What's New
 
+- 01/26/2025 (Version 6.7)
+
+   - Fixed Lazarus compiling (GDI+ units)
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 11/14/2024 (Version 6.6)
 
    - Use GDI painting from Windows API when using VCL + Windows to draw rounded div
    - Fix access violation when DPI Scaling in VCL (early access to TForm.Monitor)
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 10/14/2024 (Version 6.5)
 
