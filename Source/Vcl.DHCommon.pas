@@ -40,6 +40,7 @@ type
   private
     class function IsCJKChar(const C: Char): Boolean; inline;
   public
+    class function IsPunctuationChar(const C: Char): Boolean;
     class function FindNextWordBreakChar(const A: string; From: Integer): Integer; inline;
   end;
 
@@ -130,11 +131,27 @@ begin
   begin
     C := A[I];
 
-    if CharInSet(C, [STR_SPACE,'<','>','/','\',#13,#10]) or IsCJKChar(C) then
+    if CharInSet(C, [STR_SPACE,'<','>','/','\',#13,#10]) or IsPunctuationChar(C) or IsCJKChar(C) then
       Exit(I);
   end;
 
   Result := 0;
+end;
+
+class function TDHCharUtils.IsPunctuationChar(const C: Char): Boolean;
+
+  function IsArabic: Boolean;
+  begin
+    Result := False;
+    case Integer(C) of
+      $060C, //comma
+      $061B //semicolon
+        : Result := True;
+    end;
+  end;
+
+begin
+  Result := CharInSet(C, ['?','.',':',',',';','!']) or IsArabic;
 end;
 
 class function TDHCharUtils.IsCJKChar(const C: Char): Boolean; //return if char is Chinese-Japanese-Korean

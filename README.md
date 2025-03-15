@@ -13,6 +13,7 @@
 ![VCL and FMX](https://img.shields.io/badge/-VCL%20and%20FMX-lightgrey.svg)
 ![Lazarus support](https://img.shields.io/badge/-Lazarus%20support-green.svg)
 ![CJK line break](https://img.shields.io/badge/-Chinese+Japanese+Korean%20line%20break%20support-yellowgreen.svg)
+![RTL notation](https://img.shields.io/badge/-RTL%20notation-purple.svg)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C53LVFN)
 
@@ -38,12 +39,17 @@
 
 ## What's New
 
-- 01/26/2025 (Version 6.7)
+- 03/15/2025 (Version 6.8)
 
-   - Fixed Lazarus compiling (GDI+ units)
+   - Right-to-left (RTL) text supporting.
+   - When using a Div without "keep properties" (default), now Horizontal Text Alignment get the same value as component pre-defined Horizontal Alignment.
 
 <details>
   <summary>Click here to view the entire changelog</summary>
+
+- 01/26/2025 (Version 6.7)
+
+   - Fixed Lazarus compiling (GDI+ units)
 
 - 11/14/2024 (Version 6.6)
 
@@ -558,6 +564,8 @@ If you are using AutoWidth, the text never wraps to a new line unless a line bre
 `ParagraphIndent: TPixels` = Default left margin of a new paragraph.
 
 `ParagraphSpacing: TPixels` = Specify the default paragraph spacing in overall text. The paragraph spacing is added to original line spacing. You can use `<LS>` tag to determine paragraph spacing at specific lines.
+
+`RightToLeftText: Boolean` = Enables Right-to-left text notation.
 
 `StyleLinkNormal: TDHStyleLinkProp` = Properties to format a link when is not selected by mouse.
 
