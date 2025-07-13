@@ -693,7 +693,7 @@ uses
   , Winapi.GDIPOBJ, Winapi.GDIPAPI
 {$ENDIF};
 
-const STR_VERSION = '6.8';
+const STR_VERSION = '6.9';
 
 const DEFAULT_PPI = 96;
 
