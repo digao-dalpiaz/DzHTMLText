@@ -1668,10 +1668,6 @@ begin
   //--Props
   Props := TDHPropsStore.Create;
   Props.FontColor := Lb.{$IFDEF FMX}FontColor{$ELSE}Font.Color{$ENDIF};
-  {$IF Defined(DCC) and Defined(VCL)}
-  if TStyleManager.IsCustomStyleActive and (seFont in Lb.StyleElements) and not (csDesigning in Lb.ComponentState) then
-    Props.FontColor := TStyleManager.ActiveStyle.GetStyleFontColor(TStyleFont.sfWindowTextNormal);
-  {$ENDIF}
   Props.BackColor := clNone;
 
   Props.Offset.Top := Lb.CalcScale(Lb.Offset.Top);
