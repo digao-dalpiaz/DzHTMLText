@@ -319,9 +319,7 @@ type
   private
     FAbout: string;
 
-    {$IFDEF FMX}
     FirstRebuild: Boolean;
-    {$ENDIF}
 
     VisualItems: TDHVisualItemList;
 
@@ -947,7 +945,7 @@ begin
   is not fired, because there is nothing to load. The Loaded is only fired
   when loading component that already has saved properties on DFM file.}
   inherited;
-  Rebuild;
+  //Rebuild - now in Paint event (just once)
 end;
 
 procedure TDzHTMLText.Modified(Flags: TDHModifiedFlags);
@@ -1261,9 +1259,7 @@ procedure TDzHTMLText.Paint;
 begin
   inherited;
 
-  {$IFDEF FMX}
   if not FirstRebuild then Rebuild;
-  {$ENDIF}
 
   ExecPaint;
 end;
