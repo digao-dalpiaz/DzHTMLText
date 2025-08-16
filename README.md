@@ -39,9 +39,11 @@
 
 ## What's New
 
-- 07/12/2025 (Version 6.9)
+- 08/16/2025 (Version 6.9)
 
    - Fixed full VCL Themes support
+   - Fixed images scaling in VCL when using ImageList with Scaled=True
+   - Fixed internal builder order in VCL to avoid incorrect construction when loading form with scaling
 
 <details>
   <summary>Click here to view the entire changelog</summary>
