@@ -894,7 +894,10 @@ procedure TDHToken_Image.Process;
 var
   V: TDHVisualItem_Image;
   Size: TAnySize;
+  IgnoreScale: Boolean;
 begin
+  IgnoreScale := False;
+
   {$IFDEF USE_IMGLST}
   if Assigned(Lb.Images) then
   begin
@@ -903,12 +906,16 @@ begin
       Size := TAnySize.Create(Width, Height);
     {$ELSE}
     Size := TAnySize.Create(Lb.Images.Width, Lb.Images.Height);
+    if Lb.Images.IsScaled then IgnoreScale := True; //imagelist already scaled
     {$ENDIF}
   end;
   {$ENDIF}
 
-  Size.Width := Lb.CalcScale(Size.Width);
-  Size.Height := Lb.CalcScale(Size.Height);
+  if not IgnoreScale then
+  begin
+    Size.Width := Lb.CalcScale(Size.Width);
+    Size.Height := Lb.CalcScale(Size.Height);
+  end;
 
   V := TDHVisualItem_Image.Create;
   V.ImageIndex := ImageIndex;
