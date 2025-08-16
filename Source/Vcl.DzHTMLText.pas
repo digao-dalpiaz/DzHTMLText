@@ -319,9 +319,7 @@ type
   private
     FAbout: string;
 
-    {$IFDEF FMX}
     FirstRebuild: Boolean;
-    {$ENDIF}
 
     VisualItems: TDHVisualItemList;
 
@@ -516,6 +514,8 @@ type
 
     property Text: string read GetText write SetText;
 
+    function GetRealColor(Color: TAnyColor): TAnyColor;
+
     class function UnescapeHTMLToText(const aHTML: string): string;
     class function EscapeTextToHTML(const aText: string): string;
   published
@@ -691,7 +691,7 @@ uses
   , Winapi.GDIPOBJ, Winapi.GDIPAPI
 {$ENDIF};
 
-const STR_VERSION = '6.8';
+const STR_VERSION = '6.9';
 
 const DEFAULT_PPI = 96;
 
@@ -945,7 +945,7 @@ begin
   is not fired, because there is nothing to load. The Loaded is only fired
   when loading component that already has saved properties on DFM file.}
   inherited;
-  Rebuild;
+  //Rebuild - now in Paint event (just once)
 end;
 
 procedure TDzHTMLText.Modified(Flags: TDHModifiedFlags);
@@ -1245,13 +1245,21 @@ begin
   inherited;
 end;
 
+function TDzHTMLText.GetRealColor(Color: TAnyColor): TAnyColor;
+begin
+  {$IF Defined(DCC) and Defined(VCL)}
+  if (Color<>clNone) and (seFont in StyleElements) {and not (csDesigning in ComponentState)} then
+    Result := StyleServices.GetSystemColor(Color)
+  else
+  {$ENDIF}
+  Result := Color;
+end;
+
 procedure TDzHTMLText.Paint;
 begin
   inherited;
 
-  {$IFDEF FMX}
   if not FirstRebuild then Rebuild;
-  {$ENDIF}
 
   ExecPaint;
 end;
@@ -1314,8 +1322,8 @@ begin
       C.Brush.Color := GetColorresolvingParent
     else
     {$ELSE}
-    if TStyleManager.IsCustomStyleActive and (seClient in StyleElements) and not (csDesigning in ComponentState) then
-      C.Brush.Color := TStyleManager.ActiveStyle.GetStyleColor(TStyleColor.scWindow)
+    if (seClient in StyleElements) {and not (csDesigning in ComponentState)} then
+      C.Brush.Color := StyleServices.GetSystemColor(Color)
     else
     {$ENDIF}
       C.Brush.Color := Color;
@@ -1353,14 +1361,13 @@ var
 begin
   R := W.Rect;
 
-  DefineFillColor(C, W.BColor);
+  DefineFillColor(Self, C, W.BColor);
 
   if W is TDHVisualItem_Word then
   begin
     C.Font.Assign(TDHVisualItem_Word(W).Font);
-    {$IFDEF FMX}
-    C.Stroke.Color := TDHVisualItem_Word(W).FontColor;
-    {$ENDIF}
+    DefineFontColor(Self, C,
+      {$IFDEF FMX}TDHVisualItem_Word(W).FontColor{$ELSE}C.Font.Color{$ENDIF});
   end;
 
   if Assigned(W.Link) then
@@ -1437,14 +1444,14 @@ procedure TDzHTMLText.Paint_Div(C: TCanvas; R: TAnyRect; W: TDHVisualItem_Div);
   begin
     if (Side.Thick=0) or (Side.Color=clNone) then Exit;
 
-    DefineFillColor(C, Side.Color);
+    DefineFillColor(Self, C, Side.Color);
     GenericFillRect(Self, C, TAnyRect.Create(TAnyPoint.Create(R.Left+X, R.Top+Y), W, H));
   end;
 
 begin
   if W.OuterColor<>clNone then
   begin
-    DefineFillColor(C, W.OuterColor);
+    DefineFillColor(Self, C, W.OuterColor);
     GenericFillRect(Self, C, R);
   end;
 
@@ -1456,7 +1463,8 @@ begin
   if W.CornerRadius>0 then
   begin
    {$IFDEF USE_GDI}
-    PaintRoundRectangleUsingWindowsGDI(C, W.Left.Thick, W.CornerRadius, R, W.Left.Color, W.InnerColor);
+    PaintRoundRectangleUsingWindowsGDI(C, W.Left.Thick, W.CornerRadius, R,
+      GetRealColor(W.Left.Color), GetRealColor(W.InnerColor));
    {$ELSE}
     if (W.Left.Thick>0) and (W.Left.Color<>clNone) then
     begin
@@ -1466,7 +1474,7 @@ begin
       C.Stroke.Kind := TBrushKind.{$IF CompilerVersion >= 27}{XE6}Solid{$ELSE}bkSolid{$ENDIF};
       {$ELSE}
       C.Pen.Width := W.Left.Thick;
-      C.Pen.Color := W.Left.Color;
+      C.Pen.Color := GetRealColor(W.Left.Color);
       C.Pen.Style := psSolid;
       {$ENDIF}
     end else
@@ -1478,7 +1486,7 @@ begin
       {$ENDIF}
     end;
 
-    DefineFillColor(C, W.InnerColor);
+    DefineFillColor(Self, C, W.InnerColor);
 
     {$IFDEF FMX}
     C.FillRect(R, W.CornerRadius, W.CornerRadius, AllCorners, Opacity); //backgound
@@ -1491,7 +1499,7 @@ begin
   begin
     if W.InnerColor<>clNone then
     begin
-      DefineFillColor(C, W.InnerColor);
+      DefineFillColor(Self, C, W.InnerColor);
       GenericFillRect(Self, C, R);
     end;
 
@@ -1568,14 +1576,14 @@ begin
   if W.ColorAlt <> clNone then
     R.Height := RoundIfVCL(R.Height / 2); //half height when double color
 
-  DefineFillColor(C, W.Color);
+  DefineFillColor(Self, C, W.Color);
   GenericFillRect(Self, C, R);
 
   if W.ColorAlt <> clNone then
   begin
     R.Offset(0, R.Height);
 
-    DefineFillColor(C, W.ColorAlt);
+    DefineFillColor(Self, C, W.ColorAlt);
     GenericFillRect(Self, C, R);
   end;
 end;
@@ -1957,8 +1965,8 @@ end;
 
 procedure TDHStyleLinkProp.SetPropsToCanvas(C: TCanvas);
 begin
-  if FFontColor<>clNone then DefineFontColor(C, FFontColor);
-  if FBackColor<>clNone then DefineFillColor(C, FBackColor);
+  if FFontColor<>clNone then DefineFontColor(Lb, C, FFontColor);
+  if FBackColor<>clNone then DefineFillColor(Lb, C, FBackColor);
   if FUnderline then C.Font.Style := C.Font.Style + [TMyFontStyle.fsUnderline];
 end;
 

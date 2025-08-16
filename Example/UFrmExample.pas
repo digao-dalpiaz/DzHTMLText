@@ -13,7 +13,7 @@ type
     Lb3: TDzHTMLText;
     procedure FormCreate(Sender: TObject);
     procedure LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
-      Picture: TPicture; var Handled: Boolean);
+      Picture: TAnyPicture; var Handled: Boolean);
     procedure LbLinkClick(Sender: TObject; Link: TDHBaseLink;
       var Handled: Boolean);
   end;
@@ -43,7 +43,7 @@ begin
 end;
 
 procedure TForm1.LbRetrieveImgRes(Sender: TObject; const ResourceName: string;
-  Picture: TPicture; var Handled: Boolean);
+  Picture: TAnyPicture; var Handled: Boolean);
 begin
   if ResourceName='LOGO' then
   begin

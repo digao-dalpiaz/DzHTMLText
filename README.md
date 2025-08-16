@@ -39,13 +39,19 @@
 
 ## What's New
 
+- 08/16/2025 (Version 6.9)
+
+   - Fixed full VCL Themes support
+   - Fixed images scaling in VCL when using ImageList with Scaled=True
+   - Fixed internal builder order in VCL to avoid incorrect construction when loading form with scaling
+
+<details>
+  <summary>Click here to view the entire changelog</summary>
+
 - 03/15/2025 (Version 6.8)
 
    - Right-to-left (RTL) text supporting.
    - When using a Div without "keep properties" (default), now Horizontal Text Alignment get the same value as component pre-defined Horizontal Alignment.
-
-<details>
-  <summary>Click here to view the entire changelog</summary>
 
 - 01/26/2025 (Version 6.7)
 

@@ -46,13 +46,13 @@ type
 
 function SplitStr(const Str, Separator: string; var Left: string; var Right: string): Boolean;
 
-procedure DefineFontColor(C: TCanvas; Color: TAnyColor);
+procedure DefineFontColor(Lb: TDzHTMLText; C: TCanvas; Color: TAnyColor);
 function GetGenericFontColor(C: TCanvas): TAnyColor;
 procedure DefineFontPt(F: TFont; Pt: TPixels; Lb: TDzHTMLText);
 function GetGenericFontPt(F: TFont): TPixels;
 procedure DefineFontName(F: TFont; const Name: string);
 function GetGenericFontName(F: TFont): string;
-procedure DefineFillColor(C: TCanvas; Color: TAnyColor);
+procedure DefineFillColor(Lb: TDzHTMLText; C: TCanvas; Color: TAnyColor);
 function GetGenericFillColor(C: TCanvas): TAnyColor;
 
 procedure GenericFillRect(Lb: TDzHTMLText; C: TCanvas; R: TAnyRect; FixPrecisionFMX: Boolean = False);
@@ -274,9 +274,9 @@ begin
   end;
 end;
 
-procedure DefineFontColor(C: TCanvas; Color: TAnyColor);
+procedure DefineFontColor(Lb: TDzHTMLText; C: TCanvas; Color: TAnyColor);
 begin
-  C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := Color;
+  C.{$IFDEF FMX}Stroke{$ELSE}Font{$ENDIF}.Color := Lb.GetRealColor(Color);
 end;
 
 function GetGenericFontColor(C: TCanvas): TAnyColor;
@@ -306,9 +306,9 @@ begin
    Result := F.{$IFDEF FMX}Family{$ELSE}Name{$ENDIF};
 end;
 
-procedure DefineFillColor(C: TCanvas; Color: TAnyColor);
+procedure DefineFillColor(Lb: TDzHTMLText; C: TCanvas; Color: TAnyColor);
 begin
-  C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := Color;
+  C.{$IFDEF FMX}Fill{$ELSE}Brush{$ENDIF}.Color := Lb.GetRealColor(Color);
 end;
 
 function GetGenericFillColor(C: TCanvas): TAnyColor;
