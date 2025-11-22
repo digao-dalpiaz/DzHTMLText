@@ -39,6 +39,10 @@
 
 ## What's New
 
+- 11/22/2025 (Version 6.11)
+
+   - Fixed Delphi 10.3 and below compiling (TImageList.IsScaled only available in Delphi 10.4)
+
 - 11/22/2025 (Version 6.10)
 
    - Fixed Lazarus compiling (TImageList.IsScaled only available in Delphi)
