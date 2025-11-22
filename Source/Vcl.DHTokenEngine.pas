@@ -906,7 +906,7 @@ begin
       Size := TAnySize.Create(Width, Height);
     {$ELSE}
     Size := TAnySize.Create(Lb.Images.Width, Lb.Images.Height);
-      {$IFDEF DCC}
+      {$IF Defined(DCC) and (CompilerVersion >= 34)} //Delphi 10.4 Sydney
       if Lb.Images.IsScaled then IgnoreScale := True; //imagelist already scaled
       {$ENDIF}
     {$ENDIF}
