@@ -906,7 +906,9 @@ begin
       Size := TAnySize.Create(Width, Height);
     {$ELSE}
     Size := TAnySize.Create(Lb.Images.Width, Lb.Images.Height);
-    if Lb.Images.IsScaled then IgnoreScale := True; //imagelist already scaled
+      {$IFDEF DCC}
+      if Lb.Images.IsScaled then IgnoreScale := True; //imagelist already scaled
+      {$ENDIF}
     {$ENDIF}
   end;
   {$ENDIF}
