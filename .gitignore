@@ -7,3 +7,5 @@ backup/
 *.rc
 *.dres
 *.dcu
+/Source
+/Source/Design
