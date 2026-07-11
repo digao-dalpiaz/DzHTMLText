@@ -1858,6 +1858,8 @@ begin
       if BreakableChar then Inc(I) else
         if I=0 then I := Len+1;
 
+      if (Copy(Text, CurPos, 1) = '&') and (Copy(Text, I, 1) = ';') then Inc(I); // for &gt;&lt;  
+
       with AddToken<TDHToken_Word> do
       begin
         Word := TDzHTMLText.UnescapeHTMLToText(Copy(Text, CurPos, I-CurPos));
